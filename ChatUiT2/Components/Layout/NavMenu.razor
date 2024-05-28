@@ -1,0 +1,66 @@
+﻿
+    <div style="display:flex; flex-direction:column;height:100%; overflow-x:hidden; width:100%;">
+        <div>
+
+            <div style="display: flex; align-items: center; justify-content:space-between;" class="pt-0">
+                <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" OnClick="CloseDrawer" Color="Color.Inherit"/>
+                @if (UserService.CurrentWorkItem == null || UserService.CurrentWorkItem.Type == WorkItemType.Chat)
+                {
+                    <MudButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Text" Class="ml-2 mr-1" OnClick="UserService.NewChat" FullWidth Style="justify-content:flex-end"  Color="Color.Inherit">
+                        <MudText Typo="Typo.h6">New chat</MudText>
+                        <MudIcon Icon="@Icons.Material.Filled.Add" Class="ml-1"/>
+                    </MudButton>
+                }
+            
+            </div>
+            <MudDivider Class="mb-2"/>
+        </div>
+
+        <div class="flex-grow-1">
+        <WorkItemView workItem="UserService.GetWorkItems()[0]"/>
+        <WorkItemView workItem="UserService.GetWorkItems()[1]"/>
+        <WorkItemView workItem="UserService.GetWorkItems()[2]"/>
+        @* <WorkItemView workItem="UserService.CurrentWorkItem" /> *@
+        </div>
+
+
+        @* Bottom  *@
+        <div>
+            <MudDivider/>
+
+            <MudNavLink Href="/v/1" Match="NavLinkMatch.All" Class="d-flex align-items-center">
+                <MudStack Row>
+
+                    <MudIcon Icon="@Icons.Material.Filled.Home" Class="mt-1"/>
+                    <MudText Typo="Typo.h6">Home</MudText>
+                </MudStack>
+            </MudNavLink>
+
+            <MudNavLink Href="/v/1" Match="NavLinkMatch.All" Class="d-flex align-items-center">
+                <MudStack Row>
+
+                    <MudIcon Icon="@Icons.Material.Filled.Chat" Class="mt-1" />
+                    <MudText Typo="Typo.h6">View chat</MudText>
+                </MudStack>
+            </MudNavLink>
+
+        </div>
+
+    </div>
+
+    
+
+
+
+
+@code {
+    [Inject] private UserService UserService { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Parameter] public EventCallback OnClose { get; set; }
+
+
+    private void CloseDrawer()
+    {
+        OnClose.InvokeAsync();
+    }
+}

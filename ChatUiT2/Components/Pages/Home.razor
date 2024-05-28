@@ -1,0 +1,17 @@
+﻿@page "/"
+
+@* <PageTitle>Home</PageTitle> *@
+
+    <h1>Hello, world!</h1>
+    Welcome to your new app.
+
+
+@code {
+    [Inject] NavigationManager Nav { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        // Nav.NavigateTo("/v/new/");
+    }
+    
+}

@@ -1,0 +1,180 @@
+﻿
+<MudChip Style="width: calc(100% - 8px); height:32px;" Class="pa-0 mx-1 my-0" Size="Size.Small" OnClick="SelectWorkItem" Color="GetBackgroundColor()">
+    @if (!isEditing)
+    {
+        <div class="d-flex align-items-center" style="width: 220px;">
+
+            @if (workItem.IsFavorite)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Large" Class="" Style="margin-top: auto; margin-bottom: auto;" Color="@(workItem.IsFavorite ? Color.Warning : Color.Dark)"/>
+            }
+        
+            <MudText Typo="Typo.body2" Class="mt-1 ml-1"  Color="Color.Inherit" Style="@(workItem.Persistant ? "color:white" : "color:gray")" >@workItem.Name</MudText>
+            <MudSpacer />
+        
+            @if (IsSelected())
+            {
+                <MudMenu Dense Size="Size.Small" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                    <ActivatorContent>
+                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto; height: 24px; width: 24px; color:white" />
+
+                    </ActivatorContent>
+
+                    <ChildContent>
+                        <MudMenuItem Style="height:28px" OnClick="StartEditing">
+                            <MudStack Row>
+                                <MudIcon Icon="@Icons.Material.Filled.Edit" Size="Size.Small"/>
+                                <MudText Typo="Typo.body2">Rename</MudText>
+                            </MudStack>
+                        </MudMenuItem>
+                        <MudMenuItem Style="height:28px" OnClick="@(() => {workItem.IsFavorite = !workItem.IsFavorite; UserService.UpdateWorkItem(workItem);})">
+                            <MudStack Row>
+                                @if (workItem.IsFavorite)
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small"/>
+                                    <MudText Typo="Typo.body2">Remove as favorite</MudText>
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Small"/>
+                                    <MudText Typo="Typo.body2">Add as favorite</MudText>
+                                }
+                            </MudStack>
+                        </MudMenuItem>    
+                        <MudMenuItem Style="height:28px" OnClick="@(() => UserService.DeleteWorkItem(workItem))">
+                            <MudStack Row>
+                                <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small"/>
+                                <MudText Typo="Typo.body2">Delete</MudText>
+                            </MudStack>
+                        </MudMenuItem>
+                    </ChildContent>
+
+                </MudMenu>
+            }
+       </div>
+   }
+   else
+   {
+
+       <MudTextField @bind-Value="newName" AutoFocus Immediate Variant="Variant.Text" Style="height:28px; width:210px" Class="pa-0 ma-0" 
+            Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Check" OnAdornmentClick="StopEditing" @onfocusout="StopEditing" @onkeydown="OnKeyDown" />
+
+   }
+
+</MudChip>
+
+@code {
+    [Parameter] public IWorkItem workItem { get; set; } = null!;
+    [Inject] private UserService UserService { get; set; } = null!;
+
+    private string newName { get; set; } = string.Empty;
+
+    public bool isEditing { get; set; } = false;
+
+    override protected void OnInitialized()
+    {
+        UserService.OnUpdate += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        UserService.OnUpdate -= StateHasChanged;
+    }
+
+    private bool IsSelected()
+    {
+        return workItem.Id == UserService.CurrentWorkItem.Id;
+    }
+
+    private void SelectWorkItem()
+    {
+        if (IsSelected())
+        {
+            return;
+        }
+        UserService.CurrentWorkItem = workItem;
+        UserService.RaiseUpdate();
+        Console.WriteLine("Selected work item2: " + workItem.Name);
+
+    }
+
+    private void OnDelete()
+    {
+        // UserService.DeleteWorkItem(workItem);
+        // TODO: Implement
+    }
+
+    private void OnRename()
+    {
+        // TODO: Implement
+    }
+
+    private Color GetBackgroundColor()
+    {
+        if (UserService.IsDarkMode)
+        {
+            if (IsSelected())
+            {
+                return Color.Default;
+            }
+            else
+            {
+                return Color.Dark;
+            }
+        }
+        else
+        {
+            if (IsSelected())
+            {
+                return Color.Default;
+            }
+            else
+            {
+                return Color.Dark;
+            }
+        }
+    }
+
+    private void StartEditing()
+    {
+        isEditing = true;
+        newName = workItem.Name;
+        StateHasChanged();
+    }
+
+    private void StopEditing()
+    {
+        isEditing = false;
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            return;
+        }
+        if (newName != workItem.Name)
+        {
+            workItem.Name = newName;
+            UserService.UpdateWorkItem(workItem);
+        }
+        UserService.RaiseUpdate();
+    }
+    
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            StopEditing();
+        }
+    }
+
+    private void ToggleFavorite()
+    {
+        workItem.IsFavorite = !workItem.IsFavorite;
+        if (workItem.IsFavorite && !workItem.Persistant)
+        {
+            workItem.Persistant = true;
+        }
+        
+        UserService.UpdateWorkItem(workItem);
+        UserService.RaiseUpdate();
+    }
+
+}

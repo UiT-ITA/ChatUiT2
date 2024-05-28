@@ -1,0 +1,209 @@
+﻿@inherits LayoutComponentBase
+<MudThemeProvider @bind-IsDarkMode="@UserService.IsDarkMode" Theme="_theme"/>
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+
+    <PageTitle>ChatUiT</PageTitle>
+    
+    <MudAppBar Elevation="0" Dense Color="Color.Transparent" DisableGutters>
+        @if (!drawerOpen)
+        {
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" />
+            <MudIconButton Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" />
+            <MudDivider Vertical Style="height:32px" Class="pl-2" />
+
+        }
+
+        @* Model selection *@
+        <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Dense>
+            <ActivatorContent>
+                <MudButton Class="ml-2">
+                    <MudText Typo="Typo.h6" >@((UserService.CurrentWorkItem as WorkItemChat).Settings.Model)</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" />
+                </MudButton>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem OnClick="@(() => SelectModel("GPT-4o"))">
+                    <div class="d-flex align-items-center" style="width: 300px;">
+                        <MudIcon Icon="@Icons.Material.Filled.HotelClass" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
+                        <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                            <MudText Typo="Typo.h6" Class="m-0">GPT-4o</MudText>
+                            <MudText Typo="Typo.subtitle2" Class="m-0">The latest and most advanced</MudText>
+                        </div>
+                        @if ((UserService.CurrentWorkItem as WorkItemChat).Settings.Model == "GPT-4o")
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                        }
+                    </div>
+                </MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="@(() => SelectModel("GPT-4-Turbo"))">
+                    <div class="d-flex align-items-center" style="width: 300px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
+                        <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                            <MudText Typo="Typo.h6" Class="m-0">GPT-4-Turbo</MudText>
+                            <MudText Typo="Typo.subtitle2" Class="m-0">Advanced but slower</MudText>
+                        </div>
+                        @if ((UserService.CurrentWorkItem as WorkItemChat).Settings.Model == "GPT-4-Turbo")
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                        }
+                    </div>
+                </MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="@(() => SelectModel("GPT-35-Turbo"))">
+                    <div class="d-flex align-items-center" style="width: 300px;">
+                        <MudIcon Icon="@Icons.Material.Filled.StarHalf" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
+                        <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                            <MudText Typo="Typo.h6" Class="m-0">GPT-3.5-Turbo</MudText>
+                            <MudText Typo="Typo.subtitle2" Class="m-0">Fast, but not as good</MudText>
+                        </div>
+                        @if ((UserService.CurrentWorkItem as WorkItemChat).Settings.Model == "GPT-35-Turbo")
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                        }
+                    </div>
+                </MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="@(() => SelectModel("Orakel"))">
+                    <div class="d-flex align-items-center" style="width: 300px;">
+                        <MudIcon Icon="@Icons.Material.Filled.PersonSearch" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
+                        <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                            <MudText Typo="Typo.h6" Class="m-0">Orakelet</MudText>
+                            <MudText Typo="Typo.subtitle2" Class="m-0">For UiT specific questions.</MudText>
+                        </div>
+                        @if ((UserService.CurrentWorkItem as WorkItemChat).Settings.Model == "Orakel")
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                        }
+                    </div>
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
+            
+        <MudTooltip Text="@(CurrentWorkItemPersistant ? "This chat will be saved" : "This chat will not be saved")">
+            <MudSwitch @bind-Checked="CurrentWorkItemPersistant" Disabled="UserService.CurrentWorkItem.IsFavorite" T="bool" 
+                Color="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
+                UnCheckedColor="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
+                ThumbIconColor="@(CurrentWorkItemPersistant ? Color.Success : Color.Error)" 
+                ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
+        </MudTooltip>
+
+
+        
+        <MudSpacer />
+
+        <MudSwitch @bind-Checked="UserService.IsDarkMode" Color="Color.Dark" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
+
+
+        @* User menu *@
+        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                    <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large"/>
+                </MudButton>
+            </ActivatorContent>
+            <ChildContent>
+                <MudMenuItem OnClick="OpenPreferences">
+                    <MudStack Row Style="width:150px">
+                        <MudIcon Icon="@Icons.Material.Filled.Settings" /> 
+                        Preferences 
+                    </MudStack>
+                </MudMenuItem>
+                <MudDivider />
+                <MudMenuItem OnClick="Logout">
+                    <MudStack Row Style="width:150px">
+                        <MudIcon Icon="@Icons.Material.Filled.ExitToApp" /> 
+                        Logout
+                    </MudStack>
+                </MudMenuItem>
+            </ChildContent>
+        </MudMenu>
+
+
+
+
+    </MudAppBar>
+
+
+    <MudDrawer @bind-Open="@drawerOpen" Fixed Elevation="0" Color="Color.Dark">
+        <NavMenu OnClose="CloseDrawer" />
+    </MudDrawer>
+
+    @* Main Content *@
+    <MudMainContent Style="padding-top: 48px">
+        <div style="display: flex; flex-direction: column; height: calc(100vh - 48px); overflow: auto;">
+            @Body
+        </div>
+    </MudMainContent>
+
+    
+</MudLayout>
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+
+@code {
+    [Inject] private UserService UserService { get; set; } = null!;
+
+    private bool modelSelected = true;
+    private bool CurrentWorkItemPersistant
+    {
+        get => UserService.CurrentWorkItem.Persistant;
+        set
+        {
+            UserService.CurrentWorkItem.Persistant = value;
+            UserService.UpdateWorkItem(UserService.CurrentWorkItem);
+            UserService.SetSaveHistory(value);
+        }
+    }
+
+
+    private MudTheme _theme = new();
+    // private bool _isHistoryEnabled = true;
+    private bool drawerOpen = true;
+
+    protected override void OnInitialized()
+    {
+        UserService.OnUpdate += UpdateView;
+        base.OnInitialized();
+    }
+
+    public void Dispose()
+    {
+        UserService.OnUpdate -= UpdateView;
+    }
+
+    public void UpdateView()
+    {
+        StateHasChanged();
+    }
+
+    private void CloseDrawer()
+    {
+        drawerOpen = false;
+    }
+
+    private void OpenPreferences()
+    {
+        // TODO: Implement
+    }
+
+    private void Logout()
+    {
+        // TODO: Implement
+    }
+
+
+    private void SelectModel(string model)
+    {
+        (UserService.CurrentWorkItem as WorkItemChat).Settings.Model = model;
+        UserService.SetPreferredModel(model);
+        StateHasChanged();
+    }
+}

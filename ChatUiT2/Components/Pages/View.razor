@@ -1,0 +1,14 @@
+﻿@page "/v/{guid}"
+
+
+
+
+@code {
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private UserService User { get; set; } = null!;
+
+    [Parameter] public string guid { get; set; } = string.Empty;
+
+
+
+}
