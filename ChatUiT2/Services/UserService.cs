@@ -7,6 +7,8 @@ public class UserService
     public IWorkItem CurrentWorkItem { get; set; }
     public bool IsDarkMode { get; set; }
 
+    public bool Waiting { get; set; } = false;
+
 
     private User User { get; set; }
 

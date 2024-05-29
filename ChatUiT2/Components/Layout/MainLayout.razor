@@ -84,7 +84,7 @@
         </MudMenu>
             
         <MudTooltip Text="@(CurrentWorkItemPersistant ? "This chat will be saved" : "This chat will not be saved")">
-            <MudSwitch @bind-Checked="CurrentWorkItemPersistant" Disabled="UserService.CurrentWorkItem.IsFavorite" T="bool" 
+            <MudSwitch @bind-Value="CurrentWorkItemPersistant" Disabled="UserService.CurrentWorkItem.IsFavorite" T="bool" 
                 Color="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
                 UnCheckedColor="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
                 ThumbIconColor="@(CurrentWorkItemPersistant ? Color.Success : Color.Error)" 
@@ -134,7 +134,14 @@
 
     @* Main Content *@
     <MudMainContent Style="padding-top: 48px">
-        <div style="display: flex; flex-direction: column; height: calc(100vh - 48px); overflow: auto;">
+        <div style="
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 48px);
+            overflow: auto;
+            margin: 0 auto;
+            max-width: 1200px;
+            ">
             @Body
         </div>
     </MudMainContent>
@@ -150,8 +157,6 @@
 
 @code {
     [Inject] private UserService UserService { get; set; } = null!;
-
-    private bool modelSelected = true;
     private bool CurrentWorkItemPersistant
     {
         get => UserService.CurrentWorkItem.Persistant;

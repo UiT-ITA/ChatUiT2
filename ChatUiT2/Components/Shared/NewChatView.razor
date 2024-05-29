@@ -1,0 +1,18 @@
+<h3>NewChatView</h3>
+
+
+@code {
+    [Inject] private UserService UserService { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        UserService.OnUpdate += StateHasChanged;
+        base.OnInitialized();
+    }
+
+    public void Dispose()
+    {
+        UserService.OnUpdate -= StateHasChanged;
+    }
+
+}

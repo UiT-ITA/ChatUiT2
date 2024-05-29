@@ -28,6 +28,8 @@
         <div>
             <MudDivider/>
 
+            <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="@(() => {UserService.Waiting = !UserService.Waiting; UserService.RaiseUpdate();})">Testing</MudButton>
+
             <MudNavLink Href="/v/1" Match="NavLinkMatch.All" Class="d-flex align-items-center">
                 <MudStack Row>
 
