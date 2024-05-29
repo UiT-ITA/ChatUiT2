@@ -35,7 +35,6 @@
 
 @code {
     [Inject] private UserService UserService { get; set; } = null!;
-    [Inject] private IJSRuntime JS { get; set; } = null!;
 
     private string prompt = "";
 
@@ -68,20 +67,17 @@
         StateHasChanged();
 
         // TODO: Implement sending message
-        // await UserService.SendMessage(sendPrompt);
-
-        await Task.Delay(2000);
+        await UserService.SendMessage(sendPrompt);
 
         UserService.Waiting = false;
         StateHasChanged();
     }
 
-    private async Task HandleKeyPress(KeyboardEventArgs e)
+    private async void HandleKeyPress(KeyboardEventArgs e)
     {
-        await JS.InvokeVoidAsync("preventEnterDefault", e);
         if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
         {
-            SendMessage();
+            await SendMessage();
         }
     }
 

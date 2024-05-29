@@ -20,7 +20,7 @@
         <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Dense>
             <ActivatorContent>
                 <MudButton Class="ml-2">
-                    <MudText Typo="Typo.h6" >@((UserService.CurrentWorkItem as WorkItemChat).Settings.Model)</MudText>
+                    <MudText Typo="Typo.h6">@(((WorkItemChat)UserService.CurrentWorkItem).Settings.Model)</MudText>
                     <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" />
                 </MudButton>
             </ActivatorContent>
@@ -32,7 +32,7 @@
                             <MudText Typo="Typo.h6" Class="m-0">GPT-4o</MudText>
                             <MudText Typo="Typo.subtitle2" Class="m-0">The latest and most advanced</MudText>
                         </div>
-                        @if ((UserService.CurrentWorkItem as WorkItemChat).Settings.Model == "GPT-4o")
+                        @if (((WorkItemChat)UserService.CurrentWorkItem).Settings.Model == "GPT-4o")
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                         }
@@ -46,7 +46,7 @@
                             <MudText Typo="Typo.h6" Class="m-0">GPT-4-Turbo</MudText>
                             <MudText Typo="Typo.subtitle2" Class="m-0">Advanced but slower</MudText>
                         </div>
-                        @if ((UserService.CurrentWorkItem as WorkItemChat).Settings.Model == "GPT-4-Turbo")
+                        @if (((WorkItemChat)UserService.CurrentWorkItem).Settings.Model == "GPT-4-Turbo")
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                         }
@@ -60,7 +60,7 @@
                             <MudText Typo="Typo.h6" Class="m-0">GPT-3.5-Turbo</MudText>
                             <MudText Typo="Typo.subtitle2" Class="m-0">Fast, but not as good</MudText>
                         </div>
-                        @if ((UserService.CurrentWorkItem as WorkItemChat).Settings.Model == "GPT-35-Turbo")
+                        @if (((WorkItemChat)UserService.CurrentWorkItem).Settings.Model == "GPT-35-Turbo")
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                         }
@@ -74,7 +74,7 @@
                             <MudText Typo="Typo.h6" Class="m-0">Orakelet</MudText>
                             <MudText Typo="Typo.subtitle2" Class="m-0">For UiT specific questions.</MudText>
                         </div>
-                        @if ((UserService.CurrentWorkItem as WorkItemChat).Settings.Model == "Orakel")
+                        @if (((WorkItemChat)UserService.CurrentWorkItem).Settings.Model == "Orakel")
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                         }
@@ -207,7 +207,7 @@
 
     private void SelectModel(string model)
     {
-        (UserService.CurrentWorkItem as WorkItemChat).Settings.Model = model;
+        ((WorkItemChat)UserService.CurrentWorkItem).Settings.Model = model;
         UserService.SetPreferredModel(model);
         StateHasChanged();
     }

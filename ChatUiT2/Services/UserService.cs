@@ -12,7 +12,8 @@ public class UserService
 
     private User User { get; set; }
 
-
+    private IConfiguration _configuration { get; set; }
+    private ChatService _chatService { get; set; }
 
 
 
@@ -21,8 +22,11 @@ public class UserService
 
     public event Action? OnUpdate;
 
-    public UserService()
+    public UserService(IConfiguration configuration)
     {
+        _configuration = configuration;
+        _chatService = new ChatService(configuration, this);
+
         User = new User("test");
         CurrentWorkItem = new WorkItemChat();
         IsDarkMode = User.Preferences.DarkMode;
@@ -74,6 +78,14 @@ public class UserService
         Console.WriteLine("Deleting work item: " + workItem.Name);
     }
 
+
+    public async Task SendMessage(string message)
+    {
+        await Task.Delay(5000);
+
+
+
+    }
 
 
 }
