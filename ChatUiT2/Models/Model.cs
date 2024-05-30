@@ -3,11 +3,13 @@
 public class Model
 {
     public string Name { get; set; } = "";
-    public ModelType Type { get; set; }
-    public ModelService Service { get; set; }
-    public int MaxContext { get; set; }
-    public int MaxTokens { get; set; }
+    public string Description { get; set; } = "";
+    public string DeploymentName { get; set; } = "";
+    public string Service { get; set; } = "";
+    public int MaxContext { get; set; } = 4096;
+    public int MaxTokens { get; set; } = 4096;
 }
+
 
 public enum ModelType
 {

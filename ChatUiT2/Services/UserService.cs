@@ -6,12 +6,8 @@ public class UserService
 {
     public IWorkItem CurrentWorkItem { get; set; }
     public bool IsDarkMode { get; set; }
-
     public bool Waiting { get; set; } = false;
-
-
     private User User { get; set; }
-
     private IConfiguration _configuration { get; set; }
     private ChatService _chatService { get; set; }
 
@@ -56,6 +52,11 @@ public class UserService
         RaiseUpdate();
     }
 
+    public List<Model> GetModelList()
+    {
+        return _chatService.GetModels();
+    }
+
     public void SetPreferredModel(string model)
     {
         User.Preferences.DefaultChatSettings.Model = model;
@@ -81,10 +82,14 @@ public class UserService
 
     public async Task SendMessage(string message)
     {
-        await Task.Delay(5000);
 
+        await _chatService.GetResponse(message);
+    }
 
+    public async void UpdateItem(IWorkItem chat)
+    {
 
+        RaiseUpdate();
     }
 
 

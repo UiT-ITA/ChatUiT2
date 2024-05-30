@@ -1,5 +1,13 @@
 <h3>ChatConversationView</h3>
+@foreach (var message in ((WorkItemChat)UserService.CurrentWorkItem).Messages)
+{
+    <div>
+        <span>@message.Role.ToString()</span>
+        <span>@message.Created</span>
+        <p>@message.Content</p>
+    </div>
 
+}
 
 @code {
     [Inject] private UserService UserService { get; set; } = null!;
