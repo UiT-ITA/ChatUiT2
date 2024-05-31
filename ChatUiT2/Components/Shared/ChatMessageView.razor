@@ -1,0 +1,142 @@
+﻿@if (Message.Status == ChatMessageStatus.Error)
+{
+    <h1>
+        Display error message
+    </h1>
+}
+else if (Message.Role == ChatMessageRole.User)
+{
+    if (!isEditing)
+    {
+        <div style="display: flex; justify-content: flex-end; width: 100%;">
+            <MudPaper Class="pa-4 ma-2" Style="overflow-wrap: break-word; word-break: break-word; border-radius:32px; display: inline-block;" Elevation="0">
+                <div style="display: flex; align-items: start;">
+
+                    @* Uncomment if needed
+                @* <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" Style="width: 32px; height: 32px;" />
+                </div> *@
+
+                    <div style="display: flex; flex-direction: column; overflow: hidden;" class="ml-4 mr-2">
+                        <MudMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark" />
+                    </div>
+
+                    <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="StartEdit"/>
+                    </div>
+
+                </div>
+            </MudPaper>
+        </div>
+    }
+    else
+    {
+        <MudPaper Class="pa-4 ma-2" Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; background-color:transparent" Elevation="0">
+            <MudStack Row>
+
+                <div class="flex-grow-1" style="display: flex; flex-direction: column; overflow: hidden;">
+                    <MudMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark" />
+                </div>
+
+                <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" OnClick="StopEdit" />
+                </div>
+
+                <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" OnClick="StopEdit" />
+                </div>
+
+            </MudStack>
+        </MudPaper>
+    }
+}
+else
+{
+    <MudPaper Class="pa-4 ma-2" Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; background-color:transparent" Elevation="0">
+        <MudStack Row>
+
+            <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Android" Size="Size.Large" Style="width: 32px; height: 32px;" />
+            </div>
+
+            <div class="flex-grow-1" style="display: flex; flex-direction: column; overflow: hidden;">
+                <MudMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark" />
+            </div>
+
+            <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
+                <MudIcon Icon="@Icons.Material.Filled.MoreVert" Size="Size.Medium" OnClick="() => UserService.DeleteMessage(Message)" />
+            </div>
+
+        </MudStack>
+    </MudPaper>
+}
+
+
+<style>
+    .mud-markdown-body p {
+        margin-bottom: 0.5rem !important;
+    }
+</style>
+
+
+
+@code {
+    [Parameter] public ChatMessage Message { get; set; } = null!;
+
+    [Inject] public UserService UserService { get; set; } = null!;
+    [Inject] public IDialogService DialogService { get; set; } = null!;
+
+    private bool isEditing = false;
+    private string newContent = "";
+
+    override protected void OnInitialized()
+    {
+        UserService.OnUpdate += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        UserService.OnUpdate -= StateHasChanged;
+    }
+
+    public async void DeleteMessage()
+    {
+        // Make popup where user can confirm deletion
+        bool? result = await DialogService.ShowMessageBox(
+            "Warning",
+            "Deleting a message is irreversible. Are you sure you want to delete this message?",
+            yesText: "Delete!",
+            cancelText: "Cancel");
+
+        if (result != null && result == true)
+        {
+            Console.WriteLine("Delete message");
+            // UserService.DeleteMessage(Message);
+        }
+
+    }
+
+    private void StartEdit()
+    {
+        newContent = Message.Content;
+        StateHasChanged();
+    }
+
+    private async Task StopEdit()
+    {
+        if (newContent != Message.Content)
+        {
+            // Delete this and all following messages in UserService.CurrentWorkItem.Messages
+            WorkItemChat workItem = (WorkItemChat)UserService.CurrentWorkItem;
+            int index = workItem.Messages.IndexOf(Message);
+            for (int i = workItem.Messages.Count - 1; i >= index; i--)
+            {
+                workItem.Messages.RemoveAt(i);
+            }
+
+            await UserService.SendMessage(newContent);
+        }
+
+    }
+
+}

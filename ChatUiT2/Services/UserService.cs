@@ -1,4 +1,5 @@
 ﻿using ChatUiT2.Models;
+using ChatUiT2.Tools;
 
 namespace ChatUiT2.Services;
 
@@ -86,9 +87,11 @@ public class UserService
         await _chatService.GetResponse(message);
     }
 
-    public async void UpdateItem(IWorkItem chat)
+    public async void UpdateItem(IWorkItem workItem)
     {
-
+        workItem.Updated = DateTimeTools.GetTimestamp();
+        // TODO: implement saving
+        await Task.Delay(100);
         RaiseUpdate();
     }
 

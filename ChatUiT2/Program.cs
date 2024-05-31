@@ -1,5 +1,6 @@
 using ChatUiT2.Components;
 using ChatUiT2.Services;
+using MudBlazor;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,7 @@ builder.Services.AddRazorComponents()
 
 // Mudblazor
 builder.Services.AddMudServices();
+builder.Services.AddMudMarkdownServices();
 
 
 // Services

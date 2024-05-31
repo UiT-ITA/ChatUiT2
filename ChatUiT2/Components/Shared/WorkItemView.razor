@@ -1,5 +1,5 @@
 ﻿
-<MudChip Style="width: calc(100% - 8px); height:32px;" Class="pa-0 mx-1 my-0" Size="Size.Small" OnClick="SelectWorkItem" Color="GetBackgroundColor()">
+<MudChip Style="@GetChipStyle()" Class="pa-0 mx-1 my-0" Size="Size.Small" OnClick="SelectWorkItem" >
     @if (!isEditing)
     {
         <div class="d-flex align-items-center" style="width: 220px;">
@@ -8,15 +8,15 @@
             {
                 <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Large" Class="" Style="margin-top: auto; margin-bottom: auto;" Color="@(workItem.IsFavorite ? Color.Warning : Color.Dark)"/>
             }
-        
-            <MudText Typo="Typo.body2" Class="mt-1 ml-1"  Color="Color.Inherit" Style="@(workItem.Persistant ? "color:white" : "color:gray")" >@workItem.Name</MudText>
+
+            <MudText Typo="Typo.body2" Class="mt-1 ml-1" Color="Color.Inherit" Style="@(workItem.Persistant ? "var(--mud-palette-text-primary)" : "color:gray")">@workItem.Name</MudText>
             <MudSpacer />
         
             @if (IsSelected())
             {
                 <MudMenu Dense Size="Size.Small" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
                     <ActivatorContent>
-                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto; height: 24px; width: 24px; color:white" />
+                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto; height: 24px; width: 24px;" />
 
                     </ActivatorContent>
 
@@ -133,6 +133,22 @@
                 return Color.Dark;
             }
         }
+    }
+
+    private string GetChipStyle()
+    {
+        string backgroundColor = "";
+
+        if (IsSelected())
+        {
+            backgroundColor = "--mud-palette-surface";
+        }
+        else
+        {
+            backgroundColor = "--mud-palette-background-grey";
+        }
+
+        return $"width: calc(100% - 8px); height:32px; background-color: var({backgroundColor})";
     }
 
     private void StartEditing()

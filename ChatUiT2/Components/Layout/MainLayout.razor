@@ -128,7 +128,7 @@
     </MudAppBar>
 
 
-    <MudDrawer @bind-Open="@drawerOpen" Fixed Elevation="0" Color="Color.Dark">
+    <MudDrawer @bind-Open="@drawerOpen" Fixed Elevation="0" Style="background-color: var(--mud-palette-background-grey)">
         <NavMenu OnClose="CloseDrawer" />
     </MudDrawer>
 
@@ -139,8 +139,6 @@
             flex-direction: column;
             height: calc(100vh - 48px);
             overflow: auto;
-            margin: 0 auto;
-            max-width: 1200px;
             ">
             @Body
         </div>
