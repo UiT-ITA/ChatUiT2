@@ -11,6 +11,7 @@ public class WorkItemChat : IWorkItem
     public DateTime Created { get; set; } = DateTimeTools.GetTimestamp();
     public DateTime Updated { get; set; } = DateTimeTools.GetTimestamp();
     public bool IsFavorite { get; set; } = false;
+    [JsonIgnore]
     public bool Persistant { get; set; } = true;
 
     public ChatSettings Settings { get; set; } = new ChatSettings();

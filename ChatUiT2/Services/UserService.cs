@@ -40,7 +40,14 @@ public class UserService
 
     public void NewChat()
     {
+        if (CurrentChat.Messages.Count == 0)
+        {
+            // Destroy the object?
+        }
+
         CurrentWorkItem = new WorkItemChat();
+        CurrentWorkItem.Persistant = User.Preferences.SaveHistory;
+        CurrentChat.Settings.Copy(User.Preferences.DefaultChatSettings);
         RaiseUpdate();
     }
 
@@ -49,12 +56,27 @@ public class UserService
         return User.Preferences.SaveHistory;
     }
 
-    public async Task SetSaveHistory(bool value)
+    public async Task SetSaveHistory(IWorkItem workItem, bool value)
     {
-        User.Preferences.SaveHistory = value;
+        if (workItem.Persistant != value)
+        {
+            workItem.Persistant = value;
+        }
+
+        // TODO: Implement
+        await Task.Delay(100);
+
+        RaiseUpdate();
+    }
+
+    public async Task SetDefaultChatSettings()
+    {
+        User.Preferences.DefaultChatSettings.Copy(CurrentChat.Settings);
+        User.Preferences.SaveHistory = CurrentChat.Persistant;
         // TODO: Implement
         await Task.Delay(100);
         RaiseUpdate();
+
     }
 
     public List<Model> GetModelList()
@@ -67,6 +89,10 @@ public class UserService
         User.Preferences.DefaultChatSettings.Model = model;
     }
 
+    public int GetMaxTokens()
+    {
+        return GetMaxTokens(CurrentChat);
+    }
     public int GetMaxTokens(WorkItemChat chat)
     {
         _chatService.GetModel(chat.Settings.Model);
@@ -101,7 +127,7 @@ public class UserService
 
         if (CurrentWorkItem == workItem)
         {
-            CurrentWorkItem = new WorkItemChat();
+            NewChat();
         }
 
         if (workItem.Persistant)

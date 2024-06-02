@@ -30,6 +30,15 @@ public class ChatSettings
 {
     public string Model { get; set; } = "GPT-4-Turbo";
     public float Temperature { get; set; } = 0.2f;
-    public string Prompt { get; set; } = "You are a helpful ai assistant, respond using markdown?";
+    public string Prompt { get; set; } = "You are a helpful ai assistant, respond using markdown.";
     public int MaxTokens { get; set; } = 1024;
+
+
+    public void Copy(ChatSettings settings)
+    {
+        Model = settings.Model;
+        Temperature = settings.Temperature;
+        Prompt = settings.Prompt;
+        MaxTokens = settings.MaxTokens;
+    }
 }

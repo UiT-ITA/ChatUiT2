@@ -27,7 +27,7 @@
                                 <MudText Typo="Typo.body2">Rename</MudText>
                             </MudStack>
                         </MudMenuItem>
-                        <MudMenuItem Style="height:28px" OnClick="@(() => {workItem.IsFavorite = !workItem.IsFavorite; UserService.UpdateWorkItem(workItem);})">
+                        <MudMenuItem Style="height:28px" OnClick="@(async () => {workItem.IsFavorite = !workItem.IsFavorite; await UserService.UpdateWorkItem(workItem);})">
                             <MudStack Row>
                                 @if (workItem.IsFavorite)
                                 {
@@ -94,7 +94,6 @@
         }
         UserService.CurrentWorkItem = workItem;
         UserService.RaiseUpdate();
-        Console.WriteLine("Selected work item2: " + workItem.Name);
 
     }
 
@@ -158,7 +157,7 @@
         StateHasChanged();
     }
 
-    private void StopEditing()
+    private async Task StopEditing()
     {
         isEditing = false;
         if (string.IsNullOrWhiteSpace(newName))
@@ -168,20 +167,20 @@
         if (newName != workItem.Name)
         {
             workItem.Name = newName;
-            UserService.UpdateWorkItem(workItem);
+            await UserService.UpdateWorkItem(workItem);
         }
         UserService.RaiseUpdate();
     }
     
-    private void OnKeyDown(KeyboardEventArgs e)
+    private async Task OnKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
-            StopEditing();
+            await StopEditing();
         }
     }
 
-    private void ToggleFavorite()
+    private async Task ToggleFavorite()
     {
         workItem.IsFavorite = !workItem.IsFavorite;
         if (workItem.IsFavorite && !workItem.Persistant)
@@ -189,7 +188,7 @@
             workItem.Persistant = true;
         }
         
-        UserService.UpdateWorkItem(workItem);
+        await UserService.UpdateWorkItem(workItem);
         UserService.RaiseUpdate();
     }
 
