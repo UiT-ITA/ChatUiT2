@@ -1,5 +1,5 @@
 <div>
-    @foreach (var message in ((WorkItemChat)UserService.CurrentWorkItem).Messages)
+    @foreach (var message in UserService.CurrentChat.Messages)
     {
         <ChatMessageView Message="message" />
     }

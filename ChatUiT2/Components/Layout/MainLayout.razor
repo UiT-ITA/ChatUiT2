@@ -1,5 +1,5 @@
 ﻿@inherits LayoutComponentBase
-<MudThemeProvider @bind-IsDarkMode="@UserService.IsDarkMode" Theme="_theme"/>
+<MudThemeProvider @bind-IsDarkMode="UserService.IsDarkMode" Theme="_theme"/>
 <MudDialogProvider />
 <MudSnackbarProvider />
 
@@ -20,7 +20,7 @@
         <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Dense>
             <ActivatorContent>
                 <MudButton Class="ml-2">
-                    <MudText Typo="Typo.h6">@(((WorkItemChat)UserService.CurrentWorkItem).Settings.Model)</MudText>
+                    <MudText Typo="Typo.h6">@(UserService.CurrentChat.Settings.Model)</MudText>
                     <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" />
                 </MudButton>
             </ActivatorContent>
@@ -32,7 +32,7 @@
                             <MudText Typo="Typo.h6" Class="m-0">GPT-4o</MudText>
                             <MudText Typo="Typo.subtitle2" Class="m-0">The latest and most advanced</MudText>
                         </div>
-                        @if (((WorkItemChat)UserService.CurrentWorkItem).Settings.Model == "GPT-4o")
+                        @if (UserService.CurrentChat.Settings.Model == "GPT-4o")
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                         }
@@ -46,7 +46,7 @@
                             <MudText Typo="Typo.h6" Class="m-0">GPT-4-Turbo</MudText>
                             <MudText Typo="Typo.subtitle2" Class="m-0">Advanced but slower</MudText>
                         </div>
-                        @if (((WorkItemChat)UserService.CurrentWorkItem).Settings.Model == "GPT-4-Turbo")
+                        @if (UserService.CurrentChat.Settings.Model == "GPT-4-Turbo")
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                         }
@@ -60,7 +60,7 @@
                             <MudText Typo="Typo.h6" Class="m-0">GPT-3.5-Turbo</MudText>
                             <MudText Typo="Typo.subtitle2" Class="m-0">Fast, but not as good</MudText>
                         </div>
-                        @if (((WorkItemChat)UserService.CurrentWorkItem).Settings.Model == "GPT-35-Turbo")
+                        @if (UserService.CurrentChat.Settings.Model == "GPT-35-Turbo")
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                         }
@@ -74,7 +74,7 @@
                             <MudText Typo="Typo.h6" Class="m-0">Orakelet</MudText>
                             <MudText Typo="Typo.subtitle2" Class="m-0">For UiT specific questions.</MudText>
                         </div>
-                        @if (((WorkItemChat)UserService.CurrentWorkItem).Settings.Model == "Orakel")
+                        @if (UserService.CurrentChat.Settings.Model == "Orakel")
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                         }
@@ -82,20 +82,45 @@
                 </MudMenuItem>
             </ChildContent>
         </MudMenu>
-            
-        <MudTooltip Text="@(CurrentWorkItemPersistant ? "This chat will be saved" : "This chat will not be saved")">
-            <MudSwitch @bind-Value="CurrentWorkItemPersistant" Disabled="UserService.CurrentWorkItem.IsFavorite" T="bool" 
-                Color="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
-                UnCheckedColor="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
-                ThumbIconColor="@(CurrentWorkItemPersistant ? Color.Success : Color.Error)" 
-                ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
-        </MudTooltip>
+           
+        @* Model config *@
+        <div class="d-flex">
+            <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="@(() => _modelSettingsOpen = !_modelSettingsOpen)" />
+            <MudPopover Open="_modelSettingsOpen" AnchorOrigin="Origin.BottomCenter" TransformOrigin="Origin.TopCenter">
+                <div>
+                    <div>
+                        <MudIcon Icon="@Icons.Material.Filled.Science" />
+                        <div>
+                            <MudText Typo="Typo.body1">Temperature</MudText>
+                            <MudSlider  Min="0" Max="1" Step="0.1" />
+                        </div>
+                    </div>
+                </div>
+            </MudPopover>
+        </div>
+
+        @* Save work item*@
+        @if (!UserService.CurrentWorkItem.IsFavorite)
+        {            
+            <MudTooltip Text="@(CurrentWorkItemPersistant ? "This chat will be saved" : "This chat will not be saved")">
+                <MudSwitch @bind-Value="CurrentWorkItemPersistant" 
+                    Disabled="UserService.CurrentWorkItem.IsFavorite" 
+                    T="bool" 
+                    Color="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
+                    UnCheckedColor="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
+                    ThumbIconColor="@(CurrentWorkItemPersistant ? Color.Success : Color.Error)" 
+                    ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
+            </MudTooltip>
+        }
+
+
 
 
         
         <MudSpacer />
 
-        <MudSwitch @bind-Checked="UserService.IsDarkMode" Color="Color.Dark" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
+        @* Dark mode *@
+        <MudSwitch @bind-Value="UserService.IsDarkMode" Color="Color.Dark" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
 
 
         @* User menu *@
@@ -128,7 +153,7 @@
     </MudAppBar>
 
 
-    <MudDrawer @bind-Open="@drawerOpen" Fixed Elevation="0" Style="background-color: var(--mud-palette-background-grey)">
+    <MudDrawer @bind-Open="drawerOpen" Fixed Elevation="0" Style="background-color: var(--mud-palette-background-grey)">
         <NavMenu OnClose="CloseDrawer" />
     </MudDrawer>
 
@@ -155,6 +180,19 @@
 
 @code {
     [Inject] private UserService UserService { get; set; } = null!;
+
+    private bool _modelSettingsOpen = false;
+    private bool modelSettingsOpen
+    {
+        get => _modelSettingsOpen;
+        set
+        {
+            _modelSettingsOpen = value;
+            UserService.UpdateItem(UserService.CurrentWorkItem);
+            StateHasChanged();
+        }
+    }
+
     private bool CurrentWorkItemPersistant
     {
         get => UserService.CurrentWorkItem.Persistant;
@@ -205,7 +243,7 @@
 
     private void SelectModel(string model)
     {
-        ((WorkItemChat)UserService.CurrentWorkItem).Settings.Model = model;
+        UserService.CurrentChat.Settings.Model = model;
         UserService.SetPreferredModel(model);
         StateHasChanged();
     }

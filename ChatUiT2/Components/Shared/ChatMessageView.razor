@@ -1,70 +1,77 @@
 ﻿@if (Message.Status == ChatMessageStatus.Error)
 {
-    <h1>
-        Display error message
-    </h1>
-}
-else if (Message.Role == ChatMessageRole.User)
-{
-    if (!isEditing)
-    {
-        <div style="display: flex; justify-content: flex-end; width: 100%;">
-            <MudPaper Class="pa-4 ma-2" Style="overflow-wrap: break-word; word-break: break-word; border-radius:32px; display: inline-block;" Elevation="0">
-                <div style="display: flex; align-items: start;">
-
-                    @* Uncomment if needed
-                @* <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
-                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" Style="width: 32px; height: 32px;" />
-                </div> *@
-
-                    <div style="display: flex; flex-direction: column; overflow: hidden;" class="ml-4 mr-2">
-                        <MudMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark" />
-                    </div>
-
-                    <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="StartEdit"/>
-                    </div>
-
-                </div>
-            </MudPaper>
-        </div>
-    }
-    else
-    {
-        <MudPaper Class="pa-4 ma-2" Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; background-color:transparent" Elevation="0">
-            <MudStack Row>
-
-                <div class="flex-grow-1" style="display: flex; flex-direction: column; overflow: hidden;">
-                    <MudMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark" />
-                </div>
-
-                <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
-                    <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" OnClick="StopEdit" />
-                </div>
-
-                <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
-                    <MudIconButton Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" OnClick="StopEdit" />
-                </div>
-
-            </MudStack>
-        </MudPaper>
-    }
-}
-else
-{
-    <MudPaper Class="pa-4 ma-2" Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; background-color:transparent" Elevation="0">
+    <MudPaper Class="pa-0 ma-2" Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; min-height: 64px; background-color:transparent;" Elevation="0">
         <MudStack Row>
 
-            <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
-                <MudIcon Icon="@Icons.Material.Filled.Android" Size="Size.Large" Style="width: 32px; height: 32px;" />
+            <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
+                <MudIcon Icon="@Icons.Material.Filled.Error" Size="Size.Large" />
             </div>
 
-            <div class="flex-grow-1" style="display: flex; flex-direction: column; overflow: hidden;">
+            <div class="flex-grow-1 pt-5 pb-3" style="display: flex; flex-direction: column; overflow: hidden;">
                 <MudMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark" />
             </div>
 
-            <div style="width: 32px; height: 32px; display: flex; justify-content: center; align-items: center;">
-                <MudIcon Icon="@Icons.Material.Filled.MoreVert" Size="Size.Medium" OnClick="() => UserService.DeleteMessage(Message)" />
+            <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
+                        <MudIconButton Icon="@Icons.Material.Filled.Sync" OnClick="Regenerate">Regenerate</MudIconButton>
+            </div>
+
+        </MudStack>
+    </MudPaper>
+}
+else if (Message.Role == ChatMessageRole.User)
+{
+    <MudPaper Class="pa-0 ma-2" Elevation="0"Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; min-height: 64px;">
+        <MudStack Row>
+            <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
+                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
+            </div>
+            @if (!isEditing)
+            {
+                <div class="flex-grow-1 pt-5 pb-3">
+                    <MudMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark"/>
+                </div>
+
+                <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" OnClick="StartEdit"/>
+                </div>
+            }
+            else
+            {
+                <div class="flex-grow-1">
+                    <MudTextField T="string" @bind-Value="newContent"  Variant="Variant.Text" DisableUnderLine
+                            AutoFocus AutoGrow Style="position: relative; top: -12px;" Class="ma-0 pa-0" />
+                </div>
+                <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small" OnClick="StopEdit" />
+                </div>
+            }
+        </MudStack>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-0 ma-2" Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; min-height: 64px; background-color:transparent;" Elevation="0">
+        <MudStack Row>
+
+            <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
+                <MudIcon Icon="@Icons.Material.Filled.Android" Size="Size.Large" />
+            </div>
+
+            <div class="flex-grow-1 pt-5 pb-3" style="display: flex; flex-direction: column; overflow: hidden;">
+                <MudMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark" />
+            </div>
+
+            <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense>
+                    <ActivatorContent>
+                        <MudIcon Icon="@Icons.Material.Filled.MoreVert" Size="Size.Medium" />
+                    </ActivatorContent>
+                    <ChildContent>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="StartEdit">Edit</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.CopyAll" OnClick="CopyToClipboard">Copy</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Sync" >Regenerate</MudMenuItem>
+                    </ChildContent>
+                </MudMenu>
             </div>
 
         </MudStack>
@@ -85,6 +92,8 @@ else
 
     [Inject] public UserService UserService { get; set; } = null!;
     [Inject] public IDialogService DialogService { get; set; } = null!;
+    [Inject] public IJSRuntime JSRuntime { get; set; } = null!;
+    [Inject] public ISnackbar Snackbar { get; set; } = null!;
 
     private bool isEditing = false;
     private string newContent = "";
@@ -119,24 +128,49 @@ else
     private void StartEdit()
     {
         newContent = Message.Content;
+        isEditing = true;
         StateHasChanged();
     }
 
     private async Task StopEdit()
     {
+        isEditing = false;
         if (newContent != Message.Content)
         {
             // Delete this and all following messages in UserService.CurrentWorkItem.Messages
-            WorkItemChat workItem = (WorkItemChat)UserService.CurrentWorkItem;
-            int index = workItem.Messages.IndexOf(Message);
-            for (int i = workItem.Messages.Count - 1; i >= index; i--)
+            int index = UserService.CurrentChat.Messages.IndexOf(Message);
+            for (int i = UserService.CurrentChat.Messages.Count - 1; i >= index; i--)
             {
-                workItem.Messages.RemoveAt(i);
+                UserService.CurrentChat.Messages.RemoveAt(i);
             }
 
             await UserService.SendMessage(newContent);
         }
 
+    }
+
+    private void CancelEdit()
+    {
+        isEditing = false;
+        StateHasChanged();
+    }
+
+    private async Task CopyToClipboard()
+    {
+        Console.WriteLine("Copying to clipboard: " + Message.Content);
+        await JSRuntime.InvokeVoidAsync("copyTextToClipboard", Message.Content);
+        Snackbar.Add("Assistant reply is copied to your clipboard", Severity.Success);
+
+    }
+
+    private async Task Regenerate()
+    {
+        int index = UserService.CurrentChat.Messages.IndexOf(Message);
+        UserService.CurrentChat.Messages.RemoveRange(
+            index: index,
+            count: UserService.CurrentChat.Messages.Count - index
+        );
+        await UserService.SendMessage(null);
     }
 
 }

@@ -1,0 +1,68 @@
+
+    <div class="d-flex flex-grow-1 align-items-start pa-2">
+        <div class="d-flex align-items-center" style="height:64px; width:300px; min-width: 300px;">
+            <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
+            <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                <MudText Typo="Typo.h6" Class="m-0">@("Temperature: " + UserService.CurrentChat.Settings.Temperature.ToString("F1"))</MudText>
+                <MudText Typo="Typo.subtitle2" Class="m-0">Controlls how creative the model is</MudText>
+            </div>
+        </div>
+        <div class="ml-4 mr-2 mt-4" style="width: 450px; min-width: 300px;" >
+            <MudSlider T="float" Max="1.0f" Min="0.0f" Step="0.1f" @bind-Value="UserService.CurrentChat.Settings.Temperature" Size="Size.Large" Color="Color.Info" />
+        </div>
+    </div>
+    <MudDivider />
+    <div class="d-flex flex-grow-1 align-items-start pa-2">
+        <div class="d-flex align-items-center" style="height:64px; width:300px; min-width: 300px;">
+            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
+            <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                <MudText Typo="Typo.h6" Class="m-0">@("Tokens: " + UserService.CurrentChat.Settings.MaxTokens.ToString())</MudText>
+                <MudText Typo="Typo.subtitle2" Class="m-0">Controlls how Long answers can be</MudText>
+            </div>
+        </div>
+        <div class="ml-4 mr-2 mt-4" style="width: 450px; min-width: 300px;">
+            <MudSlider T="int" Max="4096" Min="@(4096/16)" Step="@(4096/16)" @bind-Value="UserService.CurrentChat.Settings.MaxTokens" Size="Size.Large" Color="Color.Info"/>
+        </div>
+    </div>
+    <MudDivider />
+    <div class="d-flex flex-grow-1 align-items-start pa-2">
+        <div class="d-flex align-items-center" style="height:64px; width:300px; min-width: 300px;">
+            <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
+            <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                <MudText Typo="Typo.h6" Class="m-0">System prompt</MudText>
+                <MudText Typo="Typo.subtitle2" Class="m-0">Instructions given to the model</MudText>
+            </div>
+        </div>
+        <div class="ml-4 mr-2 mb-1" style="width: 450px; min-width: 300px;">
+            <MudTextField Lines="10" Value="UserService.CurrentChat.Settings.Prompt" Immediate Variant="Variant.Filled" DisableUnderLine/>
+        </div>
+    </div>
+
+
+@code {
+
+}
+
+
+@code {
+    [Inject] private UserService UserService { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        UserService.OnUpdate += StateHasChanged;
+        base.OnInitialized();
+    }
+
+    public void Dispose()
+    {
+        UserService.OnUpdate -= StateHasChanged;
+    }
+
+    private int GetMaxTokens()
+    {
+        int maxTokens = UserService.Get
+
+        return maxTokens;
+    }
+
+}

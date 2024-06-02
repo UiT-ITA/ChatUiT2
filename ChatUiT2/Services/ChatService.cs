@@ -17,10 +17,19 @@ public class ChatService
     {
         _configuration = configuration;
         _userService = userService;
+
+        string? endpoint = _configuration["AzureOpenAI:Endpoint"];
+        string? key = _configuration["AzureOpenAI:Key"];
+
+        if (endpoint == null || key == null)
+        {
+            throw new Exception("Endpoint configuration missing!");
+        }
+
         _azureOpenAIService = new AzureOpenAIService(new AzureEndpointConfig
         {
-            Endpoint = _configuration["AzureOpenAI:Endpoint"],
-            Key = _configuration["AzureOpenAI:Key"]
+            Endpoint = endpoint,
+            Key = key
         });
 
         ImportModels();
@@ -51,16 +60,19 @@ public class ChatService
         return _models;
     }
 
-    public async Task GetResponse(string message)
+    public async Task GetResponse(string? message)
     {
-        WorkItemChat chat = (WorkItemChat)_userService.CurrentWorkItem;
+        WorkItemChat chat = _userService.CurrentChat;
 
-        chat.Messages.Add(new ChatMessage
+        if (message != null)
         {
-            Content = message,
-            Role = ChatMessageRole.User,
-            Status = ChatMessageStatus.Done
-        });
+            chat.Messages.Add(new ChatMessage
+            {
+                Content = message,
+                Role = ChatMessageRole.User,
+                Status = ChatMessageStatus.Done
+            });
+        }
 
         ChatMessage responseMessage = new ChatMessage();
         responseMessage.Role = ChatMessageRole.Assistant;
@@ -107,8 +119,8 @@ public class ChatService
 
 public class ChatRequest
 {
-    public WorkItemChat Chat { get; set; }
-    public Model Model { get; set; }
+    public WorkItemChat Chat { get; set; } = null!;
+    public Model Model { get; set; } = null!;
 }
 
 

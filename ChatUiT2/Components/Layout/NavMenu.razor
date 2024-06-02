@@ -17,9 +17,12 @@
         </div>
 
         <div class="flex-grow-1">
-        <WorkItemView workItem="UserService.GetWorkItems()[0]"/>
-        <WorkItemView workItem="UserService.GetWorkItems()[1]"/>
-        <WorkItemView workItem="UserService.GetWorkItems()[2]"/>
+
+            @foreach (var workItem in UserService.GetWorkItems())
+            {
+            <WorkItemView workItem="workItem" />
+            }
+
         @* <WorkItemView workItem="UserService.CurrentWorkItem" /> *@
         </div>
 
@@ -49,6 +52,8 @@
         </div>
 
     </div>
+
+
 
     
 

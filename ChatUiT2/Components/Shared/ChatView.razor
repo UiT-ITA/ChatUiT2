@@ -1,7 +1,7 @@
 ﻿
 <div style="overflow-y: auto; height: 100%">
     <div style="margin: 0 auto; max-width: 1200px; width: 100%;">
-        @if (((WorkItemChat)UserService.CurrentWorkItem).Messages.Count == 0)
+        @if (UserService.CurrentChat.Messages.Count == 0)
     {
         <NewChatView />
     }

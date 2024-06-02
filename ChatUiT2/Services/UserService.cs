@@ -13,7 +13,10 @@ public class UserService
     private ChatService _chatService { get; set; }
 
 
-
+    public WorkItemChat CurrentChat 
+    { 
+        get => (WorkItemChat) CurrentWorkItem; 
+    }
 
 
 
@@ -30,7 +33,6 @@ public class UserService
 
     }
 
-
     public void RaiseUpdate()
     {
         OnUpdate?.Invoke();
@@ -38,8 +40,8 @@ public class UserService
 
     public void NewChat()
     {
-        //throw new NotImplementedException();
-        Console.WriteLine("New chat");
+        CurrentWorkItem = new WorkItemChat();
+        RaiseUpdate();
     }
 
     public bool GetSaveHistory()
@@ -47,9 +49,11 @@ public class UserService
         return User.Preferences.SaveHistory;
     }
 
-    public void SetSaveHistory(bool value)
+    public async Task SetSaveHistory(bool value)
     {
         User.Preferences.SaveHistory = value;
+        // TODO: Implement
+        await Task.Delay(100);
         RaiseUpdate();
     }
 
@@ -63,27 +67,70 @@ public class UserService
         User.Preferences.DefaultChatSettings.Model = model;
     }
 
+    public int GetMaxTokens(WorkItemChat chat)
+    {
+        _chatService.GetModel(chat.Settings.Model);
+        return 0;
+    }
     public List<IWorkItem> GetWorkItems()
     {
-        return User.Chats.Cast<IWorkItem>().ToList();
+        return User.Chats.Cast<IWorkItem>()
+            .OrderByDescending(x => x.Updated)
+            .ToList();
     }
 
-    public void UpdateWorkItem(IWorkItem workItem)
+    public async Task UpdateWorkItem()
     {
-        // TODO: Implement
+        await UpdateWorkItem(CurrentWorkItem);
     }
 
-    public void DeleteWorkItem(IWorkItem workItem)
+    public async Task UpdateWorkItem(IWorkItem workItem)
     {
         // TODO: Implement
+        await Task.Delay(100);
+    }
+
+
+    public async Task DeleteWorkItem()
+    {
+        await DeleteWorkItem(CurrentWorkItem);
+    }
+
+    public async Task DeleteWorkItem(IWorkItem workItem)
+    {
+
+        if (CurrentWorkItem == workItem)
+        {
+            CurrentWorkItem = new WorkItemChat();
+        }
+
+        if (workItem.Persistant)
+        {
+            // TODO: Remove from database
+        }
+
+        if (workItem.Type == WorkItemType.Chat)
+        {
+            User.Chats.Remove((WorkItemChat)workItem);
+        }
+
+        // TODO: Implement
+        await Task.Delay(100);
 
         Console.WriteLine("Deleting work item: " + workItem.Name);
+        RaiseUpdate();
     }
 
-
-    public async Task SendMessage(string message)
+    public async Task SendMessage()
     {
-
+        await SendMessage(null);
+    }
+    public async Task SendMessage(string? message)
+    {
+        if (!User.Chats.Contains(CurrentChat))
+        {
+            User.Chats.Add(CurrentChat);
+        }
         await _chatService.GetResponse(message);
     }
 
