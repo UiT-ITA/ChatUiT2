@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="wwwroot\js\**" />
+    <Content Remove="wwwroot\js\**" />
+    <EmbeddedResource Remove="wwwroot\js\**" />
+    <None Remove="wwwroot\js\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Remove="Components\Shared\ModelConfigurationView.razor" />
   </ItemGroup>
 
@@ -19,10 +26,6 @@
     <PackageReference Include="MudBlazor" Version="6.19.1" />
     <PackageReference Include="MudBlazor.Markdown" Version="1.0.0" />
     <PackageReference Include="Tiktoken" Version="2.0.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="wwwroot\js\" />
   </ItemGroup>
 
   <Import Project="$(MSBuildExtensionsPath64)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets" Condition="false" />
