@@ -11,6 +11,7 @@ public class UserService
     private User User { get; set; }
     private IConfiguration _configuration { get; set; }
     private ChatService _chatService { get; set; }
+    private AppConfig _appConfig { get; set; }
 
 
     public WorkItemChat CurrentChat 
@@ -25,11 +26,37 @@ public class UserService
     public UserService(IConfiguration configuration)
     {
         _configuration = configuration;
-        _chatService = new ChatService(configuration, this);
+        ReadConfig();
+
+
+        _chatService = new ChatService(_appConfig, this);
 
         User = new User("test");
         CurrentWorkItem = new WorkItemChat();
         IsDarkMode = User.Preferences.DarkMode;
+
+    }
+
+    private void ReadConfig()
+    {
+        var modelSection = _configuration.GetSection("Models");
+        List<Model> models = modelSection.Get<List<Model>>() ?? new List<Model>();
+        
+        if (models.Count == 0)
+        {
+            throw new Exception("No models found in configuration!");
+        }
+
+        string defaultModel = _configuration["DefaultModel"] ?? models[0].Name;
+        string namingModel = _configuration["NamingModel"] ?? models[0].Name;
+
+
+        _appConfig = new AppConfig
+        {
+            Models = models,
+            DefaultModel = models.FirstOrDefault(m => m.Name == defaultModel) ?? models[0],
+            NameingModel = models.FirstOrDefault(m => m.Name == namingModel) ?? models[0]
+        };
 
     }
 
@@ -157,7 +184,7 @@ public class UserService
         {
             User.Chats.Add(CurrentChat);
         }
-        await _chatService.GetResponse(message);
+        await _chatService.GetChatResponse(message);
     }
 
     public async void UpdateItem(IWorkItem workItem)

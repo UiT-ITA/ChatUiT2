@@ -7,63 +7,24 @@ namespace ChatUiT2.Services;
 
 public class ChatService
 {
-    private IConfiguration _configuration { get; set; }
+    private AppConfig _appConfig { get; set; }
     private UserService _userService { get; set; }
 
-    private List<Model> _models { get; set; }
-
-    private AzureOpenAIService _azureOpenAIService { get; set; }
-    public ChatService(IConfiguration configuration, UserService userService)
+    public ChatService(AppConfig appConfig, UserService userService)
     {
-        _configuration = configuration;
+        _appConfig = appConfig;
         _userService = userService;
 
-        string? endpoint = _configuration["AzureOpenAI:Endpoint"];
-        string? key = _configuration["AzureOpenAI:Key"];
-
-        if (endpoint == null || key == null)
-        {
-            throw new Exception("Endpoint configuration missing!");
-        }
-
-        _azureOpenAIService = new AzureOpenAIService(new AzureEndpointConfig
-        {
-            Endpoint = endpoint,
-            Key = key
-        });
-
-        ImportModels();
-
     }
 
-    private void ImportModels()
+    
+    public async Task GetChatResponse(string? message)
     {
-        var modelsSection = _configuration.GetSection("Models");
-        _models = modelsSection.Get<List<Model>>() ?? new List<Model>();
-
+        await GetChatResponse(message, _userService.CurrentChat);
     }
 
-    public Model GetModel(string name)
+    public async Task GetChatResponse(string? message, WorkItemChat? chat)
     {
-        Model defaultModel = _models[0];
-        Model? model = _models.FirstOrDefault(m => m.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-        if (model == null)
-        {
-            Console.WriteLine("Invalid model selected!");
-            model = _models[0];
-        }
-        return model;
-    }
-
-    public List<Model> GetModels()
-    {
-        return _models;
-    }
-
-    public async Task GetResponse(string? message)
-    {
-        WorkItemChat chat = _userService.CurrentChat;
-
         if (message != null)
         {
             chat.Messages.Add(new ChatMessage

@@ -5,16 +5,13 @@ public class Settings
 
 }
 
-public class Config
+public class AppConfig
 {
-    // TODO: Fix
-    //public List<Model> Models { get; set; } = new Model[]
-    //{
-    //    new Model { Name = "GPT-3.5-Turbo", Type = ModelType.Chat, MaxContext = 16000, MaxTokens = 4096 },
-    //    new Model { Name = "GPT-4-Turbo", Type = ModelType.Chat, MaxContext = 128000, MaxTokens = 4096 },
-    //    new Model { Name = "GPT-4o", Type = ModelType.MultiModal, MaxContext = 128000, MaxTokens = 4096 },
-    //    new Model { Name = "DALL-E", Type = ModelType.Image, MaxContext = 1280, MaxTokens = 1280 }
-    //}.ToList();
+    public List<Model> Models { get; set; } = null!;
+    public Model DefaultModel { get; set; } = null!;
+    public Model NameingModel { get; set; } = null!;
+
+
 }
 
 

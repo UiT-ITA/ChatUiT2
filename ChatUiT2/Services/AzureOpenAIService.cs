@@ -5,16 +5,6 @@ namespace ChatUiT2.Services;
 
 public class AzureOpenAIService
 {
-    private AzureEndpointConfig _config { get; set; }
-
-    public AzureOpenAIService(AzureEndpointConfig config)
-    {
-        if (string.IsNullOrEmpty(config.Endpoint) || string.IsNullOrEmpty(config.Key))
-        {
-            throw new Exception("Endpoint or key is missing");
-        }
-        _config = config;
-    }
 
     public StreamingResponse<StreamingChatCompletionsUpdate> GetStreamingResponse(ChatRequest request)
     {
@@ -75,10 +65,4 @@ public class AzureOpenAIService
     }
 
     
-}
-
-public class AzureEndpointConfig
-{
-    public string Endpoint { get; set; } = "";
-    public string Key { get; set; } = "";
 }
