@@ -11,7 +11,7 @@ public class UserService
     private User User { get; set; }
     private IConfiguration _configuration { get; set; }
     private ChatService _chatService { get; set; }
-    private AppConfig _appConfig { get; set; }
+    public ConfigService _configService { get; set; }
 
 
     public WorkItemChat CurrentChat 
@@ -19,44 +19,19 @@ public class UserService
         get => (WorkItemChat) CurrentWorkItem; 
     }
 
-
-
     public event Action? OnUpdate;
 
-    public UserService(IConfiguration configuration)
+    public UserService(IConfiguration configuration, ConfigService configService)
     {
         _configuration = configuration;
-        ReadConfig();
+        _configService = configService;
 
 
-        _chatService = new ChatService(_appConfig, this);
+        _chatService = new ChatService(this, configService);
 
         User = new User("test");
         CurrentWorkItem = new WorkItemChat();
         IsDarkMode = User.Preferences.DarkMode;
-
-    }
-
-    private void ReadConfig()
-    {
-        var modelSection = _configuration.GetSection("Models");
-        List<Model> models = modelSection.Get<List<Model>>() ?? new List<Model>();
-        
-        if (models.Count == 0)
-        {
-            throw new Exception("No models found in configuration!");
-        }
-
-        string defaultModel = _configuration["DefaultModel"] ?? models[0].Name;
-        string namingModel = _configuration["NamingModel"] ?? models[0].Name;
-
-
-        _appConfig = new AppConfig
-        {
-            Models = models,
-            DefaultModel = models.FirstOrDefault(m => m.Name == defaultModel) ?? models[0],
-            NameingModel = models.FirstOrDefault(m => m.Name == namingModel) ?? models[0]
-        };
 
     }
 
@@ -108,7 +83,7 @@ public class UserService
 
     public List<Model> GetModelList()
     {
-        return _chatService.GetModels();
+        return _configService.GetModels();
     }
 
     public void SetPreferredModel(string model)
@@ -122,7 +97,7 @@ public class UserService
     }
     public int GetMaxTokens(WorkItemChat chat)
     {
-        _chatService.GetModel(chat.Settings.Model);
+        _configService.GetModel(chat.Settings.Model);
         return 0;
     }
     public List<IWorkItem> GetWorkItems()

@@ -5,15 +5,6 @@ public class Settings
 
 }
 
-public class AppConfig
-{
-    public List<Model> Models { get; set; } = null!;
-    public Model DefaultModel { get; set; } = null!;
-    public Model NameingModel { get; set; } = null!;
-
-
-}
-
 
 public class Preferences
 {

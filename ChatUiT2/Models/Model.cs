@@ -2,13 +2,20 @@
 
 public class Model
 {
-    public string Name { get; set; } = "";
-    public string Description { get; set; } = "";
-    public string DeploymentName { get; set; } = "";
-    public string ModelType { get; set; } = "";
-    public string Deployment { get; set; } = "";
-    public int MaxContext { get; set; } = 4096;
-    public int MaxTokens { get; set; } = 4096;
+    public string Name { get; set; } = null!;
+    public string Description { get; set; } = null!;
+    public string DeploymentName { get; set; } = null!;
+    public string DeploymentType { get; set; } = null!;
+    public string Deployment { get; set; } = null!;
+    public int MaxContext { get; set; }
+    public int MaxTokens { get; set; }
+}
+
+public class ModelEndpoint
+{
+    public string Name { get; set; } = null!;
+    public string Url { get; set; } = null!;
+    public string Key { get; set; } = null!;
 }
 
 

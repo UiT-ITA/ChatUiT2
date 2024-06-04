@@ -17,6 +17,8 @@ builder.Services.AddMudMarkdownServices();
 // Services
 builder.Services.AddScoped<UserService>();
 
+builder.Services.AddSingleton<ConfigService>();
+
 
 var app = builder.Build();
 

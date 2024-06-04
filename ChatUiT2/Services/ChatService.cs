@@ -7,23 +7,22 @@ namespace ChatUiT2.Services;
 
 public class ChatService
 {
-    private AppConfig _appConfig { get; set; }
     private UserService _userService { get; set; }
+    private ConfigService _configService { get; set; }
 
-    public ChatService(AppConfig appConfig, UserService userService)
+    public ChatService(UserService userService, ConfigService configService)
     {
-        _appConfig = appConfig;
         _userService = userService;
-
+        _configService = configService;
     }
 
     
     public async Task GetChatResponse(string? message)
     {
-        await GetChatResponse(message, _userService.CurrentChat);
+        await GetChatResponse(_userService.CurrentChat, message);
     }
 
-    public async Task GetChatResponse(string? message, WorkItemChat? chat)
+    public async Task GetChatResponse(WorkItemChat chat, string? message)
     {
         if (message != null)
         {
@@ -35,53 +34,45 @@ public class ChatService
             });
         }
 
-        ChatMessage responseMessage = new ChatMessage();
-        responseMessage.Role = ChatMessageRole.Assistant;
-        responseMessage.Status = ChatMessageStatus.Working;
+        ChatMessage responseMessage = new ChatMessage { Content = "", Role = ChatMessageRole.Assistant, Status = ChatMessageStatus.Working };
         chat.Messages.Add(responseMessage);
 
         _userService.UpdateItem(chat);
+        _userService.RaiseUpdate();
 
+        Model model = _configService.GetModel(chat.Settings.Model);
+        ModelEndpoint endpoint = _configService.GetEndpoint(model.Deployment);
 
-        ChatRequest chatRequest = new ChatRequest
-        {
-            Chat = chat,
-            Model = GetModel(chat.Settings.Model)
-        };
-
-        Console.WriteLine(chatRequest.Model.Name);
-
+        Console.WriteLine("Debug: GetChatResponse");
+        Console.WriteLine(model.DeploymentName);
+        Console.WriteLine(endpoint.Url);
         
-
-
-        try
+        if (model.DeploymentType == "AzureOpenAI")
         {
-            var response = _azureOpenAIService.GetStreamingResponse(chatRequest);
-            await foreach (var chatUpdate in response)
+            try
             {
-                responseMessage.Content += chatUpdate.ContentUpdate;
+                var response = AzureOpenAIService.GetStreamingResponse(chat, model, endpoint);
+                await foreach (var chatUpdate in response)
+                {
+                    responseMessage.Content += chatUpdate.ContentUpdate;
 
-                Console.Write(chatUpdate.ContentUpdate);
-
-                // TODO: update user interface
-                _userService.RaiseUpdate();
+                    _userService.RaiseUpdate();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+                Console.WriteLine("Error: " + ex.StackTrace);
+                responseMessage.Content = "Something went wrong...";
+                responseMessage.Status = ChatMessageStatus.Error;
             }
         }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine("Error: " + ex.Message);
-            Console.WriteLine("Error: " + ex.StackTrace);
-            responseMessage.Content = "Something went wrong...";
-            responseMessage.Status = ChatMessageStatus.Error;
-        }
+            throw new Exception("Unsupported deployment type: " + model.DeploymentType);
+        }     
 
     }
-}
-
-public class ChatRequest
-{
-    public WorkItemChat Chat { get; set; } = null!;
-    public Model Model { get; set; } = null!;
 }
 
 

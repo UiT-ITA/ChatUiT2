@@ -115,10 +115,7 @@
         get => UserService.CurrentWorkItem.Persistant;
         set
         {
-            Task.Run(async () =>
-            {
-                await UserService.SetSaveHistory(UserService.CurrentWorkItem, value);
-            }).Wait();
+            UserService.SetSaveHistory(UserService.CurrentWorkItem, value);
         }
     }
 

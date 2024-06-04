@@ -1,32 +1,39 @@
 ﻿using Azure.AI.OpenAI;
 using ChatUiT2.Models;
+using Tiktoken;
+using Tiktoken.Encodings;
 
 namespace ChatUiT2.Services;
 
-public class AzureOpenAIService
+public static class AzureOpenAIService
 {
 
-    public StreamingResponse<StreamingChatCompletionsUpdate> GetStreamingResponse(ChatRequest request)
+    public static StreamingResponse<StreamingChatCompletionsUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
     {
-        OpenAIClient client = new OpenAIClient(new Uri(_config.Endpoint), new Azure.AzureKeyCredential(_config.Key));
+        Console.WriteLine("Debug: GetStreamingResponse");
+        Console.WriteLine(model.DeploymentName);
+        Console.WriteLine(endpoint.Url);
+
+
+        OpenAIClient client = new OpenAIClient(new Uri(endpoint.Url), new Azure.AzureKeyCredential(endpoint.Key));
 
         var OAIRequest = new ChatCompletionsOptions()
         {
-            DeploymentName = request.Model.DeploymentName,
-            MaxTokens = Math.Min(request.Model.MaxTokens, request.Chat.Settings.MaxTokens),
-            Temperature = request.Chat.Settings.Temperature,
+            DeploymentName = model.DeploymentName,
+            MaxTokens = Math.Min(model.MaxTokens, chat.Settings.MaxTokens),
+            Temperature = chat.Settings.Temperature,
             Messages =
             {
-                new ChatRequestSystemMessage(request.Chat.Settings.Prompt)
+                new ChatRequestSystemMessage(chat.Settings.Prompt)
             },
         };
 
-        int availableTokens = request.Model.MaxContext - (int)OAIRequest.MaxTokens;
-        for (int i  = request.Chat.Messages.Count - 1; i >= 0; i--)
+        int availableTokens = model.MaxContext - (int)OAIRequest.MaxTokens;
+        for (int i  = chat.Messages.Count - 1; i >= 0; i--)
         {
-            var message = request.Chat.Messages[i];
+            var message = chat.Messages[i];
             if (message.Status == ChatMessageStatus.Error) continue;
-            int messageTokens = GetTokens(message.Content);
+            int messageTokens = GetTokens(model.DeploymentName, message.Content);
 
             if (messageTokens > availableTokens)
             {
@@ -59,9 +66,20 @@ public class AzureOpenAIService
         return client.GetChatCompletionsStreaming(OAIRequest);
     }
 
-    private int GetTokens(string content)
+    public static int GetTokens(string model, string content)
     {
-        return content.Length;
+        // Use tiktoken to calculate tokens
+        Encoder encoder;
+        if (model == "gpt-4o")
+        {
+            encoder = new Encoder(new O200KBase());
+        }
+        else
+        {
+            encoder = new Encoder(new Cl100KBase());
+        }
+
+        return encoder.CountTokens(content);
     }
 
     
