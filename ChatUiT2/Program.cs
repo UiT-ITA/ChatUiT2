@@ -1,5 +1,7 @@
 using ChatUiT2.Components;
 using ChatUiT2.Services;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Identity.Web;
 using MudBlazor;
 using MudBlazor.Services;
 
@@ -13,12 +15,22 @@ builder.Services.AddRazorComponents()
 builder.Services.AddMudServices();
 builder.Services.AddMudMarkdownServices();
 
+// Add authentication
+builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));
 
-// Services
-builder.Services.AddScoped<UserService>();
 
+// Singleton services
 builder.Services.AddSingleton<ConfigService>();
+builder.Services.AddSingleton<DatabaseService>();
+builder.Services.AddSingleton<KeyVaultService>();
 
+// Scoped services
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<AuthUserService>();
+
+// Transient services
+builder.Services.AddTransient<EncryptionService>();
 
 var app = builder.Build();
 

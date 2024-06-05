@@ -12,6 +12,7 @@ public class UserService
     private IConfiguration _configuration { get; set; }
     private ChatService _chatService { get; set; }
     public ConfigService _configService { get; set; }
+    private AuthUserService _authUserService { get; set; }
 
 
     public WorkItemChat CurrentChat 
@@ -21,7 +22,7 @@ public class UserService
 
     public event Action? OnUpdate;
 
-    public UserService(IConfiguration configuration, ConfigService configService)
+    public UserService(IConfiguration configuration, ConfigService configService, AuthUserService authUserService)
     {
         _configuration = configuration;
         _configService = configService;
