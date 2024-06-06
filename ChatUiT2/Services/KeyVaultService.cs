@@ -98,24 +98,31 @@ public class KeyVaultService : IKeyVaultService
     /// </summary>
     /// <param name="username">Username to get for</param>
     /// <returns></returns>
+    //public async Task<byte[]> GetKeyAsync(string username)
+    //{
+    //    string keyName = GetKeyFromUsername(username);
+    //    string? aesKey = await GetSecretAsync(keyName);
+    //    if (aesKey == null)
+    //    {
+    //        // create new aes key
+    //        Console.WriteLine($"Creating new key for {username}");
+    //        var key = _encryptionService.GetRandomByteArray(32);
+    //        var salt = _encryptionService.GetRandomByteArray(16);
+    //        byte[] aesKeyBytes = _encryptionService.GetEncryptionKeyForAes256(key, salt, 50000);
+    //        aesKey = Convert.ToBase64String(aesKeyBytes);
+
+    //        // store the key in key vault
+    //        await SetSecretAsync(keyName, aesKey);
+    //    }
+    //    // convert and return the key as a byte array
+    //    return Convert.FromBase64String(aesKey);
+    //}
+
     public async Task<byte[]> GetKeyAsync(string username)
     {
-        string keyName = GetKeyFromUsername(username);
-        string? aesKey = await GetSecretAsync(keyName);
-        if (aesKey == null)
-        {
-            // create new aes key
-            Console.WriteLine($"Creating new key for {username}");
-            var key = _encryptionService.GetRandomByteArray(32);
-            var salt = _encryptionService.GetRandomByteArray(16);
-            byte[] aesKeyBytes = _encryptionService.GetEncryptionKeyForAes256(key, salt, 50000);
-            aesKey = Convert.ToBase64String(aesKeyBytes);
+        Console.WriteLine("WARNING! Using dummy keyvault");
 
-            // store the key in key vault
-            await SetSecretAsync(keyName, aesKey);
-        }
-        // convert and return the key as a byte array
-        return Convert.FromBase64String(aesKey);
+        return Convert.FromBase64String("cJAmOFLkEg0u9xcL4dEKX5Ex3wiAieB1YqLu0 / wQIwI =");
     }
 
 

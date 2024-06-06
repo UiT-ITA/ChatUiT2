@@ -4,17 +4,20 @@
 <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="Testing">Testing</MudButton>
 
 <span>@debug_text</span>
-<span>@debug_bytes</span>
+<span>@Convert.ToBase64String(debug_bytes)</span>
 
 @code {
     [Inject] private TestService testService { get; set; } = null!;
 
     string? debug_text = "Debug text";
-    byte[]? debug_bytes = null;
+    byte[] debug_bytes = [];
 
     public async Task Testing()
     {
         debug_bytes = await testService._keyVaultService.GetKeyAsync("TestKey");
+
+        await testService._databaseService.SaveUserPreferences("default", new Preferences());
+
         StateHasChanged();
     }
 }
