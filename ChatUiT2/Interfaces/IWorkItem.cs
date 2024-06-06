@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace ChatUiT2.Models;
+namespace ChatUiT2.Interfaces;
 
 public interface IWorkItem
 {

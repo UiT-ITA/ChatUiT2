@@ -1,15 +1,331 @@
-﻿namespace ChatUiT2.Services;
+﻿using ChatUiT2.Interfaces;
+using ChatUiT2.Models;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Driver;
+using System.Text.Json;
 
-public class DatabaseService
+namespace ChatUiT2.Services;
+
+public class DatabaseService : IDatabaseService
 {
-    private readonly KeyVaultService _keyVaultService;
-    private readonly EncryptionService _encryptionService;
+    // Services
+    private readonly IKeyVaultService _keyVaultService;
+    private readonly IEncryptionService _encryptionService;
 
-    public DatabaseService(IConfiguration configuration, EncryptionService encryptionService, KeyVaultService keyVaultService)
+    // Collections
+    private readonly IMongoCollection<BsonDocument> _configCollection;
+    private readonly IMongoCollection<BsonDocument> _userCollection;
+    private readonly IMongoCollection<BsonDocument> _workItemCollection;
+    private readonly IMongoCollection<BsonDocument> _chatMessageCollection;
+
+    // Settings
+    private readonly bool _useEncryption;
+
+    public DatabaseService(IConfiguration configuration, IEncryptionService encryptionService, IKeyVaultService keyVaultService)
     {
         _keyVaultService = keyVaultService;
         _encryptionService = encryptionService;
 
+        var connectionString = configuration.GetConnectionString("MongoDb");
+        var client = new MongoClient(connectionString);
+        var systemDatabase = client.GetDatabase(configuration["DBSettings:SystemDatabaseName"]);
+        var userDatabase = client.GetDatabase(configuration["DBSettings:UserDatabaseName"]);
 
+        _configCollection = systemDatabase.GetCollection<BsonDocument>(configuration["DBSettings:ConfigCollectionName"]);
+        _userCollection = userDatabase.GetCollection<BsonDocument>(configuration["DBSettings:UserCollectionName"]);
+        _workItemCollection = userDatabase.GetCollection<BsonDocument>(configuration["DBSettings:WorkItemCollectionName"]);
+        _chatMessageCollection = userDatabase.GetCollection<BsonDocument>(configuration["DBSettings:ChatMessageCollectionName"]);
+
+        _useEncryption = configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: true);
+    }
+
+    // Users
+    /// <summary>
+    /// Get user preferences from the database
+    /// </summary>
+    /// <param name="username"></param>
+    /// <returns></returns>
+    public async Task<Preferences> GetUserPreferences(string username)
+    {
+        var filter = Builders<BsonDocument>.Filter.Eq("Username", username);
+        var document = await _userCollection.Find(filter).FirstOrDefaultAsync();
+
+        if (document != null)
+        {
+            return BsonSerializer.Deserialize<Preferences>(document["Preferences"].AsBsonDocument);
+        }
+
+
+        // Load default preferences
+        var filterDefault = Builders<BsonDocument>.Filter.Eq("Username", "default");
+        var documentDefault = await _userCollection.Find(filterDefault).FirstOrDefaultAsync();
+
+        Preferences preferences;
+
+        if (documentDefault != null) {
+            preferences = BsonSerializer.Deserialize<Preferences>(documentDefault["Preferences"].AsBsonDocument);
+        }
+        else
+        {
+            // No default preferences found, create new
+            preferences = new Preferences();
+            await SaveUserPreferences("default", preferences);
+        }
+
+        await SaveUserPreferences(username, preferences);
+        return preferences;
+    }
+    
+    /// <summary>
+    /// Save user preferences to the database
+    /// </summary>
+    /// <param name="username"></param>
+    /// <param name="preferences"></param>
+    /// <returns></returns>
+    public async Task SaveUserPreferences(string username, Preferences preferences)
+    {
+        var filter = Builders<BsonDocument>.Filter.Eq("Username", username);
+        var update = Builders<BsonDocument>.Update.Set("Preferences", preferences);
+        await _userCollection.UpdateOneAsync(filter, update, new UpdateOptions { IsUpsert = true });
+    }
+
+    /// <summary>
+    /// Delete user and all associated data from the database
+    /// </summary>
+    /// <param name="username"></param>
+    /// <returns></returns>
+    public async Task DeleteUser(string username)
+    {
+        var filter = Builders<BsonDocument>.Filter.Eq("Username", username);
+        await _userCollection.DeleteManyAsync(filter);
+        await _workItemCollection.DeleteManyAsync(filter);
+        await _chatMessageCollection.DeleteManyAsync(filter);
+    }
+
+
+    // WorkItems
+    /// <summary>
+    /// Get a list of work items for a user from the database
+    /// </summary>
+    /// <param name="user"></param>
+    /// <returns>List of work items belonging to a user</returns>
+    public async Task<List<IWorkItem>> GetWorkItemList(User user)
+    {
+        var workItems = new List<IWorkItem>();
+        
+        var filter = Builders<BsonDocument>.Filter.Eq("Username", user.Username);
+        var sort = Builders<BsonDocument>.Sort.Descending("Updated");
+
+        var documents = await _workItemCollection.Find(filter).Sort(sort).ToListAsync();
+        foreach (var doc in documents)
+        {
+            if (doc["Type"] == "WorkItemChat")
+            {
+                var workItem = BsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
+                if (workItem != null)
+                {
+                    workItem.Messages = await GetChatMessages(user, workItem.Id);
+                }
+            }
+            else
+            {
+                throw new Exception("Unknown work item type");
+            }
+        }
+        return workItems;
+    }
+
+    /// <summary>
+    /// Save a single work item to the database
+    /// </summary>
+    /// <param name="user"></param>
+    /// <param name="workItem"></param>
+    /// <returns></returns>
+    public async Task SaveWorkItem(User user, IWorkItem workItem)
+    {
+        string jsonText = string.Empty;
+
+        if (workItem.Type == WorkItemType.Chat)
+        {
+            jsonText = JsonSerializer.Serialize((WorkItemChat)workItem);
+        }
+        else
+        {
+            throw new Exception("Unknown work item type");
+        }
+
+        // Why not this?
+        //var document = BsonDocument.Parse(jsonText);
+
+        // Why was this done?
+        var document = new BsonDocument
+        {
+            {"_id", workItem.Id},
+            {"Username", user.Username},
+            {"Data", jsonText},
+            {"Type", workItem.Type.ToString()},
+            {"Updated", workItem.Updated},
+            {"Permanent", workItem.IsFavorite}
+        };
+
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", workItem.Id);
+        var options = new ReplaceOptions { IsUpsert = true };
+
+        await _workItemCollection.ReplaceOneAsync(filter, document, options);
+        await SaveChatMessages(user, (WorkItemChat)workItem);
+    }
+
+    /// <summary>
+    /// Delete a single work item from the database
+    /// </summary>
+    /// <param name="user"></param>
+    /// <param name="workItem"></param>
+    /// <returns></returns>
+    public async Task DeleteWorkItem(User user, IWorkItem workItem)
+    {
+        if (workItem.Type == WorkItemType.Chat)
+        {
+            await DeleteChat((WorkItemChat)workItem);
+        }
+
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", workItem.Id);
+        try
+        {
+            await _workItemCollection.DeleteOneAsync(filter);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error deleting work item: " + ex.Message);
+        }
+    }
+
+    // ChatMessages
+    /// <summary>
+    /// Get chat messages for a chat from the database
+    /// </summary>
+    /// <param name="user"></param>
+    /// <param name="chatId"></param>
+    /// <returns>List of chat messages belonging to the chat</returns>
+    private async Task<List<ChatMessage>> GetChatMessages(User user, string chatId)
+    {
+        var messages = new List<ChatMessage>();
+
+        var filter = Builders<BsonDocument>.Filter.Eq("ChatId", chatId)
+            & Builders<BsonDocument>.Filter.Eq("Username", user.Username);
+
+        var documents = await _chatMessageCollection.Find(filter).ToListAsync();
+
+        foreach (var doc in documents)
+        {
+            string content;
+
+            if (_useEncryption)
+            {
+                content = _encryptionService.Decrypt(doc["Content"].AsByteArray, user.AesKey);
+            }
+            else
+            {
+                content = doc["Content"].AsString;
+            }
+
+            messages.Add(new ChatMessage
+            {
+                Id = doc["_id"].AsString,
+                Role = (ChatMessageRole)doc["Role"].AsInt32,
+                Content = content,
+                Status = (ChatMessageStatus)doc["Status"].AsInt32,
+                Created = doc["Created"].ToUniversalTime()
+            });
+        }
+
+        return messages.OrderBy(i => i.Created).ToList();
+    }
+
+    /// <summary>
+    /// Save chat messages to the database
+    /// </summary>
+    /// <param name="user"></param>
+    /// <param name="chat"></param>
+    /// <returns></returns>
+    public async Task SaveChatMessages(User user, WorkItemChat chat)
+    {
+        await DeleteMissingMessages(user, chat);
+
+        List<Task> tasks = new List<Task>();
+
+        foreach (var message in chat.Messages)
+        {
+            tasks.Add(SaveChatMessage(user, message, chat.Id));
+        }
+
+        await Task.WhenAll(tasks);
+    }
+
+    /// <summary>
+    /// Save a single chat message to the database
+    /// </summary>
+    /// <param name="user"></param>
+    /// <param name="message"></param>
+    /// <param name="chatId"></param>
+    /// <returns></returns>
+    private async Task SaveChatMessage(User user, ChatMessage message, string chatId)
+    {
+        var document = new BsonDocument
+        {
+            {"_id", message.Id},
+            {"ChatId", chatId},
+            {"Username", user.Username},
+            {"Content", _useEncryption ? _encryptionService.Encrypt(message.Content, user.AesKey) : message.Content},
+            {"Role", (int)message.Role},
+            {"Status", (int)message.Status},
+            {"Created", message.Created}
+        };
+
+        var fileter = Builders<BsonDocument>.Filter.Eq("_id", message.Id);
+        var options = new ReplaceOptions { IsUpsert = true };
+
+        await _chatMessageCollection.ReplaceOneAsync(fileter, document, options);
+    }
+
+    /// <summary>
+    /// Delete any missing messages
+    /// </summary>
+    /// <param name="user"></param>
+    /// <param name="chat"></param>
+    /// <returns></returns>
+    public async Task DeleteMissingMessages(User user, WorkItemChat chat)
+    {
+        var existingMessages = await GetChatMessages(user, chat.Id);
+        var messagesToDelete = existingMessages.Where(m => !chat.Messages.Any(m2 => m2.Id == m.Id)).ToList();
+
+        List<Task> tasks = new List<Task>();
+        foreach (var message in messagesToDelete)
+        {
+            tasks.Add(DeleteChatMessage(message));
+        }
+        await Task.WhenAll(tasks);
+    }
+
+    /// <summary>
+    /// Delete a single chat message from the database
+    /// </summary>
+    /// <param name="message"></param>
+    /// <returns></returns>
+    public async Task DeleteChatMessage(ChatMessage message)
+    {
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", message.Id);
+        await _chatMessageCollection.DeleteOneAsync(filter);
+    }
+
+    /// <summary>
+    /// Delete all chat messages for a chat from the database
+    /// </summary>
+    /// <param name="chat"></param>
+    /// <returns></returns>
+    private async Task DeleteChat(WorkItemChat chat)
+    {
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", chat.Id);
+        await _chatMessageCollection.DeleteManyAsync(filter);
     }
 }

@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
+using ChatUiT2.Interfaces;
 
 namespace ChatUiT2.Services;
 
-public class AuthUserService(AuthenticationStateProvider AuthenticationStateProvider)
+public class AuthUserService(AuthenticationStateProvider AuthenticationStateProvider) : IAuthUserService
 {
     public async Task<bool> TestInRole(string[] role)
     {

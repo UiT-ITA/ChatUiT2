@@ -31,7 +31,14 @@
         <div>
             <MudDivider/>
 
-            <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="@(() => {UserService.Waiting = !UserService.Waiting; UserService.RaiseUpdate();})">Testing</MudButton>
+            @* <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="Test">Testing</MudButton> *@
+            <MudNavLink Href="/test" Match="NavLinkMatch.All" Class="d-flex align-items-center">
+                <MudStack Row>
+
+                    <MudIcon Icon="@Icons.Material.Filled.Science" Class="mt-1"/>
+                    <MudText Typo="Typo.h6">Testing</MudText>
+                </MudStack>
+            </MudNavLink>
 
             <MudNavLink Href="/v/1" Match="NavLinkMatch.All" Class="d-flex align-items-center">
                 <MudStack Row>
@@ -61,7 +68,7 @@
 
 
 @code {
-    [Inject] private UserService UserService { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Parameter] public EventCallback OnClose { get; set; }
 
@@ -70,4 +77,10 @@
     {
         OnClose.InvokeAsync();
     }
+
+    private void Test()
+    {
+        
+    }
 }
+

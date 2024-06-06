@@ -23,7 +23,7 @@
 
 
 @code {
-    [Inject] private UserService UserService { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
 
     protected override void OnInitialized()
     {

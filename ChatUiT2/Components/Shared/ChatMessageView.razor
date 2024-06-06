@@ -90,7 +90,7 @@ else
 @code {
     [Parameter] public ChatMessage Message { get; set; } = null!;
 
-    [Inject] public UserService UserService { get; set; } = null!;
+    [Inject] public IUserService UserService { get; set; } = null!;
     [Inject] public IDialogService DialogService { get; set; } = null!;
     [Inject] public IJSRuntime JSRuntime { get; set; } = null!;
     [Inject] public ISnackbar Snackbar { get; set; } = null!;

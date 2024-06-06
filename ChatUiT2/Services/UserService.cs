@@ -1,20 +1,24 @@
-﻿using ChatUiT2.Models;
+﻿using ChatUiT2.Interfaces;
+using ChatUiT2.Models;
 using ChatUiT2.Tools;
 
 namespace ChatUiT2.Services;
 
-public class UserService
+public class UserService : IUserService
 {
     public IWorkItem CurrentWorkItem { get; set; }
-    public bool IsDarkMode { get; set; }
+    public bool IsDarkMode { 
+        get => User.Preferences.DarkMode;
+        set => User.Preferences.DarkMode = value;
+    }
     public bool Waiting { get; set; } = false;
-    private User User { get; set; }
+    private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
     private ChatService _chatService { get; set; }
-    public ConfigService _configService { get; set; }
-    private AuthUserService _authUserService { get; set; }
-
-
+    public IConfigService _configService { get; set; }
+    private IAuthUserService _authUserService { get; set; }
+    private IDatabaseService _databaseService { get; set; }
+    private IKeyVaultService _keyVaultService { get; set; }
     public WorkItemChat CurrentChat 
     { 
         get => (WorkItemChat) CurrentWorkItem; 
@@ -22,20 +26,64 @@ public class UserService
 
     public event Action? OnUpdate;
 
-    public UserService(IConfiguration configuration, ConfigService configService, AuthUserService authUserService)
+    public UserService( IConfiguration configuration, 
+                        IConfigService configService, 
+                        IAuthUserService authUserService, 
+                        IDatabaseService databaseService,
+                        IKeyVaultService keyVaultService)
     {
         _configuration = configuration;
         _configService = configService;
+        _authUserService = authUserService;
+        _databaseService = databaseService;
+        _keyVaultService = keyVaultService;
+
 
 
         _chatService = new ChatService(this, configService);
 
-        User = new User("test");
         CurrentWorkItem = new WorkItemChat();
-        IsDarkMode = User.Preferences.DarkMode;
+
+        // Load user
+        //var task = LoadUser();
+        //task.Wait();
+
+        // Load dummy user
+        LoadDummyUser();
 
     }
 
+
+    /// <summary>
+    /// Loads the user data from the database
+    /// </summary>
+    /// <returns></returns>
+    private async Task LoadUser()
+    {
+        string? username = await _authUserService.GetUsername();
+
+        if (username == null)
+        {
+            throw new Exception("No user found");
+        }
+
+        User.Username = username;
+        User.AesKey = await _keyVaultService.GetKeyAsync(username);
+
+        User.Preferences = await _databaseService.GetUserPreferences(username);
+        var workItems = await _databaseService.GetWorkItemList(User);
+        User.Chats = workItems.OfType<WorkItemChat>().ToList();
+    }
+
+    private void LoadDummyUser()
+    {
+        User.Username = "TestUser";
+        User.LoadDummyData();
+    }
+
+    /// <summary>
+    /// Raises an update on all components that is subscribed to the event
+    /// </summary>
     public void RaiseUpdate()
     {
         OnUpdate?.Invoke();
@@ -163,7 +211,7 @@ public class UserService
         await _chatService.GetChatResponse(message);
     }
 
-    public async void UpdateItem(IWorkItem workItem)
+    public async Task UpdateItem(IWorkItem workItem)
     {
         workItem.Updated = DateTimeTools.GetTimestamp();
         // TODO: implement saving

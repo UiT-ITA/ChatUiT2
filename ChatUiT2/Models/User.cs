@@ -1,30 +1,23 @@
-﻿using Markdig.Extensions.Tables;
+﻿using ChatUiT2.Interfaces;
+using Markdig.Extensions.Tables;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace ChatUiT2.Models;
 
 public class User
 {
-    public string Username { get; set; }
-    public Preferences Preferences { get; set; }
-    public List<WorkItemChat> Chats { get; set; }
-    public byte[] AesKey { get; set; }
+    [BsonId]
+    public string Username { get; set; } = string.Empty;
+    public Preferences Preferences { get; set; } = new Preferences();
+    public List<WorkItemChat> Chats { get; set; } = [];
+    public byte[]? AesKey { get; set; } = null;
 
-    public SemaphoreSlim LoadingLock = new(1, 1);
+    //public SemaphoreSlim LoadingLock = new(1, 1);
 
-    public User(string username)
-    {
-        Username = username;
-        LoadDummyData();
-        // Load preferences
-        // Get AES key
-        // Load chats
-        //throw new Exception("Not implemented");
-    }
 
-    private void LoadDummyData()
+    public void LoadDummyData()
     {
         Console.WriteLine("Loading dummy data");
-        Preferences = new Preferences();
         Chats = new List<WorkItemChat>();
         Chats.Add(new WorkItemChat { Name = "Chat 1" });
         Chats.Add(new WorkItemChat { Name = "Chat 2" });

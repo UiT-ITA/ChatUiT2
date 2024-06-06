@@ -1,28 +1,26 @@
-﻿using ChatUiT2.Models;
+﻿using ChatUiT2.Interfaces;
+using ChatUiT2.Models;
 
 namespace ChatUiT2.Services;
 
-public class ConfigService
+public class ConfigService : IConfigService
 {
     private List<Model> models { get; set; } = null!;
     private List<ModelEndpoint> endpoints { get; set; } = null!;
     private Model defaultModel { get; set; } = null!;
     private Model namingModel { get; set; } = null!;
+    private string mongoDBConnectionString { get; set; } = null!;
 
-    //public ConfigService(IConfiguration configuration, KeyVaultService keyVaultService)
-    //{
-    //    ReadConfig(configuration, keyVaultService);
-    //}
 
-    public ConfigService(IConfiguration configuration)
+    public ConfigService(IConfiguration configuration, IKeyVaultService keyVaultService, IDatabaseService databaseService)
     {
-        ReadConfig(configuration);
+        ReadModelConfig(configuration);
     }
 
 
 
     //private void ReadConfig(IConfiguration configuration, KeyVaultService keyVaultService)
-    private void ReadConfig(IConfiguration configuration)
+    private void ReadModelConfig(IConfiguration configuration)
     {
         var modelSection = configuration.GetSection("Models");
         models = modelSection.Get<List<Model>>() ?? new List<Model>();
@@ -38,12 +36,16 @@ public class ConfigService
         defaultModel = models.FirstOrDefault(m => m.Name == defaultModelName) ?? models[0];
         namingModel = models.FirstOrDefault(m => m.Name == namingModelName) ?? models[0];
 
-        var endpointSection = configuration.GetSection("Endpoints3");
+        var endpointSection = configuration.GetSection("Endpoints");
         endpoints = endpointSection.Get<List<ModelEndpoint>>() ?? new List<ModelEndpoint>();
 
         foreach (var endpoint in endpoints)
         {
-            
+            endpoint.Key = configuration[endpoint.Name] ?? "";
+            if (endpoint.Key == "")
+            {
+                throw new Exception($"No key found for endpoint {endpoint.Name}");
+            }
         }
 
         Console.WriteLine($"Models: {models.Count}");

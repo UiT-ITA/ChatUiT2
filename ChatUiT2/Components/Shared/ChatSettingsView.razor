@@ -114,7 +114,7 @@
 
 
 @code {
-    [Inject] private UserService UserService { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
 
     [Parameter] public bool IncludeHeader { get; set; } = false;
     [Parameter] public bool IncludeInstructions { get; set; } = false;

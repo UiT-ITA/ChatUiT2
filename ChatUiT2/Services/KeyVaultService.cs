@@ -1,15 +1,16 @@
 ﻿using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using ChatUiT2.Interfaces;
 
 namespace ChatUiT2.Services;
 
-public class KeyVaultService
+public class KeyVaultService : IKeyVaultService
 {
     private readonly SecretClient _secretClient;
-    private readonly EncryptionService _encryptionService;
+    private readonly IEncryptionService _encryptionService;
 
     public KeyVaultService(IConfiguration configuration,
-                           EncryptionService encryptionService)
+                           IEncryptionService encryptionService)
     {
         var vaultUriString = configuration["ConnectionStrings:KeyVault"];
         if (vaultUriString == null)

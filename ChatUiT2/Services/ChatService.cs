@@ -1,16 +1,17 @@
 ﻿using ChatUiT2.Models;
+using ChatUiT2.Interfaces;
 using MongoDB.Driver.Core.WireProtocol.Messages;
 using MudBlazor;
 using System.Text.Json;
 
 namespace ChatUiT2.Services;
 
-public class ChatService
+public class ChatService : IChatService
 {
-    private UserService _userService { get; set; }
-    private ConfigService _configService { get; set; }
+    private IUserService _userService { get; set; }
+    private IConfigService _configService { get; set; }
 
-    public ChatService(UserService userService, ConfigService configService)
+    public ChatService(IUserService userService, IConfigService configService)
     {
         _userService = userService;
         _configService = configService;

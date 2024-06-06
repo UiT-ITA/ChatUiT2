@@ -65,7 +65,7 @@
 
 @code {
     [Parameter] public IWorkItem workItem { get; set; } = null!;
-    [Inject] private UserService UserService { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
 
     private string newName { get; set; } = string.Empty;
 

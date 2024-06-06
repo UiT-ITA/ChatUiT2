@@ -1,4 +1,5 @@
-﻿using ChatUiT2.Tools;
+﻿using ChatUiT2.Interfaces;
+using ChatUiT2.Tools;
 using System.Text.Json.Serialization;
 
 namespace ChatUiT2.Models;

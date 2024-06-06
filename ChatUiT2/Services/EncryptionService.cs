@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using ChatUiT2.Interfaces;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace ChatUiT2.Services;
@@ -8,7 +9,7 @@ namespace ChatUiT2.Services;
 /// Service for encryption and decryption.
 /// USed to encrypt user chat data stored in mongodb
 /// </summary>
-public class EncryptionService
+public class EncryptionService : IEncryptionService
 {
 
     /// <summary>
