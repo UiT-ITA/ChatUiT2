@@ -7,6 +7,26 @@
         </MudButton>
     </ActivatorContent>
     <ChildContent>
+        @foreach (var model in ConfigService.GetModels())
+        {
+            <MudMenuItem OnClick="@(() => SelectModel(model.Name))">
+                <div class="d-flex align-items-center" style="width: 300px;">
+                    <MudIcon Icon="@GetIcon(model.Name)" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
+                    <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                        <MudText Typo="Typo.h6" Class="m-0">@model.Name</MudText>
+                        <MudText Typo="Typo.subtitle2" Class="m-0">@model.Description</MudText>
+                    </div>
+                    @if (UserService.CurrentChat.Settings.Model == model.Name)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                    }
+                </div>
+            </MudMenuItem>
+        }
+
+    </ChildContent>
+
+    @*<ChildContent>
         <MudMenuItem OnClick="@(() => SelectModel("GPT-4o"))">
             <div class="d-flex align-items-center" style="width: 300px;">
                 <MudIcon Icon="@Icons.Material.Filled.HotelClass" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
@@ -62,11 +82,12 @@
                 }
             </div>
         </MudMenuItem>
-    </ChildContent>
+    </ChildContent>*@
 </MudMenu>
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IConfigService ConfigService { get; set; } = null!;
 
     override protected void OnInitialized()
     {
@@ -79,11 +100,22 @@
     }
 
 
+    private string GetIcon(string model)
+    {
+        return model switch
+        {
+            "GPT-4o" => Icons.Material.Filled.HotelClass,
+            "GPT-4-Turbo" => Icons.Material.Filled.Star,
+            "GPT-35-Turbo" => Icons.Material.Filled.StarHalf,
+            "Orakel" => Icons.Material.Filled.PersonSearch,
+            _ => Icons.Material.Filled.StarOutline
+        };
+    }
+
 
     private void SelectModel(string model)
     {
         UserService.CurrentChat.Settings.Model = model;
-        UserService.SetPreferredModel(model);
         UserService.RaiseUpdate();
     }
 }

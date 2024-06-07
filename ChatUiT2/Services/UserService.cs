@@ -49,7 +49,6 @@ public class UserService : IUserService
 
         // Load user
         _ = LoadUser();
-
     }
 
 
@@ -76,6 +75,7 @@ public class UserService : IUserService
         var workItems = await _databaseService.GetWorkItemList(User);
         User.Chats = workItems.OfType<WorkItemChat>().ToList();
         Loading = false;
+        NewChat();
         RaiseUpdate();
     }
 
