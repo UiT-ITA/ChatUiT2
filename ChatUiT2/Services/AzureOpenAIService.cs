@@ -10,11 +10,6 @@ public static class AzureOpenAIService
 
     public static StreamingResponse<StreamingChatCompletionsUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
     {
-        Console.WriteLine("Debug: GetStreamingResponse");
-        Console.WriteLine(model.DeploymentName);
-        Console.WriteLine(endpoint.Url);
-
-
         OpenAIClient client = new OpenAIClient(new Uri(endpoint.Url), new Azure.AzureKeyCredential(endpoint.Key));
 
         var OAIRequest = new ChatCompletionsOptions()
@@ -62,6 +57,7 @@ public static class AzureOpenAIService
             OAIRequest.Messages.Insert(1, chatRequestMessage);
             availableTokens -= messageTokens;
         }
+
 
         return client.GetChatCompletionsStreaming(OAIRequest);
     }

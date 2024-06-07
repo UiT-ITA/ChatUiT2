@@ -17,11 +17,20 @@
         </div>
 
         <div class="flex-grow-1">
-
-            @foreach (var workItem in UserService.GetWorkItems())
+            @if (UserService.Loading)
             {
-            <WorkItemView workItem="workItem" />
+                <MudText Typo="Typo.h6" Class="text-center pl-4" >Loading...</MudText>
             }
+            else
+            {
+                foreach (var workItem in UserService.GetWorkItems())
+                {
+                    <WorkItemView workItem="workItem" />
+                }
+            }
+
+
+            
 
         @* <WorkItemView workItem="UserService.CurrentWorkItem" /> *@
         </div>

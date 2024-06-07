@@ -1,5 +1,6 @@
 ﻿@page "/test"
 @using ChatUiT2.Services
+@using MongoDB.Bson.Serialization
 
 <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="Testing">Testing</MudButton>
 
@@ -14,9 +15,9 @@
 
     public async Task Testing()
     {
-        debug_bytes = await testService._keyVaultService.GetKeyAsync("TestKey");
-
-        await testService._databaseService.SaveUserPreferences("default", new Preferences());
+        await testService._userService.LoadUser();
+        // var test = await testService._databaseService.GetUserPreferences("otv001@uit.no");
+        // debug_text = test.Language;
 
         StateHasChanged();
     }

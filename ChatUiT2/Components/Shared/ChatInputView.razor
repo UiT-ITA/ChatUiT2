@@ -75,8 +75,6 @@
             return;
         }
 
-        Console.WriteLine("Sending message: " + prompt);
-
         string sendPrompt = prompt;
         prompt = "";
 
@@ -84,18 +82,17 @@
         await Task.Delay(10);
         StateHasChanged();
 
-        // TODO: Implement sending message
         await UserService.SendMessage(sendPrompt);
 
         UserService.Waiting = false;
         StateHasChanged();
     }
 
-    private async void HandleKeyPress(KeyboardEventArgs e)
+    private void HandleKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
         {
-            SendMessage();
+            _ = SendMessage();
         }
     }
 

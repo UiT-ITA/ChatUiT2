@@ -9,7 +9,6 @@ public class ConfigService : IConfigService
     private List<ModelEndpoint> endpoints { get; set; } = null!;
     private Model defaultModel { get; set; } = null!;
     private Model namingModel { get; set; } = null!;
-    private string mongoDBConnectionString { get; set; } = null!;
 
 
     public ConfigService(IConfiguration configuration, IKeyVaultService keyVaultService, IDatabaseService databaseService)
@@ -48,8 +47,11 @@ public class ConfigService : IConfigService
             }
         }
 
+        Console.WriteLine("Loading configuration");
         Console.WriteLine($"Models: {models.Count}");
         Console.WriteLine($"Endpoints: {endpoints.Count}");
+        Console.WriteLine($"Default model: {defaultModel.Name}");
+        Console.WriteLine($"Naming model: {namingModel.Name}");
 
         foreach (var model in models)
         {

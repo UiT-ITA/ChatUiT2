@@ -9,6 +9,7 @@ public interface IUserService
     IWorkItem CurrentWorkItem { get; set; }
     bool IsDarkMode { get; set; }
     bool Waiting { get; set; }
+    bool Loading { get; }
     IConfigService _configService { get; set; }
     //IAuthUserService _authUserService { get; set; }
     WorkItemChat CurrentChat { get; }
@@ -29,6 +30,5 @@ public interface IUserService
     Task DeleteWorkItem(IWorkItem workItem);
     Task SendMessage();
     Task SendMessage(string? message);
-    Task UpdateItem(IWorkItem workItem);
     
 }

@@ -12,20 +12,6 @@ public class User
     public List<WorkItemChat> Chats { get; set; } = [];
     public byte[]? AesKey { get; set; } = null;
 
-    //public SemaphoreSlim LoadingLock = new(1, 1);
-
-
-    public void LoadDummyData()
-    {
-        Console.WriteLine("Loading dummy data");
-        Chats = new List<WorkItemChat>();
-        Chats.Add(new WorkItemChat { Name = "Chat 1" });
-        Chats.Add(new WorkItemChat { Name = "Chat 2" });
-        Chats.Add(new WorkItemChat { Name = "Chat 3" });
-
-        AesKey = new byte[32];
-    }
-
     public void SetItems(List<IWorkItem> workItems)
     {
         Chats = workItems.OfType<WorkItemChat>().ToList();

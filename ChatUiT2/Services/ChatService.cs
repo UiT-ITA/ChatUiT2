@@ -3,6 +3,7 @@ using ChatUiT2.Interfaces;
 using MongoDB.Driver.Core.WireProtocol.Messages;
 using MudBlazor;
 using System.Text.Json;
+using ChatUiT2.Tools;
 
 namespace ChatUiT2.Services;
 
@@ -33,20 +34,25 @@ public class ChatService : IChatService
                 Role = ChatMessageRole.User,
                 Status = ChatMessageStatus.Done
             });
+            await _userService.UpdateWorkItem(chat);
         }
 
+        ChatMessage userMessage = chat.Messages.Last();
+
         ChatMessage responseMessage = new ChatMessage { Content = "", Role = ChatMessageRole.Assistant, Status = ChatMessageStatus.Working };
+        if (responseMessage.Created <= userMessage.Created)
+        {
+            responseMessage.Created = userMessage.Created.AddMilliseconds(1);
+        }
+
         chat.Messages.Add(responseMessage);
 
-        _userService.UpdateItem(chat);
+        await _userService.UpdateWorkItem(chat);
         _userService.RaiseUpdate();
 
         Model model = _configService.GetModel(chat.Settings.Model);
         ModelEndpoint endpoint = _configService.GetEndpoint(model.Deployment);
 
-        Console.WriteLine("Debug: GetChatResponse");
-        Console.WriteLine(model.DeploymentName);
-        Console.WriteLine(endpoint.Url);
         
         if (model.DeploymentType == "AzureOpenAI")
         {
@@ -58,6 +64,25 @@ public class ChatService : IChatService
                     responseMessage.Content += chatUpdate.ContentUpdate;
 
                     _userService.RaiseUpdate();
+
+                    var finishReason = chatUpdate.FinishReason;
+                    if (finishReason != null)
+                    {
+                        Console.WriteLine("Finish reason: " + finishReason.ToString());
+
+                        switch (finishReason.ToString())
+                        {
+                            case "stop":
+                                responseMessage.Status = ChatMessageStatus.Done;
+                                break;
+                            case "length":
+                                responseMessage.Status = ChatMessageStatus.TokenLimit;
+                                break;
+                            default:
+                                responseMessage.Status = ChatMessageStatus.Error;
+                                break;
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -67,6 +92,8 @@ public class ChatService : IChatService
                 responseMessage.Content = "Something went wrong...";
                 responseMessage.Status = ChatMessageStatus.Error;
             }
+            responseMessage.Created = DateTimeTools.GetTimestamp();
+            await _userService.UpdateWorkItem(chat);
         }
         else
         {

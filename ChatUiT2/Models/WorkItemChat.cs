@@ -1,11 +1,13 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Tools;
+using MongoDB.Bson.Serialization.Attributes;
 using System.Text.Json.Serialization;
 
 namespace ChatUiT2.Models;
 
 public class WorkItemChat : IWorkItem
 {
+    [BsonElement("Id")]
     public string Id { get; init; } = Guid.NewGuid().ToString();
     public string Name { get; set; } = "New chat";
     public WorkItemType Type { get; set; } = WorkItemType.Chat;
@@ -43,5 +45,6 @@ public enum ChatMessageStatus
 {
     Working,
     Done,
+    TokenLimit,
     Error
 }

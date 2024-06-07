@@ -28,6 +28,7 @@ public class DatabaseService : IDatabaseService
         _encryptionService = encryptionService;
 
         var connectionString = configuration.GetConnectionString("MongoDb");
+
         var client = new MongoClient(connectionString);
         var systemDatabase = client.GetDatabase(configuration["DBSettings:SystemDatabaseName"]);
         var userDatabase = client.GetDatabase(configuration["DBSettings:UserDatabaseName"]);
@@ -39,6 +40,7 @@ public class DatabaseService : IDatabaseService
 
         _useEncryption = configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: true);
     }
+
 
     // Users
     /// <summary>
@@ -56,7 +58,6 @@ public class DatabaseService : IDatabaseService
             return BsonSerializer.Deserialize<Preferences>(document["Preferences"].AsBsonDocument);
         }
 
-
         // Load default preferences
         var filterDefault = Builders<BsonDocument>.Filter.Eq("Username", "default");
         var documentDefault = await _userCollection.Find(filterDefault).FirstOrDefaultAsync();
@@ -68,11 +69,11 @@ public class DatabaseService : IDatabaseService
         }
         else
         {
+            Console.WriteLine("No default preferences found, creating new");
             // No default preferences found, create new
             preferences = new Preferences();
             await SaveUserPreferences("default", preferences);
         }
-
         await SaveUserPreferences(username, preferences);
         return preferences;
     }
@@ -113,19 +114,21 @@ public class DatabaseService : IDatabaseService
     public async Task<List<IWorkItem>> GetWorkItemList(User user)
     {
         var workItems = new List<IWorkItem>();
-        
+
         var filter = Builders<BsonDocument>.Filter.Eq("Username", user.Username);
         var sort = Builders<BsonDocument>.Sort.Descending("Updated");
 
-        var documents = await _workItemCollection.Find(filter).Sort(sort).ToListAsync();
+        var documents = await _workItemCollection.Find(filter).ToListAsync();
         foreach (var doc in documents)
         {
-            if (doc["Type"] == "WorkItemChat")
+            if (doc["Type"] == WorkItemType.Chat.ToString())
             {
-                var workItem = BsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
+
+                var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
                 if (workItem != null)
                 {
                     workItem.Messages = await GetChatMessages(user, workItem.Id);
+                    workItems.Add(workItem);
                 }
             }
             else
@@ -144,6 +147,11 @@ public class DatabaseService : IDatabaseService
     /// <returns></returns>
     public async Task SaveWorkItem(User user, IWorkItem workItem)
     {
+        if (workItem.Persistant == false)
+        {
+            await DeleteWorkItem(user, workItem);
+            return;
+        }
         string jsonText = string.Empty;
 
         if (workItem.Type == WorkItemType.Chat)

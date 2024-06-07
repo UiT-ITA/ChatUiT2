@@ -6,4 +6,5 @@ public interface IKeyVaultService
     Task SetKeyForUser(string username, byte[] key);
     Task<byte[]> GetKeyAsync(string username);
     Task<string?> GetEndpointKey(string endpointName);
+    Task<string?> GetDBString();
 }

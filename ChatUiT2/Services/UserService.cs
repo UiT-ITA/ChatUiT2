@@ -12,9 +12,10 @@ public class UserService : IUserService
         set => User.Preferences.DarkMode = value;
     }
     public bool Waiting { get; set; } = false;
+    public bool Loading { get; private set; } = true;
     private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
-    private ChatService _chatService { get; set; }
+    private IChatService _chatService { get; set; }
     public IConfigService _configService { get; set; }
     private IAuthUserService _authUserService { get; set; }
     private IDatabaseService _databaseService { get; set; }
@@ -25,6 +26,8 @@ public class UserService : IUserService
     }
 
     public event Action? OnUpdate;
+
+    SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
 
     public UserService( IConfiguration configuration, 
                         IConfigService configService, 
@@ -45,11 +48,7 @@ public class UserService : IUserService
         CurrentWorkItem = new WorkItemChat();
 
         // Load user
-        //var task = LoadUser();
-        //task.Wait();
-
-        // Load dummy user
-        LoadDummyUser();
+        _ = LoadUser();
 
     }
 
@@ -58,8 +57,12 @@ public class UserService : IUserService
     /// Loads the user data from the database
     /// </summary>
     /// <returns></returns>
-    private async Task LoadUser()
+    public async Task LoadUser()
     {
+        if (User.Username != string.Empty)
+        {
+            return;
+        }
         string? username = await _authUserService.GetUsername();
 
         if (username == null)
@@ -69,17 +72,13 @@ public class UserService : IUserService
 
         User.Username = username;
         User.AesKey = await _keyVaultService.GetKeyAsync(username);
-
         User.Preferences = await _databaseService.GetUserPreferences(username);
         var workItems = await _databaseService.GetWorkItemList(User);
         User.Chats = workItems.OfType<WorkItemChat>().ToList();
+        Loading = false;
+        RaiseUpdate();
     }
 
-    private void LoadDummyUser()
-    {
-        User.Username = "TestUser";
-        User.LoadDummyData();
-    }
 
     /// <summary>
     /// Raises an update on all components that is subscribed to the event
@@ -93,6 +92,7 @@ public class UserService : IUserService
     {
         if (CurrentChat.Messages.Count == 0)
         {
+            // TODO: Implement
             // Destroy the object?
         }
 
@@ -112,10 +112,8 @@ public class UserService : IUserService
         if (workItem.Persistant != value)
         {
             workItem.Persistant = value;
+            await _databaseService.SaveWorkItem(User, workItem);
         }
-
-        // TODO: Implement
-        await Task.Delay(100);
 
         RaiseUpdate();
     }
@@ -124,8 +122,9 @@ public class UserService : IUserService
     {
         User.Preferences.DefaultChatSettings.Copy(CurrentChat.Settings);
         User.Preferences.SaveHistory = CurrentChat.Persistant;
-        // TODO: Implement
-        await Task.Delay(100);
+        
+        await _databaseService.SaveUserPreferences(User.Username, User.Preferences);
+
         RaiseUpdate();
 
     }
@@ -135,9 +134,10 @@ public class UserService : IUserService
         return _configService.GetModels();
     }
 
-    public void SetPreferredModel(string model)
+    public async void SetPreferredModel(string model)
     {
         User.Preferences.DefaultChatSettings.Model = model;
+        await _databaseService.SaveUserPreferences(User.Username, User.Preferences);
     }
 
     public int GetMaxTokens()
@@ -163,8 +163,8 @@ public class UserService : IUserService
 
     public async Task UpdateWorkItem(IWorkItem workItem)
     {
-        // TODO: Implement
-        await Task.Delay(100);
+        await _databaseService.SaveWorkItem(User, workItem);
+        RaiseUpdate();
     }
 
 
@@ -191,8 +191,7 @@ public class UserService : IUserService
             User.Chats.Remove((WorkItemChat)workItem);
         }
 
-        // TODO: Implement
-        await Task.Delay(100);
+        await _databaseService.DeleteWorkItem(User, workItem);
 
         Console.WriteLine("Deleting work item: " + workItem.Name);
         RaiseUpdate();
@@ -202,6 +201,7 @@ public class UserService : IUserService
     {
         await SendMessage(null);
     }
+
     public async Task SendMessage(string? message)
     {
         if (!User.Chats.Contains(CurrentChat))
@@ -211,13 +211,6 @@ public class UserService : IUserService
         await _chatService.GetChatResponse(message);
     }
 
-    public async Task UpdateItem(IWorkItem workItem)
-    {
-        workItem.Updated = DateTimeTools.GetTimestamp();
-        // TODO: implement saving
-        await Task.Delay(100);
-        RaiseUpdate();
-    }
 
 
 
