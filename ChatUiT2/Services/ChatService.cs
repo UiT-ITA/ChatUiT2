@@ -95,11 +95,81 @@ public class ChatService : IChatService
             responseMessage.Created = DateTimeTools.GetTimestamp();
             await _userService.UpdateWorkItem(chat);
         }
+        else if (model.DeploymentType == "Groq")
+        {
+            try
+            {
+                var response = GroqService.GetStreamingResponse(chat, model, endpoint);
+                await foreach (var chatUpdate in response)
+                {
+                    responseMessage.Content += chatUpdate["choices"][0]["delta"]["content"];
+
+                    _userService.RaiseUpdate();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+                Console.WriteLine("Error: " + ex.StackTrace);
+                responseMessage.Content = "Something went wrong...";
+                responseMessage.Status = ChatMessageStatus.Error;
+            }
+        }
+        
         else
         {
             throw new Exception("Unsupported deployment type: " + model.DeploymentType);
-        }     
+        }
 
+        if (chat.Name == "New chat")
+        {
+
+
+            chat.Name = await GetName(chat);
+            await _userService.UpdateWorkItem(chat);
+        }
+
+    }
+
+    public async Task<string> GetName(WorkItemChat chat)
+    {
+        Console.WriteLine("Getting name");
+        string name;
+        var model = _configService.GetNamingModel();
+        var endpoint = _configService.GetEndpoint(model.Deployment);
+
+        string namingPrompt = "Name this chat. ONLY reply with the name. The name should be a maximum of 25 characters long. The name will be displayed on a label, so make it as informative as you can. Do NOT put quotation mark around your answer. Reply ONLY with the name. Do NOT format the answer in any way";
+
+        WorkItemChat namingChat = new WorkItemChat
+        {
+            Settings = new ChatSettings
+            {
+                Model = model.Name,
+                Prompt = namingPrompt,
+                MaxTokens = 20,
+                Temperature = 0.7f
+            },
+            Messages = chat.Messages
+        };
+
+        if (model.DeploymentType == "AzureOpenAI")
+        {
+            name = await AzureOpenAIService.GetResponse(namingChat, model, endpoint);
+        }
+        else if (model.DeploymentType == "Groq")
+        {
+            throw new Exception("Groq naming is not yet supported");
+        }
+        else
+        {
+            throw new Exception("Unsupported deployment type: " + model.DeploymentType);
+        }
+        Console.WriteLine("Name: " + name);
+        if (name.Length > 25)
+        {
+            name = name.Substring(0, 25);
+        }
+        return name;
     }
 }
 

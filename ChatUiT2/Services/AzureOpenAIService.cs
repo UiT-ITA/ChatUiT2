@@ -7,6 +7,18 @@ namespace ChatUiT2.Services;
 
 public static class AzureOpenAIService
 {
+    public static async Task<string> GetResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
+    {
+        // Get the response from the OpenAI API
+        var response = GetStreamingResponse(chat, model, endpoint);
+        string content = "";
+        await foreach (var chatUpdate in response)
+        {
+            content += chatUpdate.ContentUpdate;
+        }
+
+        return content;
+    }
 
     public static StreamingResponse<StreamingChatCompletionsUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
     {

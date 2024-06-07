@@ -15,10 +15,8 @@
 
     public async Task Testing()
     {
-        await testService._userService.LoadUser();
-        // var test = await testService._databaseService.GetUserPreferences("otv001@uit.no");
-        // debug_text = test.Language;
-
+        var response = await GroqService.GetResponse(testService._configuration["Groq"]!);
+        debug_text = response;
         StateHasChanged();
     }
 }

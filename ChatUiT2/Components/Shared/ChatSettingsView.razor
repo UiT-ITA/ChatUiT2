@@ -45,7 +45,7 @@
                 </div>
             </div>
             <div class="ml-4 mr-2 mt-4" style="width: 450px; min-width: 300px;">
-                <MudSlider T="int" Max="4096" Min="@(4096/16)" Step="@(4096/16)" @bind-Value="UserService.CurrentChat.Settings.MaxTokens" Size="Size.Large" Color="Color.Info"/>
+                <MudSlider T="int" Max="@maxTokens" Min="@(maxTokens/16)" Step="@(maxTokens/16)" @bind-Value="UserService.CurrentChat.Settings.MaxTokens" Size="Size.Large" Color="Color.Info" />
             </div>
         </div>
         <MudDivider />
@@ -119,6 +119,21 @@
     [Parameter] public bool IncludeHeader { get; set; } = false;
     [Parameter] public bool IncludeInstructions { get; set; } = false;
     [Parameter] public int Elevation { get; set; } = 0;
+
+    private string cachedModel = "";
+    private int _maxTokens = 4096;
+    private int maxTokens
+    {
+        get
+        {
+            if (cachedModel != UserService.CurrentChat.Settings.Model)
+            {
+                cachedModel = UserService.CurrentChat.Settings.Model;
+                _maxTokens = GetMaxTokens();
+            }
+            return _maxTokens;
+        }
+    }
 
     private bool CurrentWorkItemPersistant
     {
