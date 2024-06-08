@@ -57,7 +57,13 @@
                 </MudButton>
             </ActivatorContent>
             <ChildContent>
-                <MudMenuItem OnClick="OpenPreferences">
+                <div class="pl-4 pb-2">
+                    <MudText Typo="Typo.body2">Logged in as:</MudText>
+                    @if (username != "") { <MudText Typo="Typo.body1">@username</MudText> }
+                    else { <MudText Typo="Typo.body1">Not logged in</MudText> }
+                </div>
+                <MudDivider />
+                <MudMenuItem OnClick="OpenUserSettings">
                     <MudStack Row Style="width:150px">
                         <MudIcon Icon="@Icons.Material.Filled.Settings" /> 
                         Preferences 
@@ -107,7 +113,12 @@
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private IAuthUserService AuthUserService { get; set; } = null!;
+    [Inject] private IConfiguration Configuration { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
 
+    private string username = "";
 
     private bool CurrentWorkItemPersistant
     {
@@ -127,6 +138,7 @@
     {
         UserService.OnUpdate += UpdateView;
         base.OnInitialized();
+        GetUsername();
     }
 
     public void Dispose()
@@ -157,14 +169,28 @@
         DialogService.Show<ChatSettingsView>(title: "Chat settings", options: chatSettingsOptions);
     }
 
-    private void OpenPreferences()
+    private async void GetUsername()
+    {
+        var result = await AuthUserService.GetUsername();
+        if (result != null)
+        {
+            username = result;
+        }
+        else
+        {
+            username = "";
+        }
+        StateHasChanged();
+    }
+
+    private void OpenUserSettings()
     {
         // TODO: Implement
     }
 
-    private void Logout()
+    private async void Logout()
     {
-        // TODO: Implement
+        await Task.Delay(10);
     }
 
 }

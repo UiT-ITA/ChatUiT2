@@ -147,7 +147,6 @@ public class UserService : IUserService
     public int GetMaxTokens(WorkItemChat chat)
     {
         var model = _configService.GetModel(chat.Settings.Model);
-        Console.WriteLine("Max tokens: " + model.MaxTokens);
         return model.MaxTokens;
     }
     public List<IWorkItem> GetWorkItems()
