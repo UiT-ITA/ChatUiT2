@@ -55,10 +55,9 @@
    }
    else
    {
-
-       <MudTextField @bind-Value="newName" AutoFocus Immediate Variant="Variant.Text" Style="height:28px; width:210px" Class="pa-0 ma-0" 
-            Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Check" OnAdornmentClick="StopEditing" @onfocusout="StopEditing" @onkeydown="OnKeyDown" />
-
+       <MudTextField @bind-Value="newName" AutoFocus Immediate Variant="Variant.Text" Style="height:28px; width:210px" 
+            Class="pa-0 ma-0" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Check" 
+            OnAdornmentClick="StopEditing" @onfocusout="StopEditing" @onkeydown="OnKeyDown" />
    }
 
 </MudChip>
@@ -94,19 +93,8 @@
         }
         UserService.CurrentWorkItem = workItem;
         UserService.RaiseUpdate();
-
     }
 
-    private void OnDelete()
-    {
-        // UserService.DeleteWorkItem(workItem);
-        // TODO: Implement
-    }
-
-    private void OnRename()
-    {
-        // TODO: Implement
-    }
 
     private Color GetBackgroundColor()
     {

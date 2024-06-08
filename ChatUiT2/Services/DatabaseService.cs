@@ -230,6 +230,10 @@ public class DatabaseService : IDatabaseService
 
             if (_useEncryption)
             {
+                if (user.AesKey == null)
+                {
+                    user.AesKey = await _keyVaultService.GetKeyAsync(user.Username);
+                }
                 content = _encryptionService.Decrypt(doc["Content"].AsByteArray, user.AesKey);
             }
             else
@@ -279,12 +283,17 @@ public class DatabaseService : IDatabaseService
     /// <returns></returns>
     private async Task SaveChatMessage(User user, ChatMessage message, string chatId)
     {
+        if (_useEncryption && user.AesKey == null)
+        {
+            user.AesKey = await _keyVaultService.GetKeyAsync(user.Username);
+        }
+
         var document = new BsonDocument
         {
             {"_id", message.Id},
             {"ChatId", chatId},
             {"Username", user.Username},
-            {"Content", _useEncryption ? _encryptionService.Encrypt(message.Content, user.AesKey) : message.Content},
+            {"Content", _useEncryption ? _encryptionService.Encrypt(message.Content, user.AesKey!) : message.Content},
             {"Role", (int)message.Role},
             {"Status", (int)message.Status},
             {"Created", message.Created}

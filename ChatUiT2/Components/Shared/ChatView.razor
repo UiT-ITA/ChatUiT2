@@ -1,6 +1,6 @@
 ﻿
 <div style="overflow-y: auto; height: 100%">
-    <div style="margin: 0 auto; max-width: 1200px; width: 100%; height: 100%;">
+    <div style="margin: 0 auto; max-width: 1200px; width: 100%; height: 100%;" class="pt-1">
         @if (UserService.CurrentChat.Messages.Count == 0)
         {
             <div style="display: flex; align-items: center; justify-content: center; min-height: 100%; height: auto;">
@@ -18,9 +18,6 @@
 
     <ChatInputView />
 </div>
-
-
-
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;

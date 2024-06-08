@@ -1,6 +1,4 @@
 ﻿using ChatUiT2.Models;
-using ChatUiT2.Services;
-using ChatUiT2.Tools;
 
 namespace ChatUiT2.Interfaces;
 
@@ -11,7 +9,6 @@ public interface IUserService
     bool Waiting { get; set; }
     bool Loading { get; }
     IConfigService _configService { get; set; }
-    //IAuthUserService _authUserService { get; set; }
     WorkItemChat CurrentChat { get; }
     event Action? OnUpdate;
     void RaiseUpdate();

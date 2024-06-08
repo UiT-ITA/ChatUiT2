@@ -1,4 +1,4 @@
-﻿@* Model selection *@
+﻿
 <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Dense>
     <ActivatorContent>
         <MudButton Class="ml-2">
@@ -23,66 +23,7 @@
                 </div>
             </MudMenuItem>
         }
-
     </ChildContent>
-
-    @*<ChildContent>
-        <MudMenuItem OnClick="@(() => SelectModel("GPT-4o"))">
-            <div class="d-flex align-items-center" style="width: 300px;">
-                <MudIcon Icon="@Icons.Material.Filled.HotelClass" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
-                <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                    <MudText Typo="Typo.h6" Class="m-0">GPT-4o</MudText>
-                    <MudText Typo="Typo.subtitle2" Class="m-0">The latest and most advanced</MudText>
-                </div>
-                @if (UserService.CurrentChat.Settings.Model == "GPT-4o")
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
-                }
-            </div>
-        </MudMenuItem>
-        <MudDivider />
-        <MudMenuItem OnClick="@(() => SelectModel("GPT-4-Turbo"))">
-            <div class="d-flex align-items-center" style="width: 300px;">
-                <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
-                <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                    <MudText Typo="Typo.h6" Class="m-0">GPT-4-Turbo</MudText>
-                    <MudText Typo="Typo.subtitle2" Class="m-0">Advanced but slower</MudText>
-                </div>
-                @if (UserService.CurrentChat.Settings.Model == "GPT-4-Turbo")
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
-                }
-            </div>
-        </MudMenuItem>
-        <MudDivider />
-        <MudMenuItem OnClick="@(() => SelectModel("GPT-35-Turbo"))">
-            <div class="d-flex align-items-center" style="width: 300px;">
-                <MudIcon Icon="@Icons.Material.Filled.StarHalf" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
-                <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                    <MudText Typo="Typo.h6" Class="m-0">GPT-3.5-Turbo</MudText>
-                    <MudText Typo="Typo.subtitle2" Class="m-0">Fast, but not as good</MudText>
-                </div>
-                @if (UserService.CurrentChat.Settings.Model == "GPT-35-Turbo")
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
-                }
-            </div>
-        </MudMenuItem>
-        <MudDivider />
-        <MudMenuItem OnClick="@(() => SelectModel("Orakel"))">
-            <div class="d-flex align-items-center" style="width: 300px;">
-                <MudIcon Icon="@Icons.Material.Filled.PersonSearch" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
-                <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                    <MudText Typo="Typo.h6" Class="m-0">Orakelet</MudText>
-                    <MudText Typo="Typo.subtitle2" Class="m-0">For UiT specific questions.</MudText>
-                </div>
-                @if (UserService.CurrentChat.Settings.Model == "Orakel")
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
-                }
-            </div>
-        </MudMenuItem>
-    </ChildContent>*@
 </MudMenu>
 
 @code {
