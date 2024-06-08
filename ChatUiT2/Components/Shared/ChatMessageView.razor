@@ -58,7 +58,7 @@ else
             </div>
 
             <div class="flex-grow-1 pt-5 pb-3" style="display: flex; flex-direction: column; overflow: hidden;">
-                <MudMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark" />
+                <MyMarkdown Value="@Message.Content" CodeBlockTheme="CodeBlockTheme.AtomOneDark" />
             </div>
 
             <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
@@ -97,15 +97,19 @@ else
     private bool isEditing = false;
     private string newContent = "";
 
+
     override protected void OnInitialized()
     {
         UserService.OnUpdate += StateHasChanged;
+        var markdown = new MudBlazor.MudMarkdown();
     }
 
     public void Dispose()
     {
         UserService.OnUpdate -= StateHasChanged;
     }
+
+
 
     public async void DeleteMessage()
     {

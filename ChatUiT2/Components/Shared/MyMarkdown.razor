@@ -1,0 +1,55 @@
+﻿@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Rendering
+@inject IJSRuntime JS
+
+<div id="markdown-content">
+    @if (renderException != null)
+    {
+        <MudText>@Value</MudText>
+    }
+    else
+    {
+        @RenderMarkdown
+    }
+</div>
+
+@code {
+    [Parameter] public string Value { get; set; } = null!;
+    [Parameter] public MudBlazor.CodeBlockTheme? CodeBlockTheme { get; set; }
+
+    private Exception? renderException;
+
+    private RenderFragment RenderMarkdown => builder =>
+    {
+        try
+        {
+            builder.OpenComponent(0, typeof(MudBlazor.MudMarkdown));
+            builder.AddAttribute(1, "Value", Value);
+            builder.AddAttribute(2, "CodeBlockTheme", CodeBlockTheme);
+            builder.CloseComponent();
+            Console.WriteLine("Markdown rendered without problems");
+        }
+        catch (Exception ex)
+        {
+            renderException = ex;
+            Console.WriteLine($"Exception during rendering: {ex.Message}");
+        }
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && renderException == null)
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("highlightCode", "markdown-content");
+                Console.WriteLine("Code highlighted without problems");
+            }
+            catch (Exception ex)
+            {
+                renderException = ex;
+                Console.WriteLine($"Exception during highlighting: {ex.Message}");
+            }
+        }
+    }
+}
