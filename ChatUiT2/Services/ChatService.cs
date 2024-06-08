@@ -102,15 +102,8 @@ public class ChatService : IChatService
                 var response = GroqService.GetStreamingResponse(chat, model, endpoint);
                 await foreach (var chatUpdate in response)
                 {
-                    var contentUpdate = chatUpdate?["choices"]?[0]?["message"]?["content"];
-                    if (contentUpdate != null)
-                    {
-                        responseMessage.Content += contentUpdate;
-                    }
-                    else
-                    {
-                        throw new Exception("No content found in response");
-                    }
+                    //var contentUpdate = chatUpdate["choices"]?[0]?["message"]?["content"];
+                    responseMessage.Content += chatUpdate["choices"][0]["delta"]["content"];
 
                     _userService.RaiseUpdate();
                 }
