@@ -75,70 +75,7 @@
 
     private async Task DownloadConversation()
     {
-        WorkItemChat chat = UserService.CurrentChat;
-        using (var ms = new MemoryStream())
-        {
-            // Create a PDF document
-            var document = new PdfSharpCore.Pdf.PdfDocument();
-            var page = document.AddPage();
-            var gfx = PdfSharpCore.Drawing.XGraphics.FromPdfPage(page);
-            var fontTitle = new PdfSharpCore.Drawing.XFont("Verdana", 20, PdfSharpCore.Drawing.XFontStyle.Bold);
-            var fontRegular = new PdfSharpCore.Drawing.XFont("Verdana", 12, PdfSharpCore.Drawing.XFontStyle.Regular);
-            var fontHeader = new PdfSharpCore.Drawing.XFont("Verdana", 12, PdfSharpCore.Drawing.XFontStyle.Bold);
-
-            // Add title
-            gfx.DrawString(chat.Name, fontTitle, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(0, 0, page.Width, 50), PdfSharpCore.Drawing.XStringFormats.Center);
-
-            // Set starting point for table
-            double yPoint = 60;
-            double margin = 10;
-            double maxWidth = page.Width - 2 * margin;
-            double[] columnWidths = { maxWidth * 0.2, maxWidth * 0.2, maxWidth * 0.6 };
-
-            // Draw table headers
-            var tf = new PdfSharpCore.Drawing.Layout.XTextFormatter(gfx);
-            tf.Alignment = PdfSharpCore.Drawing.Layout.XParagraphAlignment.Left;
-
-            gfx.DrawRectangle(PdfSharpCore.Drawing.XPens.Black, margin, yPoint, maxWidth, 20);
-            tf.DrawString("Sender", fontHeader, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin, yPoint, columnWidths[0], 20));
-            tf.DrawString("Timestamp", fontHeader, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin + columnWidths[0], yPoint, columnWidths[1], 20));
-            tf.DrawString("Content", fontHeader, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin + columnWidths[0] + columnWidths[1], yPoint, columnWidths[2], 20));
-
-            yPoint += 20;
-
-            // Draw chat messages
-            foreach (var message in chat.Messages)
-            {
-                // Calculate height for the content
-                var messageContent = $"{message.Created}: {message.Role} - {message.Content}";
-                var contentSize = gfx.MeasureString(message.Content, fontRegular);
-                double rowHeight = contentSize.Height * ((message.Content.Length * 6) / columnWidths[2]) + 10; // Approximate height calculation
-
-                gfx.DrawRectangle(PdfSharpCore.Drawing.XPens.Black, margin, yPoint, maxWidth, rowHeight);
-                tf.DrawString(message.Role.ToString(), fontRegular, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin, yPoint, columnWidths[0], rowHeight));
-                tf.DrawString(message.Created.ToString("dd-MMM-yy HH:mm:ss"), fontRegular, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin + columnWidths[0], yPoint, columnWidths[1], rowHeight));
-                tf.DrawString(message.Content, fontRegular, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin + columnWidths[0] + columnWidths[1], yPoint, columnWidths[2], rowHeight));
-
-                yPoint += rowHeight;
-
-                // Check if we need a new page
-                if (yPoint > page.Height - margin)
-                {
-                    page = document.AddPage();
-                    gfx = PdfSharpCore.Drawing.XGraphics.FromPdfPage(page);
-                    yPoint = margin;
-                }
-            }
-
-            document.Save(ms);
-            document.Close();
-
-            // Convert the MemoryStream to a byte array
-            var pdfBytes = ms.ToArray();
-
-            // Call JS function to download the PDF
-            await JSRuntime.InvokeVoidAsync("saveAsFile", chat.Name + ".pdf", Convert.ToBase64String(pdfBytes));
-        }
+        
 
     }
 
