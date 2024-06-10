@@ -36,7 +36,7 @@
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
-    [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
+    [Inject] private IJSRuntime JS { get; set; } = null!;
 
     private string _prompt = "";
     private string prompt 
@@ -85,6 +85,7 @@
         await UserService.SendMessage(sendPrompt);
 
         UserService.Waiting = false;
+
         StateHasChanged();
     }
 
