@@ -9,7 +9,7 @@
                 <MudIcon Icon="@Icons.Material.Filled.Star" Size="Size.Large" Class="" Style="margin-top: auto; margin-bottom: auto;" Color="@(workItem.IsFavorite ? Color.Warning : Color.Dark)"/>
             }
 
-            <MudText Typo="Typo.body2" Class="mt-1 ml-1" Color="Color.Inherit" Style="@(workItem.Persistant ? "var(--mud-palette-text-primary)" : "color:gray")">@workItem.Name</MudText>
+            <MudText Typo="Typo.body1" Class="mt-1 ml-1" Color="Color.Inherit" Style="@(workItem.Persistant ? "var(--mud-palette-text-primary)" : "color:gray")">@workItem.Name</MudText>
             <MudSpacer />
         
             @if (IsSelected())

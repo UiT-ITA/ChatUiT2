@@ -6,7 +6,7 @@
             @if (UserService.CurrentWorkItem == null || UserService.CurrentWorkItem.Type == WorkItemType.Chat)
             {
                 <MudButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Text" Class="ml-2 mr-1" OnClick="UserService.NewChat" FullWidth Style="justify-content:flex-end"  Color="Color.Inherit">
-                    <MudText Typo="Typo.h6">New chat</MudText>
+                    <MudText Typo="Typo.h5">New chat</MudText>
                     <MudIcon Icon="@Icons.Material.Filled.Add" Class="ml-1"/>
                 </MudButton>
             }
@@ -38,7 +38,7 @@
         <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DownloadConversation">
             <MudStack Row>
                 <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
-                <MudText Typo="Typo.h6" Class="">Download chat</MudText>
+                <MudText Typo="Typo.h5" Class="">Download chat</MudText>
             </MudStack>
         </MudButton>
 
@@ -46,7 +46,7 @@
         <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DeleteAll">
             <MudStack Row>
                 <MudIcon Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
-                <MudText Typo="Typo.h6" Class="">Delete all data</MudText>
+                <MudText Typo="Typo.h5" Class="">Delete all data</MudText>
             </MudStack>
         </MudButton>
     </div>

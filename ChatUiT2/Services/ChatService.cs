@@ -120,15 +120,17 @@ public class ChatService : IChatService
         }
 
         responseMessage.Created = DateTimeTools.GetTimestamp();
-        await _userService.UpdateWorkItem(chat);
 
         if (chat.Name == "New chat")
         {
 
 
             chat.Name = await GetName(chat);
-            await _userService.UpdateWorkItem(chat);
+
         }
+
+        chat.Updated = DateTimeTools.GetTimestamp();
+        await _userService.UpdateWorkItem(chat);
 
     }
 
