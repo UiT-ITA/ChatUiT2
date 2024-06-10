@@ -1,6 +1,6 @@
 ﻿@if (Message.Status == ChatMessageStatus.Error)
 {
-    <MudPaper Class="pa-0 ma-2" Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; min-height: 64px; background-color:transparent;" Elevation="0">
+    <MudPaper Class="pa-0 ma-2" Style="max-width: 100%; min-width: 300px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; min-height: 64px; background-color:transparent;" Elevation="0">
         <MudStack Row>
 
             <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
@@ -20,7 +20,7 @@
 }
 else if (Message.Role == ChatMessageRole.User)
 {
-    <MudPaper Class="pa-0 ma-2" Elevation="0"Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; min-height: 64px;">
+    <MudPaper Class="pa-0 ma-2" Elevation="0"Style="max-width: 100%; min-width: 300px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; min-height: 64px;">
         <MudStack Row>
             <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
                 <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Large" />
@@ -50,7 +50,7 @@ else if (Message.Role == ChatMessageRole.User)
 }
 else
 {
-    <MudPaper Class="pa-0 ma-2" Style="max-width: 100%; min-width: 600px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; min-height: 64px; background-color:transparent;" Elevation="0">
+    <MudPaper Class="pa-0 ma-2" Style="max-width: 100%; min-width: 300px; overflow-wrap: break-word; word-break: break-word; border-radius:32px; min-height: 64px; background-color:transparent;" Elevation="0">
         <MudStack Row>
 
             <div style="width: 64px; height: 64px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
