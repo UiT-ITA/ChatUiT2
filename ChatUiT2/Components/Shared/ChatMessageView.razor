@@ -68,7 +68,7 @@ else
                     </ActivatorContent>
                     <ChildContent>
                         <MudMenuItem Icon="@Icons.Material.Filled.CopyAll" OnClick="CopyToClipboard">Copy</MudMenuItem>
-                        <MudMenuItem Icon="@Icons.Material.Filled.Sync" >Regenerate</MudMenuItem>
+                        <MudMenuItem Icon="@Icons.Material.Filled.Sync" OnClick="Regenerate">Regenerate</MudMenuItem>
                     </ChildContent>
                 </MudMenu>
             </div>
@@ -111,25 +111,6 @@ else
     public void Dispose()
     {
         UserService.OnUpdate -= StateHasChanged;
-    }
-
-
-
-    public async void DeleteMessage()
-    {
-        // Make popup where user can confirm deletion
-        bool? result = await DialogService.ShowMessageBox(
-            "Warning",
-            "Deleting a message is irreversible. Are you sure you want to delete this message?",
-            yesText: "Delete!",
-            cancelText: "Cancel");
-
-        if (result != null && result == true)
-        {
-            Console.WriteLine("Delete message");
-            // UserService.DeleteMessage(Message);
-        }
-
     }
 
     private void StartEdit()

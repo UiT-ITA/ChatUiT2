@@ -92,8 +92,6 @@ public class ChatService : IChatService
                 responseMessage.Content = "Something went wrong...";
                 responseMessage.Status = ChatMessageStatus.Error;
             }
-            responseMessage.Created = DateTimeTools.GetTimestamp();
-            await _userService.UpdateWorkItem(chat);
         }
         else if (model.DeploymentType == "Groq")
         {
@@ -116,11 +114,13 @@ public class ChatService : IChatService
                 responseMessage.Status = ChatMessageStatus.Error;
             }
         }
-        
         else
         {
             throw new Exception("Unsupported deployment type: " + model.DeploymentType);
         }
+
+        responseMessage.Created = DateTimeTools.GetTimestamp();
+        await _userService.UpdateWorkItem(chat);
 
         if (chat.Name == "New chat")
         {
@@ -134,7 +134,6 @@ public class ChatService : IChatService
 
     public async Task<string> GetName(WorkItemChat chat)
     {
-        Console.WriteLine("Getting name");
         string name;
         var model = _configService.GetNamingModel();
         var endpoint = _configService.GetEndpoint(model.Deployment);

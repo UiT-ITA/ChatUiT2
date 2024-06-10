@@ -4,7 +4,8 @@
         @if (UserService.CurrentChat.Messages.Count == 0)
         {
             <div style="display: flex; align-items: center; justify-content: center; min-height: 100%; height: auto;">
-                <ChatSettingsView Elevation="4" IncludeHeader IncludeInstructions/>
+                @* <ChatSettingsView Elevation="4" IncludeHeader IncludeInstructions/> *@
+                <ChatSettingsView IncludeHeader IncludeInstructions />
             </div>
         }
         else

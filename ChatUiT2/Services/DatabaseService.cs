@@ -69,7 +69,6 @@ public class DatabaseService : IDatabaseService
         }
         else
         {
-            Console.WriteLine("No default preferences found, creating new");
             // No default preferences found, create new
             preferences = new Preferences();
             await SaveUserPreferences("default", preferences);

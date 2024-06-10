@@ -145,18 +145,11 @@
     private async Task DeleteAll()
     {
         // Display confirmation dialog
-        var result = await DialogService.ShowMessageBox("Delete all work items?", "Are you sure?", yesText: "Yes", noText: "No");
-        if (result == true)
+        var result = await DialogService.ShowMessageBox("Delete all userdata? This is not reversable!", "Are you sure?", yesText: "Yes", noText: "No");
+        if (result != null && result == true)
         {
             await UserService.DeleteUser();
-
-            Nav.Refresh();
         }
-    }
-
-    private void Test()
-    {
-        
     }
 }
 

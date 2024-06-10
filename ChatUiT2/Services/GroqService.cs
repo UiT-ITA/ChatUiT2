@@ -36,13 +36,11 @@ public static class GroqService
 
         JsonObject? result = await client.CreateChatCompletionAsync(request);
         string response = result?["choices"]?[0]?["message"]?["content"]?.ToString() ?? "No response found";
-        Console.WriteLine(response);
         return response;
     }
 
     public static IAsyncEnumerable<JsonObject?> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
     {
-        Console.WriteLine("Starting chat request");
         GroqApiClient client = new(endpoint.Key);
 
         JsonArray messages = new()

@@ -197,16 +197,14 @@ public class UserService : IUserService
         }
 
         await _databaseService.DeleteWorkItem(User, workItem);
-
-        Console.WriteLine("Deleting work item: " + workItem.Name);
         RaiseUpdate();
     }
 
     public async Task DeleteUser()
     {
         await _databaseService.DeleteUser(User.Username);
+        User = new User();
         await LoadUser();
-        NewChat();
         RaiseUpdate();
     }
 

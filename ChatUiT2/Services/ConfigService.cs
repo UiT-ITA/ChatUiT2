@@ -21,7 +21,6 @@ public class ConfigService : IConfigService
     //private void ReadConfig(IConfiguration configuration, KeyVaultService keyVaultService)
     private void ReadModelConfig(IConfiguration configuration)
     {
-        Console.WriteLine("ReadModelConfig");
         var modelSection = configuration.GetSection("Models");
         models = modelSection.Get<List<Model>>() ?? new List<Model>();
 
@@ -81,18 +80,12 @@ public class ConfigService : IConfigService
 
     public ModelEndpoint GetEndpoint(string name)
     {
-        Console.WriteLine($"GetEndpoint: {name}");
-        foreach (var endp in endpoints)
-        {
-            Console.WriteLine($"Endpoint: {endp.Name}");
-        }
 
         var endpoint = endpoints.FirstOrDefault(e => e.Name == name);
         if (endpoint == null)
         {
             throw new Exception($"No endpoint found for model {name}");
         }
-        Console.WriteLine($"Endpoint: {endpoint.Url}");
         return endpoint;
     }
 

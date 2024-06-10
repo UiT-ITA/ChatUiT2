@@ -55,9 +55,7 @@ public class KeyVaultService : IKeyVaultService
     {
         try
         {
-            Console.WriteLine($"Setting secret {secretName}");
             await _secretClient.SetSecretAsync(secretName, secretValue);
-            Console.WriteLine($"Secret {secretName} set");
         }
         catch (Exception ex)
         {
@@ -105,7 +103,6 @@ public class KeyVaultService : IKeyVaultService
         if (aesKey == null)
         {
             // create new aes key
-            Console.WriteLine($"Creating new key for {username}");
             var key = _encryptionService.GetRandomByteArray(32);
             var salt = _encryptionService.GetRandomByteArray(16);
             byte[] aesKeyBytes = _encryptionService.GetEncryptionKeyForAes256(key, salt, 50000);
