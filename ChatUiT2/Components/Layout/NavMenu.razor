@@ -1,57 +1,56 @@
-﻿
-    <div style="display:flex; flex-direction:column;height:100%; overflow-x:hidden; width:100%;">
-        <div>
+﻿<div style="display:flex; flex-direction:column;height:100%; overflow-x:hidden; width:100%;">
+    <div>
 
-            <div style="display: flex; align-items: center; justify-content:space-between;" class="pt-0">
-                <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" OnClick="CloseDrawer" Color="Color.Inherit"/>
-                @if (UserService.CurrentWorkItem == null || UserService.CurrentWorkItem.Type == WorkItemType.Chat)
-                {
-                    <MudButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Text" Class="ml-2 mr-1" OnClick="UserService.NewChat" FullWidth Style="justify-content:flex-end"  Color="Color.Inherit">
-                        <MudText Typo="Typo.h6">New chat</MudText>
-                        <MudIcon Icon="@Icons.Material.Filled.Add" Class="ml-1"/>
-                    </MudButton>
-                }
+        <div style="display: flex; align-items: center; justify-content:space-between;" class="pt-0">
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" OnClick="CloseDrawer" Color="Color.Inherit"/>
+            @if (UserService.CurrentWorkItem == null || UserService.CurrentWorkItem.Type == WorkItemType.Chat)
+            {
+                <MudButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Text" Class="ml-2 mr-1" OnClick="UserService.NewChat" FullWidth Style="justify-content:flex-end"  Color="Color.Inherit">
+                    <MudText Typo="Typo.h6">New chat</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.Add" Class="ml-1"/>
+                </MudButton>
+            }
             
-            </div>
-            <MudDivider Class="mb-2"/>
         </div>
-
-        <div class="flex-grow-1">
-            @if (UserService.Loading)
-            {
-                <MudText Typo="Typo.h6" Class="text-center pl-4" >Loading...</MudText>
-            }
-            else
-            {
-                foreach (var workItem in UserService.GetWorkItems())
-                {
-                    <WorkItemView workItem="workItem" />
-                }
-            }
-        </div>
-
-
-        @* Bottom  *@
-        <div>
-            <MudDivider/>
-
-            @* Download current conversation *@
-            <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DownloadConversation">
-                <MudStack Row>
-                    <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
-                    <MudText Typo="Typo.h6" Class="">Download chat</MudText>
-                </MudStack>
-            </MudButton>
-
-            @* Delete all user data *@
-            <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DeleteAll">
-                <MudStack Row>
-                    <MudIcon Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
-                    <MudText Typo="Typo.h6" Class="">Delete all data</MudText>
-                </MudStack>
-            </MudButton>
-        </div>
+        <MudDivider Class="mb-2"/>
     </div>
+
+    <div class="flex-grow-1">
+        @if (UserService.Loading)
+        {
+            <MudText Typo="Typo.h6" Class="text-center pl-4" >Loading...</MudText>
+        }
+        else
+        {
+            foreach (var workItem in UserService.GetWorkItems())
+            {
+                <WorkItemView workItem="workItem" />
+            }
+        }
+    </div>
+
+
+    @* Bottom  *@
+    <div>
+        <MudDivider/>
+
+        @* Download current conversation *@
+        <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DownloadConversation">
+            <MudStack Row>
+                <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                <MudText Typo="Typo.h6" Class="">Download chat</MudText>
+            </MudStack>
+        </MudButton>
+
+        @* Delete all user data *@
+        <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DeleteAll">
+            <MudStack Row>
+                <MudIcon Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                <MudText Typo="Typo.h6" Class="">Delete all data</MudText>
+            </MudStack>
+        </MudButton>
+    </div>
+</div>
 
 
 
@@ -64,6 +63,7 @@
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private IJSRuntime JSRuntime { get; set; } = null!;
 
     [Parameter] public EventCallback OnClose { get; set; }
 
@@ -75,7 +75,70 @@
 
     private async Task DownloadConversation()
     {
-        // Create pdf with all chat messages
+        WorkItemChat chat = UserService.CurrentChat;
+        using (var ms = new MemoryStream())
+        {
+            // Create a PDF document
+            var document = new PdfSharpCore.Pdf.PdfDocument();
+            var page = document.AddPage();
+            var gfx = PdfSharpCore.Drawing.XGraphics.FromPdfPage(page);
+            var fontTitle = new PdfSharpCore.Drawing.XFont("Verdana", 20, PdfSharpCore.Drawing.XFontStyle.Bold);
+            var fontRegular = new PdfSharpCore.Drawing.XFont("Verdana", 12, PdfSharpCore.Drawing.XFontStyle.Regular);
+            var fontHeader = new PdfSharpCore.Drawing.XFont("Verdana", 12, PdfSharpCore.Drawing.XFontStyle.Bold);
+
+            // Add title
+            gfx.DrawString(chat.Name, fontTitle, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(0, 0, page.Width, 50), PdfSharpCore.Drawing.XStringFormats.Center);
+
+            // Set starting point for table
+            double yPoint = 60;
+            double margin = 10;
+            double maxWidth = page.Width - 2 * margin;
+            double[] columnWidths = { maxWidth * 0.2, maxWidth * 0.2, maxWidth * 0.6 };
+
+            // Draw table headers
+            var tf = new PdfSharpCore.Drawing.Layout.XTextFormatter(gfx);
+            tf.Alignment = PdfSharpCore.Drawing.Layout.XParagraphAlignment.Left;
+
+            gfx.DrawRectangle(PdfSharpCore.Drawing.XPens.Black, margin, yPoint, maxWidth, 20);
+            tf.DrawString("Sender", fontHeader, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin, yPoint, columnWidths[0], 20));
+            tf.DrawString("Timestamp", fontHeader, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin + columnWidths[0], yPoint, columnWidths[1], 20));
+            tf.DrawString("Content", fontHeader, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin + columnWidths[0] + columnWidths[1], yPoint, columnWidths[2], 20));
+
+            yPoint += 20;
+
+            // Draw chat messages
+            foreach (var message in chat.Messages)
+            {
+                // Calculate height for the content
+                var messageContent = $"{message.Created}: {message.Role} - {message.Content}";
+                var contentSize = gfx.MeasureString(message.Content, fontRegular);
+                double rowHeight = contentSize.Height * ((message.Content.Length * 6) / columnWidths[2]) + 10; // Approximate height calculation
+
+                gfx.DrawRectangle(PdfSharpCore.Drawing.XPens.Black, margin, yPoint, maxWidth, rowHeight);
+                tf.DrawString(message.Role.ToString(), fontRegular, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin, yPoint, columnWidths[0], rowHeight));
+                tf.DrawString(message.Created.ToString("dd-MMM-yy HH:mm:ss"), fontRegular, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin + columnWidths[0], yPoint, columnWidths[1], rowHeight));
+                tf.DrawString(message.Content, fontRegular, PdfSharpCore.Drawing.XBrushes.Black, new PdfSharpCore.Drawing.XRect(margin + columnWidths[0] + columnWidths[1], yPoint, columnWidths[2], rowHeight));
+
+                yPoint += rowHeight;
+
+                // Check if we need a new page
+                if (yPoint > page.Height - margin)
+                {
+                    page = document.AddPage();
+                    gfx = PdfSharpCore.Drawing.XGraphics.FromPdfPage(page);
+                    yPoint = margin;
+                }
+            }
+
+            document.Save(ms);
+            document.Close();
+
+            // Convert the MemoryStream to a byte array
+            var pdfBytes = ms.ToArray();
+
+            // Call JS function to download the PDF
+            await JSRuntime.InvokeVoidAsync("saveAsFile", chat.Name + ".pdf", Convert.ToBase64String(pdfBytes));
+        }
 
     }
 

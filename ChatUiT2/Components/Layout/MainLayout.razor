@@ -17,7 +17,9 @@
         }
 
         @* Model selection *@
-        <ModelSelect />
+        <MudHidden xs="false">
+            <ModelSelect />
+        </MudHidden>
            
         @* Model config *@
         <div class="d-flex">
@@ -37,7 +39,8 @@
                     ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
             </MudTooltip>
         }
-        
+        <MudSpacer />
+        @* Branding? *@
         <MudSpacer />
 
         @* Dark mode *@

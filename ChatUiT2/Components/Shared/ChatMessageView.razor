@@ -82,6 +82,10 @@ else
     .mud-markdown-body p {
         margin-bottom: 0.5rem !important;
     }
+
+    pre code.hljs {
+        margin-bottom: 1rem !important;
+    }
 </style>
 
 
@@ -160,10 +164,8 @@ else
 
     private async Task CopyToClipboard()
     {
-        Console.WriteLine("Copying to clipboard: " + Message.Content);
         await JSRuntime.InvokeVoidAsync("copyTextToClipboard", Message.Content);
         Snackbar.Add("Assistant reply is copied to your clipboard", Severity.Success);
-
     }
 
     private async Task Regenerate()

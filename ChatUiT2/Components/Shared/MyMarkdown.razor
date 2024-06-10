@@ -47,8 +47,8 @@
 
     private string ProcessMarkdown(string markdownContent)
     {
-        var regex = new Regex(@"```(\w+)?\s*([\s\S]*?)\s*```", RegexOptions.Compiled);
-        return regex.Replace(markdownContent, match =>
+        var regex = new Regex(@"\s*```(\w+)?\s*([\s\S]*?)\s*```", RegexOptions.Compiled);
+        var newText = regex.Replace(markdownContent, match =>
         {
             var language = match.Groups[1].Value;
             var code = match.Groups[2].Value;
@@ -59,7 +59,8 @@
                 language = "plaintext"; // or any default language
             }
 
-            return $"```{language}\n{code}\n```";
+            return $"\n```{language}\n{code}\n```";
         });
+        return newText;
     }
 }
