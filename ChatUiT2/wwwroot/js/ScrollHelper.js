@@ -1,31 +1,43 @@
 // ScrollHelper.js
-window.scrollHelper = {
-    autoScroll: true,
+//window.scrollHelper = {
+//    autoScroll: true,
 
-    scrollToBottom: function () {
-        console.log("scrollToBottom called");
-        const chatContainer = document.getElementById('chatContainer');
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    },
+//    scrollToBottom: function () {
+//        console.log("scrollToBottom called");
+//        const chatContainer = document.getElementById('chatContainer');
+//        if (chatContainer) {
+//            chatContainer.scrollTop = chatContainer.scrollHeight;
+//        }
+//    },
 
-    lockScroll: function () {
-        const chatContainer = document.getElementById('chatContainer');
-        if (this.autoScroll) {
-            chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-    },
+//    lockScroll: function () {
+//        console.log("lockScroll called");
+//        const chatContainer = document.getElementById('chatContainer');
+//        if (chatContainer && this.autoScroll) {
+//            chatContainer.scrollTop = chatContainer.scrollHeight;
+//        }
+//    },
 
-    checkUserScroll: function () {
-        const chatContainer = document.getElementById('chatContainer');
-        this.autoScroll = chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight;
-    },
+//    checkUserScroll: function () {
+//        const chatContainer = document.getElementById('chatContainer');
+//        if (chatContainer) {
+//            this.autoScroll = chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight;
+//        }
+//    },
 
-    attachScrollListener: function () {
-        const chatContainer = document.getElementById('chatContainer');
-        chatContainer.addEventListener('scroll', () => this.checkUserScroll());
-    }
-};
+//    attachScrollListener: function () {
+//        console.log("attachScrollListener called");
+//        const chatContainer = document.getElementById('chatContainer');
+//        if (chatContainer) {
+//            chatContainer.addEventListener('scroll', () => this.checkUserScroll());
+//        } else {
+//            console.log("chatContainer not found, retrying...");
+//            setTimeout(this.attachScrollListener.bind(this), 100);
+//        }
+//    }
+//};
 
-document.addEventListener('DOMContentLoaded', () => {
-    window.scrollHelper.attachScrollListener();
-});
+//document.addEventListener('DOMContentLoaded', () => {
+//    console.log("DOMContentLoaded event fired");
+//    window.scrollHelper.attachScrollListener();
+//});
