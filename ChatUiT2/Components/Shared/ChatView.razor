@@ -1,10 +1,9 @@
 ﻿
 <div style="overflow-y: auto; height: 100%">
-    <div style="margin: 0 auto; max-width: 1200px; width: 100%; height: 100%;" class="pt-1">
+    <div style="@GetChatContainerStyle()" class="pt-1">
         @if (UserService.CurrentChat.Messages.Count == 0)
         {
             <div style="display: flex; align-items: center; justify-content: center; min-height: 100%; height: auto;">
-                @* <ChatSettingsView Elevation="4" IncludeHeader IncludeInstructions/> *@
                 <ChatSettingsView IncludeHeader IncludeInstructions />
             </div>
         }
@@ -15,7 +14,7 @@
     </div>
 </div>
 
-<div style="margin: 0 auto; max-width: 1200px; width: 100%;">
+<div style="@GetChatContainerStyle()">
 
     <ChatInputView />
 </div>
@@ -32,6 +31,25 @@
     public void Dispose()
     {
         UserService.OnUpdate -= StateHasChanged;
+    }
+
+    private string GetChatContainerStyle()
+    {
+        string widthStyle = "";
+        switch (UserService.ChatWidth)
+        {
+            case ChatWidth.Small:
+                widthStyle = "max-width: 800px;";
+                break;
+            case ChatWidth.Medium:
+                widthStyle = "max-width: 1200px;";
+                break;
+            case ChatWidth.Large:
+                widthStyle = "max-width: 1600px;";
+                break;
+        }
+
+        return $"margin: 0 auto; {widthStyle} width: 100%;";
     }
 
 }

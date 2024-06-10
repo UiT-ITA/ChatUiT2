@@ -26,6 +26,17 @@ public class UserService : IUserService
         get => (WorkItemChat) CurrentWorkItem; 
     }
 
+    public ChatWidth ChatWidth
+    {
+        get => User.Preferences.ChatWidth;
+        set 
+        { 
+            User.Preferences.ChatWidth = value;
+            _databaseService.SaveUserPreferences(User.Username, User.Preferences);
+            RaiseUpdate();
+        }
+    }
+
     public event Action? OnUpdate;
 
     SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
@@ -221,6 +232,7 @@ public class UserService : IUserService
         }
         await _chatService.GetChatResponse(message);
     }
+
 
 
 

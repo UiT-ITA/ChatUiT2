@@ -17,7 +17,7 @@
         }
 
         @* Model selection *@
-        <MudHidden xs="false">
+        <MudHidden Breakpoint="Breakpoint.Xs">
             <ModelSelect />
         </MudHidden>
            
@@ -42,6 +42,69 @@
         <MudSpacer />
         @* Branding? *@
         <MudSpacer />
+
+        @* Allow user to select how wide the chat area should be*@
+        <MudHidden Breakpoint="Breakpoint.SmAndDown">
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense>
+                <ActivatorContent>
+                    <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" />
+                </ActivatorContent>
+                <ChildContent>
+                    <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Small))">
+                        <div class="d-flex align-items-center" style="width: 150px;">
+                            <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                                <MudText Typo="Typo.h6" Class="m-0">Small</MudText>
+                                <MudText Typo="Typo.subtitle2" Class="m-0">800 pixels</MudText>
+                            </div>
+                            @if (UserService.ChatWidth == ChatWidth.Small)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                            }
+                        </div>
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Medium))">
+                        <div class="d-flex align-items-center" style="width: 150px;">
+                            <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                                <MudText Typo="Typo.h6" Class="m-0">Medium</MudText>
+                                <MudText Typo="Typo.subtitle2" Class="m-0">1200 pixels</MudText>
+                            </div>
+                            @if (UserService.ChatWidth == ChatWidth.Medium)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                            }
+                        </div>
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Large))">
+                        <div class="d-flex align-items-center" style="width: 150px;">
+                            <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                                <MudText Typo="Typo.h6" Class="m-0">Large</MudText>
+                                <MudText Typo="Typo.subtitle2" Class="m-0">1600 pixels</MudText>
+                            </div>
+                            @if (UserService.ChatWidth == ChatWidth.Large)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                            }
+                        </div>
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Full))">
+                        <div class="d-flex align-items-center" style="width: 150px;">
+                            <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                                <MudText Typo="Typo.h6" Class="m-0">Full</MudText>
+                                <MudText Typo="Typo.subtitle2" Class="m-0">Full screen width</MudText>
+                            </div>
+                            @if (UserService.ChatWidth == ChatWidth.Full)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                            }
+                        </div>
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+        </MudHidden>
+
 
         @* Dark mode *@
         <MudSwitch @bind-Value="UserService.IsDarkMode" Color="Color.Dark" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
@@ -97,6 +160,13 @@
 
     
 </MudLayout>
+
+<style>
+    .mud-list.mud-list-padding {
+        padding-top: 0px;
+        padding-bottom: 0px;
+    }
+</style>
 
 <div id="blazor-error-ui">
     An unhandled error has occurred.
@@ -175,6 +245,13 @@
             username = "";
         }
         StateHasChanged();
+    }
+
+
+    private void SetChatWidth(ChatWidth width)
+    {
+        Console.WriteLine($"Setting chat width to {width}");
+        UserService.ChatWidth = width;
     }
 
     private void OpenUserSettings()

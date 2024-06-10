@@ -10,6 +10,8 @@ public interface IUserService
     bool Loading { get; }
     IConfigService _configService { get; set; }
     WorkItemChat CurrentChat { get; }
+    ChatWidth ChatWidth { get; set; }
+
     event Action? OnUpdate;
     void RaiseUpdate();
     void NewChat();

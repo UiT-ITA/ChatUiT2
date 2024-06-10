@@ -10,6 +10,7 @@ public class Preferences
 {
     public bool DarkMode { get; set; } = true;
     public bool SaveHistory { get; set; } = true;
+    public ChatWidth ChatWidth { get; set; } = ChatWidth.Medium;
     public string Language { get; set; } = "en";
     public ChatSettings DefaultChatSettings { get; set; } = new ChatSettings();
 }
@@ -30,3 +31,12 @@ public class ChatSettings
         MaxTokens = settings.MaxTokens;
     }
 }
+
+
+public enum ChatWidth
+{
+    Small,
+    Medium,
+    Large,
+    Full
+};

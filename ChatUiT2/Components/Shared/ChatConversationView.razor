@@ -11,7 +11,7 @@
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
 
-    protected override async void OnInitialized()
+    protected override void OnInitialized()
     {
         UserService.OnUpdate += StateHasChanged;
     }
