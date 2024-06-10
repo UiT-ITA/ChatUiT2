@@ -43,6 +43,9 @@
         @* Branding? *@
         <MudSpacer />
 
+        @* Render using markdown *@
+        <MudToggleIconButton Class="mr-2" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
+
         @* Allow user to select how wide the chat area should be*@
         <MudHidden Breakpoint="Breakpoint.SmAndDown">
             <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="pr-3">
@@ -264,6 +267,12 @@
         await Task.Delay(10);
 
         Nav.NavigateTo("/signout-oidc");
+    }
+
+    private void ChangeDarkmode(bool value)
+    {
+        UserService.IsDarkMode = value;
+        UserService.RaiseUpdate();
     }
 
 }

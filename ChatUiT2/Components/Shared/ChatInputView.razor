@@ -78,15 +78,10 @@
         string sendPrompt = prompt;
         prompt = "";
 
-        UserService.Waiting = true;
         await Task.Delay(10);
         StateHasChanged();
 
         await UserService.SendMessage(sendPrompt);
-
-        UserService.Waiting = false;
-
-        StateHasChanged();
     }
 
     private void HandleKeyPress(KeyboardEventArgs e)

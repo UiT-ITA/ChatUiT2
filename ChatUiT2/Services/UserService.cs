@@ -10,7 +10,20 @@ public class UserService : IUserService
     public IWorkItem CurrentWorkItem { get; set; }
     public bool IsDarkMode { 
         get => User.Preferences.DarkMode;
-        set => User.Preferences.DarkMode = value;
+        set
+        {
+            User.Preferences.DarkMode = value;
+            RaiseUpdate();
+        }
+    }
+    public bool UseMarkdown
+    {
+        get => User.Preferences.UseMarkdown;
+        set
+        {
+            User.Preferences.UseMarkdown = value;
+            RaiseUpdate();
+        }
     }
     public bool Waiting { get; set; } = false;
     public bool Loading { get; private set; } = true;
@@ -226,14 +239,24 @@ public class UserService : IUserService
 
     public async Task SendMessage(string? message)
     {
+        Waiting = true;
         if (!User.Chats.Contains(CurrentChat))
         {
             User.Chats.Add(CurrentChat);
         }
         await _chatService.GetChatResponse(message);
+        Waiting = false;
+        RaiseUpdate();
     }
 
-
+    public async Task RegerateFromIndex(int index)
+    {
+        CurrentChat.Messages.RemoveRange(
+            index: index +1, 
+            count: CurrentChat.Messages.Count - index -1
+        );
+        await SendMessage(null);
+    }
 
 
 

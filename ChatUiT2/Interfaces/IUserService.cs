@@ -6,6 +6,7 @@ public interface IUserService
 {
     IWorkItem CurrentWorkItem { get; set; }
     bool IsDarkMode { get; set; }
+    bool UseMarkdown { get; set; }
     bool Waiting { get; set; }
     bool Loading { get; }
     IConfigService _configService { get; set; }
@@ -30,5 +31,6 @@ public interface IUserService
     Task DeleteUser();
     Task SendMessage();
     Task SendMessage(string? message);
+    Task RegerateFromIndex(int index);
     
 }
