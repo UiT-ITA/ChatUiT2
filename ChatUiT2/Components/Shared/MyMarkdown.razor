@@ -1,55 +1,65 @@
-﻿@using Microsoft.AspNetCore.Components
-@using Microsoft.AspNetCore.Components.Rendering
-@inject IJSRuntime JS
+﻿@using System.Text.RegularExpressions
 
-<div id="markdown-content">
-    @if (renderException != null)
-    {
-        <MudText>@Value</MudText>
-    }
-    else
-    {
-        @RenderMarkdown
-    }
-</div>
+<MudMarkdown Value="@processedValue" CodeBlockTheme="@CodeBlockTheme" />
 
 @code {
     [Parameter] public string Value { get; set; } = null!;
-    [Parameter] public MudBlazor.CodeBlockTheme? CodeBlockTheme { get; set; }
+    [Parameter] public MudBlazor.CodeBlockTheme CodeBlockTheme { get; set; }
 
-    private Exception? renderException;
+    private string processedValue = "";
 
-    private RenderFragment RenderMarkdown => builder =>
+
+    override protected void OnParametersSet()
     {
-        try
-        {
-            builder.OpenComponent(0, typeof(MudBlazor.MudMarkdown));
-            builder.AddAttribute(1, "Value", Value);
-            builder.AddAttribute(2, "CodeBlockTheme", CodeBlockTheme);
-            builder.CloseComponent();
-            Console.WriteLine("Markdown rendered without problems");
-        }
-        catch (Exception ex)
-        {
-            renderException = ex;
-            Console.WriteLine($"Exception during rendering: {ex.Message}");
-        }
+        processedValue = ProcessMarkdown(Value);
+    }
+
+    private readonly HashSet<string> _supportedLanguages = new HashSet<string>
+    {
+        "1c", "abnf", "accesslog", "ada", "armasm", "avrasm", "actionscript", "angelscript", "apache",
+        "applescript", "arcade", "asciidoc", "aspectj", "autohotkey", "autoit", "awk", "axapta",
+        "bash", "basic", "bnf", "brainfuck", "csharp", "cs", "c", "cpp", "hpp", "cc", "hh", "c++",
+        "h++", "cxx", "hxx", "cal", "cos", "cls", "cmake", "cmake.in", "coq", "csp", "css",
+        "capnproto", "capnp", "clojure", "clj", "coffeescript", "coffee", "cson", "iced", "crmsh",
+        "crm", "pcmk", "crystal", "cr", "d", "dns", "zone", "bind", "dos", "bat", "cmd", "dart",
+        "delphi", "dpr", "dfm", "pas", "pascal", "freepascal", "lazarus", "lpr", "lfm", "diff",
+        "patch", "django", "jinja", "dockerfile", "docker", "dsconfig", "dts", "dust", "dst",
+        "ebnf", "elixir", "elm", "erlang", "erl", "excel", "xls", "xlsx", "fsharp", "fs", "fix",
+        "fortran", "f90", "f95", "gcode", "nc", "gams", "gms", "gauss", "gss", "gherkin", "go",
+        "golang", "golo", "gololang", "gradle", "groovy", "html", "xml", "xhtml", "rss", "atom",
+        "xjb", "xsd", "xsl", "plist", "svg", "http", "https", "haml", "handlebars", "hbs",
+        "html.hbs", "html.handlebars", "haskell", "hs", "haxe", "hx", "hy", "hylang", "ini", "toml",
+        "inform7", "i7", "irpf90", "json", "java", "jsp", "javascript", "js", "jsx", "kotlin",
+        "kt", "tex", "leaf", "lasso", "ls", "lassoscript", "less", "ldif", "lisp", "livecodeserver",
+        "livescript", "ls", "lua", "makefile", "mk", "mak", "markdown", "md", "mkdown", "mkd",
+        "mathematica", "mma", "wl", "matlab", "maxima", "mel", "mercury", "mizar", "mojolicious",
+        "monkey", "moonscript", "moon", "n1ql", "nsis", "nginx", "nginxconf", "nimrod", "nix",
+        "ocaml", "ml", "objectivec", "mm", "objc", "obj-c", "glsl", "openscad", "scad",
+        "ruleslanguage", "oxygene", "pf", "pf.conf", "php", "php3", "php4", "php5", "php6", "php7",
+        "parser3", "perl", "pl", "pm", "plaintext", "txt", "text", "pony", "pgsql", "postgres",
+        "postgresql", "powershell", "ps", "ps1", "processing", "prolog", "properties", "protobuf",
+        "puppet", "pp", "python", "py", "gyp", "q", "k", "kdb", "qml", "r", "cshtml", "razor",
+        "razor-cshtml", "reasonml", "re", "rib", "rsl", "roboconf", "graph", "instances", "ruby",
+        "rb", "gemspec", "podspec", "thor", "irb", "rust", "rs", "sas", "scss", "sql", "p21",
+        "step", "stp", "scala", "scheme", "scilab", "sci", "shell", "console", "smali",
+        "smalltalk", "st", "stan", "stanfuncs", "stata", "iecst", "solidity", "sol"
     };
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private string ProcessMarkdown(string markdownContent)
     {
-        if (firstRender && renderException == null)
+        var regex = new Regex(@"```(\w+)?\s*([\s\S]*?)\s*```", RegexOptions.Compiled);
+        return regex.Replace(markdownContent, match =>
         {
-            try
+            var language = match.Groups[1].Value;
+            var code = match.Groups[2].Value;
+
+            if (string.IsNullOrWhiteSpace(language) || !_supportedLanguages.Contains(language))
             {
-                await JS.InvokeVoidAsync("highlightCode", "markdown-content");
-                Console.WriteLine("Code highlighted without problems");
+                // Handle unsupported languages or missing language specifier
+                language = "plaintext"; // or any default language
             }
-            catch (Exception ex)
-            {
-                renderException = ex;
-                Console.WriteLine($"Exception during highlighting: {ex.Message}");
-            }
-        }
+
+            return $"```{language}\n{code}\n```";
+        });
     }
 }

@@ -25,6 +25,7 @@ public interface IUserService
     Task UpdateWorkItem(IWorkItem workItem);
     Task DeleteWorkItem();
     Task DeleteWorkItem(IWorkItem workItem);
+    Task DeleteUser();
     Task SendMessage();
     Task SendMessage(string? message);
     

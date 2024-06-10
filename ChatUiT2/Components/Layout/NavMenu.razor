@@ -35,24 +35,22 @@
         <div>
             <MudDivider/>
 
-            <MudNavLink Href="/v/1" Match="NavLinkMatch.All" Class="d-flex align-items-center">
+            @* Download current conversation *@
+            <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DownloadConversation">
                 <MudStack Row>
-
-                    <MudIcon Icon="@Icons.Material.Filled.Home" Class="mt-1"/>
-                    <MudText Typo="Typo.h6">Home</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                    <MudText Typo="Typo.h6" Class="">Download chat</MudText>
                 </MudStack>
-            </MudNavLink>
+            </MudButton>
 
-            <MudNavLink Href="/v/1" Match="NavLinkMatch.All" Class="d-flex align-items-center">
+            @* Delete all user data *@
+            <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DeleteAll">
                 <MudStack Row>
-
-                    <MudIcon Icon="@Icons.Material.Filled.Chat" Class="mt-1" />
-                    <MudText Typo="Typo.h6">View chat</MudText>
+                    <MudIcon Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                    <MudText Typo="Typo.h6" Class="">Delete all data</MudText>
                 </MudStack>
-            </MudNavLink>
-
+            </MudButton>
         </div>
-
     </div>
 
 
@@ -65,12 +63,32 @@
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+
     [Parameter] public EventCallback OnClose { get; set; }
 
 
     private void CloseDrawer()
     {
         OnClose.InvokeAsync();
+    }
+
+    private async Task DownloadConversation()
+    {
+        // Create pdf with all chat messages
+
+    }
+
+    private async Task DeleteAll()
+    {
+        // Display confirmation dialog
+        var result = await DialogService.ShowMessageBox("Delete all work items?", "Are you sure?", yesText: "Yes", noText: "No");
+        if (result == true)
+        {
+            await UserService.DeleteUser();
+
+            Nav.Refresh();
+        }
     }
 
     private void Test()

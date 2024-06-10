@@ -1,6 +1,7 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
+using System.Configuration;
 
 namespace ChatUiT2.Services;
 
@@ -70,7 +71,11 @@ public class UserService : IUserService
         }
 
         User.Username = username;
-        User.AesKey = await _keyVaultService.GetKeyAsync(username);
+        if (_configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: false))
+        {
+            User.AesKey = await _keyVaultService.GetKeyAsync(username);
+        }
+        
         User.Preferences = await _databaseService.GetUserPreferences(username);
         var workItems = await _databaseService.GetWorkItemList(User);
         User.Chats = workItems.OfType<WorkItemChat>().ToList();
@@ -194,6 +199,14 @@ public class UserService : IUserService
         await _databaseService.DeleteWorkItem(User, workItem);
 
         Console.WriteLine("Deleting work item: " + workItem.Name);
+        RaiseUpdate();
+    }
+
+    public async Task DeleteUser()
+    {
+        await _databaseService.DeleteUser(User.Username);
+        await LoadUser();
+        NewChat();
         RaiseUpdate();
     }
 

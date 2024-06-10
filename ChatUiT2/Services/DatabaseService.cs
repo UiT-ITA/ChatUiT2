@@ -121,14 +121,22 @@ public class DatabaseService : IDatabaseService
         var documents = await _workItemCollection.Find(filter).ToListAsync();
         foreach (var doc in documents)
         {
+
             if (doc["Type"] == WorkItemType.Chat.ToString())
             {
-
-                var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
-                if (workItem != null)
+                try
                 {
-                    workItem.Messages = await GetChatMessages(user, workItem.Id);
-                    workItems.Add(workItem);
+                    var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
+                    if (workItem != null)
+                    {
+                        workItem.Messages = await GetChatMessages(user, workItem.Id);
+                        workItems.Add(workItem);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await DeleteWorkItem(user, new WorkItemChat { Id = doc["_id"].AsString });
+                    Console.WriteLine("Error loading chat: " + ex.Message);
                 }
             }
             else

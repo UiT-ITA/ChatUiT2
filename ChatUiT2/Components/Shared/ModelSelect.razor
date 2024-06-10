@@ -7,9 +7,9 @@
         </MudButton>
     </ActivatorContent>
     <ChildContent>
-        @foreach (var model in ConfigService.GetModels())
+        @foreach (var model in Models)
         {
-            <MudMenuItem OnClick="@(() => SelectModel(model.Name))">
+            <MudMenuItem OnClick="@(() => SelectModel(model))">
                 <div class="d-flex align-items-center" style="width: 300px;">
                     <MudIcon Icon="@GetIcon(model.Name)" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
                     <div class="flex-grow-1 d-flex flex-column justify-content-center">
@@ -30,9 +30,12 @@
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IConfigService ConfigService { get; set; } = null!;
 
+    private List<Model> Models { get; set; } = new List<Model>();
+
     override protected void OnInitialized()
     {
         UserService.OnUpdate += StateHasChanged;
+        Models = ConfigService.GetModels();
     }
 
     public void Dispose()
@@ -54,9 +57,15 @@
     }
 
 
-    private void SelectModel(string model)
+    private void SelectModel(Model model)
     {
-        UserService.CurrentChat.Settings.Model = model;
+        UserService.CurrentChat.Settings.Model = model.Name;
+
+        if (UserService.CurrentChat.Settings.MaxTokens > model.MaxTokens)
+        {
+            UserService.CurrentChat.Settings.MaxTokens = model.MaxTokens;
+        }
+
         UserService.RaiseUpdate();
     }
 }

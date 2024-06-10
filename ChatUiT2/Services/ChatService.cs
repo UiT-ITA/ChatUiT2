@@ -4,6 +4,7 @@ using MongoDB.Driver.Core.WireProtocol.Messages;
 using MudBlazor;
 using System.Text.Json;
 using ChatUiT2.Tools;
+using System.Text.RegularExpressions;
 
 namespace ChatUiT2.Services;
 
@@ -65,11 +66,10 @@ public class ChatService : IChatService
 
                     _userService.RaiseUpdate();
 
-                    var finishReason = chatUpdate.FinishReason;
+                    // TODO: Handle finish reason
+                    /*var finishReason = chatUpdate.FinishReason;
                     if (finishReason != null)
                     {
-                        Console.WriteLine("Finish reason: " + finishReason.ToString());
-
                         switch (finishReason.ToString())
                         {
                             case "stop":
@@ -82,7 +82,7 @@ public class ChatService : IChatService
                                 responseMessage.Status = ChatMessageStatus.Error;
                                 break;
                         }
-                    }
+                    }*/
                 }
             }
             catch (Exception ex)
@@ -103,7 +103,7 @@ public class ChatService : IChatService
                 await foreach (var chatUpdate in response)
                 {
                     //var contentUpdate = chatUpdate["choices"]?[0]?["message"]?["content"];
-                    responseMessage.Content += chatUpdate["choices"][0]["delta"]["content"];
+                    responseMessage.Content += chatUpdate?["choices"]?[0]?["delta"]?["content"];
 
                     _userService.RaiseUpdate();
                 }
@@ -165,7 +165,10 @@ public class ChatService : IChatService
         {
             throw new Exception("Unsupported deployment type: " + model.DeploymentType);
         }
-        Console.WriteLine("Name: " + name);
+        
+        // Strip the name of any special characters and starting and trailing whitespaces
+        name = Regex.Replace(name, @"[^\w\s]", "");
+
         if (name.Length > 25)
         {
             name = name.Substring(0, 25);
