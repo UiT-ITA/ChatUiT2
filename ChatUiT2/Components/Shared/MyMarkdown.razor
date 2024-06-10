@@ -45,6 +45,16 @@
         "smalltalk", "st", "stan", "stanfuncs", "stata", "iecst", "solidity", "sol"
     };
 
+    private readonly HashSet<string> _safeLanguages = new HashSet<string>
+    {
+        "bash", "csharp", "cs", "c", "cpp", "c++", "cmake", "css", "bat", "cmd", "dockerfile", "docker", 
+        "excel", "xls", "xlsx", "fsharp", "fortran", "f90", "f95", "go", "golang", "gololang", "html", 
+        "xml", "xhtml", "http", "https", "ini", "toml", "json", "java", "javascript", "js", "jsx", "tex",  
+        "lisp", "lua", "makefile", "mk", "markdown", "md", "mkdown", "mathematica", "matlab", "php", "php3", 
+        "php4", "php5", "php6", "php7", "perl", "plaintext", "txt", "text", "powershell", "ps", "ps1", 
+        "python", "py", "r", "re", "ruby", "rust", "rs", "sas", "scss", "sql", "scala", "shell"
+    };
+
     private string ProcessMarkdown(string markdownContent)
     {
         var regex = new Regex(@"\s*```(\w+)?\s*([\s\S]*?)\s*```", RegexOptions.Compiled);
@@ -53,7 +63,7 @@
             var language = match.Groups[1].Value;
             var code = match.Groups[2].Value;
 
-            if (string.IsNullOrWhiteSpace(language) || !_supportedLanguages.Contains(language))
+            if (string.IsNullOrWhiteSpace(language) || !_safeLanguages.Contains(language))
             {
                 // Handle unsupported languages or missing language specifier
                 language = "plaintext"; // or any default language
