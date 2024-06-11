@@ -7,17 +7,20 @@
 <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="Testing">Testing</MudButton>
 
 <span>@debug_text</span>
-<span>@Convert.ToBase64String(debug_bytes)</span>
 
 @code {
     [Inject] private TestService testService { get; set; } = null!;
 
     string? debug_text = "Debug text";
-    byte[] debug_bytes = [];
 
     public async Task Testing()
     {
-        var response = await GroqService.GetResponse(testService._configuration["Groq"]!);
+        WorkItemChat chat = new WorkItemChat();
+        chat.Messages.Add(new ChatMessage{Content = "Hello", Role = ChatMessageRole.User});
+        var model = testService._configService.GetModels()[0];
+        var endpoint = testService._configService.GetEndpoint(model.Deployment);
+
+        var response = await AzureOpenAIService.GetResponse(chat, model, endpoint);
         debug_text = response;
         StateHasChanged();
     }

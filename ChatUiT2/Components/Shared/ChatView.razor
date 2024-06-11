@@ -1,9 +1,9 @@
 ﻿
-<div id="chatContainer" style="overflow-y: auto; height: 100%">
-    <div style="@GetChatContainerStyle()" class="pt-1">
+<div id="chatContainer" style="overflow-y: auto; height: 100%; padding-top:48px;">
+    <div style="@(GetChatContainerStyle() + "height: 100%;")" class="pt-1">
         @if (UserService.CurrentChat.Messages.Count == 0)
         {
-            <div style="display: flex; align-items: center; justify-content: center; min-height: 100%; height: auto;">
+            <div style="display: flex; align-items: center; justify-content: center; min-height: 100%; height: auto;" class="flex-grow-1">
                 <ChatSettingsView IncludeHeader IncludeInstructions />
             </div>
         }

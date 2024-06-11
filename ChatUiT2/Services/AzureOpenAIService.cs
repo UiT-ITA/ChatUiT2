@@ -1,7 +1,12 @@
 ﻿using Azure.AI.OpenAI;
+using Azure.AI.OpenAI.Chat;
 using ChatUiT2.Models;
+using MongoDB.Bson;
+using OpenAI.Chat;
+using System.ClientModel;
 using Tiktoken;
 using Tiktoken.Encodings;
+
 
 namespace ChatUiT2.Services;
 
@@ -11,32 +16,36 @@ public static class AzureOpenAIService
     {
         // Get the response from the OpenAI API
         var response = GetStreamingResponse(chat, model, endpoint);
+
+
+
         string content = "";
         await foreach (var chatUpdate in response)
         {
-            content += chatUpdate.ContentUpdate;
+            foreach (var update in chatUpdate.ContentUpdate)
+            content += update.Text;
+
         }
 
         return content;
     }
 
-    public static StreamingResponse<StreamingChatCompletionsUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
+    public static AsyncResultCollection<StreamingChatCompletionUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
     {
-        OpenAIClient client = new OpenAIClient(new Uri(endpoint.Url), new Azure.AzureKeyCredential(endpoint.Key));
+        var client = new AzureOpenAIClient(new Uri(endpoint.Url), new Azure.AzureKeyCredential(endpoint.Key)).GetChatClient(model.DeploymentName);
 
-        var OAIRequest = new ChatCompletionsOptions()
+        var options = new ChatCompletionOptions()
         {
-            DeploymentName = model.DeploymentName,
             MaxTokens = Math.Min(model.MaxTokens, chat.Settings.MaxTokens),
-            Temperature = chat.Settings.Temperature,
-            Messages =
-            {
-                new ChatRequestSystemMessage(chat.Settings.Prompt)
-            },
+            Temperature = chat.Settings.Temperature
         };
 
-        int availableTokens = model.MaxContext - (int)OAIRequest.MaxTokens;
-        for (int i  = chat.Messages.Count - 1; i >= 0; i--)
+        int availableTokens = model.MaxContext - (int)options.MaxTokens;
+        List<OpenAI.Chat.ChatMessage> messages = new ();
+
+        messages.Add(new SystemChatMessage(chat.Settings.Prompt));
+
+        for (int i = chat.Messages.Count - 1; i >= 0; i--)
         {
             var message = chat.Messages[i];
             if (message.Status == ChatMessageStatus.Error) continue;
@@ -52,26 +61,28 @@ public static class AzureOpenAIService
                 continue;
             }
 
-            ChatRequestMessage chatRequestMessage;
-            if (message.Role == ChatMessageRole.User)
+            OpenAI.Chat.ChatMessage requestMessage;
+
+            if (message.Role == Models.ChatMessageRole.User)
             {
-                chatRequestMessage = new ChatRequestUserMessage(message.Content);
+                requestMessage = new UserChatMessage(message.Content);
             }
-            else if (message.Role == ChatMessageRole.Assistant)
+            else if (message.Role == Models.ChatMessageRole.Assistant)
             {
-                chatRequestMessage = new ChatRequestAssistantMessage(message.Content);
+                requestMessage = new AssistantChatMessage(message.Content);
             }
             else
             {
                 throw new Exception("Unkown message role");
             }
 
-            OAIRequest.Messages.Insert(1, chatRequestMessage);
+            messages.Insert(1, requestMessage);
             availableTokens -= messageTokens;
         }
 
+        return client.CompleteChatStreamingAsync(messages, options);
 
-        return client.GetChatCompletionsStreaming(OAIRequest);
+
     }
 
     public static int GetTokens(string model, string content)

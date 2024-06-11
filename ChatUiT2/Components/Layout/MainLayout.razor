@@ -7,7 +7,11 @@
 
     <PageTitle>ChatUiT</PageTitle>
     
-    <MudAppBar Elevation="0" Dense Color="Color.Transparent" DisableGutters>
+    <MudAppBar Class="appbar-hover" Elevation="0" Dense Color="Color.Transparent" DisableGutters>
+
+        <MudStack Row Style="width: 100%; height: 48px;" Class="appbar-background">
+
+
         @if (!drawerOpen)
         {
             <MudTooltip Text="Open sidebar" Placement="Placement.End" Arrow>
@@ -19,36 +23,37 @@
             <MudDivider Vertical Style="height:32px" Class="pl-2" />
 
         }
-
-        @* Model selection *@
-        <MudHidden Breakpoint="Breakpoint.Xs">
-            <MudTooltip Text="Select model" Arrow>
-                <ModelSelect />
-            </MudTooltip>
-        </MudHidden>
-           
-        @* Model config *@
         @if (UserService.CurrentChat.Messages.Count > 0)
         {
+
+            @* Model selection *@
+            <MudHidden Breakpoint="Breakpoint.Xs">
+                <MudTooltip Text="Select model" Arrow>
+                    <ModelSelect Class="appbar-item" />
+                </MudTooltip>
+            </MudHidden>
+           
+            @* Model config *@
             <MudTooltip Text="Configuration of thee model" Arrow>
-                <div class="d-flex">
+                <div class="d-flex appbar-item">
                     <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenChatSettings" Color="Color.Tertiary" />
                 </div>
             </MudTooltip>
-        }
 
-        @* Save work item*@
-        @if (!UserService.CurrentWorkItem.IsFavorite)
-        {            
-            <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")">
-                <MudSwitch @bind-Value="CurrentWorkItemPersistant" 
-                    Disabled="UserService.CurrentWorkItem.IsFavorite" 
-                    T="bool" 
-                    Color="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
-                    UnCheckedColor="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
-                    ThumbIconColor="@(CurrentWorkItemPersistant ? Color.Success : Color.Error)" 
-                    ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
-            </MudTooltip>
+            @* Save work item*@
+            @if (!UserService.CurrentWorkItem.IsFavorite)
+            {            
+                <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")">
+                    <MudSwitch @bind-Value="CurrentWorkItemPersistant" 
+                        Disabled="UserService.CurrentWorkItem.IsFavorite" 
+                        T="bool" 
+                        Class="appbar-item"
+                        Color="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
+                        UnCheckedColor="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
+                        ThumbIconColor="@(CurrentWorkItemPersistant ? Color.Success : Color.Error)" 
+                        ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
+                </MudTooltip>
+            }
         }
         <MudSpacer />
         @* Branding? *@
@@ -56,13 +61,13 @@
 
         @* Render using markdown *@
         <MudTooltip Text="Select rendering mode" Arrow>
-            <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="mr-2" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
+            <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="mr-2 appbar-item" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
         </MudTooltip>
 
         @* Allow user to select how wide the chat area should be*@
         <MudHidden Breakpoint="Breakpoint.SmAndDown">
             <MudTooltip Text="Selct maximum width of the chat" Arrow>
-                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="pr-3">
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="pr-3 appbar-item">
                     <ActivatorContent>
                         <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" Color="Color.Tertiary" />
                     </ActivatorContent>
@@ -126,12 +131,12 @@
 
         @* Dark mode *@
         <MudTooltip Text="Toggle darkmode on and off" Arrow>
-            <MudSwitch @bind-Value="UserService.IsDarkMode" ThumbIconColor="Color.Tertiary" Color="Color.Dark" UnCheckedColor="Color.Default" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
+            <MudSwitch Class="appbar-item" @bind-Value="UserService.IsDarkMode" ThumbIconColor="Color.Tertiary" Color="Color.Dark" UnCheckedColor="Color.Default" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
         </MudTooltip>
 
         @* User menu *@
         <MudTooltip Text="User menu" Arrow Placement="Placement.Start">
-            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pr-2 appbar-item">
                 <ActivatorContent>
                     <MudButton Color="Color.Tertiary" Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
                         <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large"/>
@@ -160,6 +165,7 @@
             </MudMenu>
 
         </MudTooltip>
+        </MudStack>
     </MudAppBar>
 
 
@@ -168,11 +174,11 @@
     </MudDrawer>
 
     @* Main Content *@
-    <MudMainContent Style="padding-top: 48px">
+    <MudMainContent Style="padding-top: 0px">
         <div style="
             display: flex;
             flex-direction: column;
-            height: calc(100vh - 48px);
+            height: 100vh;
             overflow: auto;
             ">
             @Body
@@ -187,6 +193,24 @@
         padding-top: 0px;
         padding-bottom: 0px;
     }
+    .appbar-item {
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    .appbar-hover:hover .appbar-item {
+        opacity: 1;
+    }
+
+    .appbar-background {
+        background-color: rgba(0, 0, 0, 0);
+        transition: background-color 0.3s ease-in-out;
+    }
+
+    .appbar-hover:hover .appbar-background{
+        background-color: var(--mud-palette-drawer-background);
+    }
+
 </style>
 
 <div id="blazor-error-ui">

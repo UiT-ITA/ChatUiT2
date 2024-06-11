@@ -62,9 +62,13 @@ public class ChatService : IChatService
             try
             {
                 var response = AzureOpenAIService.GetStreamingResponse(chat, model, endpoint);
-                await foreach (var chatUpdate in response)
+                // TODO: NOT sure!
+                await foreach (var chatUpdates in response)
                 {
-                    responseMessage.Content += chatUpdate.ContentUpdate;
+                    foreach (var update in chatUpdates.ContentUpdate)
+                    {
+                        responseMessage.Content += update.Text;
+                    }
 
                     //_userService.RaiseUpdate();
                     await _userService.StreamUpdated();
@@ -160,7 +164,7 @@ public class ChatService : IChatService
 
         if (model.DeploymentType == "AzureOpenAI")
         {
-            name = await AzureOpenAIService.GetResponse(namingChat, model, endpoint);
+            name =  await AzureOpenAIService.GetResponse(namingChat, model, endpoint);
         }
         else if (model.DeploymentType == "Groq")
         {
