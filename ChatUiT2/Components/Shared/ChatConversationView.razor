@@ -27,8 +27,12 @@
         if (UserService.CurrentChat != lastChat)
         {
             lastChat = UserService.CurrentChat;
-            await Task.Delay(10);
-            await JS.InvokeVoidAsync("scrollToBottom", "chatContainer");
+            await JS.InvokeVoidAsync("setupScrollListener", "chatContainer");
+            await JS.InvokeVoidAsync("updateScroll", "chatContainer");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("updateScroll", "chatContainer");
         }
 
     }

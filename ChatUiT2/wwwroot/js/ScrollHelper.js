@@ -1,25 +1,32 @@
-// ScrollHelper.js
-window.scrollToBottom = function (elementId) {
+// wwwroot/js/ScrollHelper.js
+window.autoScrollEnabled = true;
+
+//window.isAtBottom = function (elementId) {
+//    var element = document.getElementById(elementId);
+//    if (element) {
+//        return element.scrollHeight - element.scrollTop === element.clientHeight;
+//    }
+//    return false;
+//};
+
+window.setupScrollListener = function (elementId) {
+    window.autoScrollEnabled = true;
     var element = document.getElementById(elementId);
     if (element) {
-        var isAtBottom = element.scrollHeight - element.scrollTop === element.clientHeight;
-        if (!isAtBottom) {
-            element.scrollTop = element.scrollHeight;
-        }
+        element.addEventListener('scroll', function () {
+            var atBottom = element.scrollHeight - element.scrollTop === element.clientHeight;
+            window.autoScrollEnabled = atBottom;
+        });
     }
 };
 
-window.forceScrollToBottom = function (elementId) {
+window.updateScroll = function (elementId) {
     var element = document.getElementById(elementId);
-    if (element) {
+    if (element && window.autoScrollEnabled) {
         element.scrollTop = element.scrollHeight;
     }
 };
 
-window.isAtBottom = function (elementId) {
-    var element = document.getElementById(elementId);
-    if (element) {
-        return element.scrollHeight - element.scrollTop === element.clientHeight;
-    }
-    return false;
+window.resetAutoscroll = function () {
+    window.autoScrollEnabled = true;
 };

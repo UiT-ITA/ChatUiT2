@@ -250,7 +250,6 @@ public class UserService : IUserService
             RaiseUpdate();
             await UpdateWorkItem(CurrentChat);
         }
-        await _jsRuntime.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
         await _chatService.GetChatResponse(message);
         Waiting = false;
         RaiseUpdate();
@@ -269,7 +268,7 @@ public class UserService : IUserService
     {
         //bool scroll = await _jsRuntime.InvokeAsync<bool>("isAtBottom", "chatContainer");
         RaiseUpdate();
-        await _jsRuntime.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
+        //await _jsRuntime.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
     }
 
  
