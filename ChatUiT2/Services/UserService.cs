@@ -1,6 +1,7 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
+using Microsoft.JSInterop;
 using System.Configuration;
 
 namespace ChatUiT2.Services;
@@ -34,6 +35,7 @@ public class UserService : IUserService
     private IAuthUserService _authUserService { get; set; }
     private IDatabaseService _databaseService { get; set; }
     private IKeyVaultService _keyVaultService { get; set; }
+    private IJSRuntime _jsRuntime { get; set; }
     public WorkItemChat CurrentChat 
     { 
         get => (WorkItemChat) CurrentWorkItem; 
@@ -58,13 +60,15 @@ public class UserService : IUserService
                         IConfigService configService, 
                         IAuthUserService authUserService, 
                         IDatabaseService databaseService,
-                        IKeyVaultService keyVaultService)
+                        IKeyVaultService keyVaultService,
+                        IJSRuntime jSRuntime)
     {
         _configuration = configuration;
         _configService = configService;
         _authUserService = authUserService;
         _databaseService = databaseService;
         _keyVaultService = keyVaultService;
+        _jsRuntime = jSRuntime;
 
 
 
@@ -243,7 +247,9 @@ public class UserService : IUserService
         if (!User.Chats.Contains(CurrentChat))
         {
             User.Chats.Add(CurrentChat);
+            await UpdateWorkItem(CurrentChat);
         }
+        await _jsRuntime.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
         await _chatService.GetChatResponse(message);
         Waiting = false;
         RaiseUpdate();
@@ -258,7 +264,12 @@ public class UserService : IUserService
         await SendMessage(null);
     }
 
+    public async Task StreamUpdated()
+    {
+        //bool scroll = await _jsRuntime.InvokeAsync<bool>("isAtBottom", "chatContainer");
+        RaiseUpdate();
+        await _jsRuntime.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
+    }
 
-
-
+ 
 }

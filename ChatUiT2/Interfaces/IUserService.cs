@@ -32,5 +32,5 @@ public interface IUserService
     Task SendMessage();
     Task SendMessage(string? message);
     Task RegerateFromIndex(int index);
-    
+    Task StreamUpdated();
 }

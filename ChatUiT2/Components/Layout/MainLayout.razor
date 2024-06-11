@@ -41,6 +41,7 @@
         }
         <MudSpacer />
         @* Branding? *@
+        <MudButton OnClick="Scroll">Scroll to bottom</MudButton>
         <MudSpacer />
 
         @* Render using markdown *@
@@ -182,6 +183,7 @@
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private IAuthUserService AuthUserService { get; set; } = null!;
     [Inject] private IConfiguration Configuration { get; set; } = null!;
+    [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
 
@@ -273,6 +275,13 @@
     {
         UserService.IsDarkMode = value;
         UserService.RaiseUpdate();
+    }
+
+    private async Task Scroll()
+    {
+        bool result = await JS.InvokeAsync<bool>("isAtBottom", "chatContainer");
+        Console.WriteLine($"Is at bottom: {result}");
+        await JS.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
     }
 
 

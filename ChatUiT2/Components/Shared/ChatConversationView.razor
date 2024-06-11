@@ -1,4 +1,4 @@
-<div id="chatContainer">
+<div>
     @foreach (var message in UserService.CurrentChat.Messages)
     {
         <ChatMessageView Message="message" />
@@ -10,6 +10,7 @@
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
+    WorkItemChat? lastChat;
 
     protected override void OnInitialized()
     {
@@ -19,6 +20,17 @@
     public void Dispose()
     {
         UserService.OnUpdate -= StateHasChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (UserService.CurrentChat != lastChat)
+        {
+            lastChat = UserService.CurrentChat;
+            await Task.Delay(10);
+            await JS.InvokeVoidAsync("scrollToBottom", "chatContainer");
+        }
+
     }
 
 }

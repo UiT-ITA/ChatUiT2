@@ -1,43 +1,25 @@
 // ScrollHelper.js
-//window.scrollHelper = {
-//    autoScroll: true,
+window.scrollToBottom = function (elementId) {
+    var element = document.getElementById(elementId);
+    if (element) {
+        var isAtBottom = element.scrollHeight - element.scrollTop === element.clientHeight;
+        if (!isAtBottom) {
+            element.scrollTop = element.scrollHeight;
+        }
+    }
+};
 
-//    scrollToBottom: function () {
-//        console.log("scrollToBottom called");
-//        const chatContainer = document.getElementById('chatContainer');
-//        if (chatContainer) {
-//            chatContainer.scrollTop = chatContainer.scrollHeight;
-//        }
-//    },
+window.forceScrollToBottom = function (elementId) {
+    var element = document.getElementById(elementId);
+    if (element) {
+        element.scrollTop = element.scrollHeight;
+    }
+};
 
-//    lockScroll: function () {
-//        console.log("lockScroll called");
-//        const chatContainer = document.getElementById('chatContainer');
-//        if (chatContainer && this.autoScroll) {
-//            chatContainer.scrollTop = chatContainer.scrollHeight;
-//        }
-//    },
-
-//    checkUserScroll: function () {
-//        const chatContainer = document.getElementById('chatContainer');
-//        if (chatContainer) {
-//            this.autoScroll = chatContainer.scrollTop + chatContainer.clientHeight >= chatContainer.scrollHeight;
-//        }
-//    },
-
-//    attachScrollListener: function () {
-//        console.log("attachScrollListener called");
-//        const chatContainer = document.getElementById('chatContainer');
-//        if (chatContainer) {
-//            chatContainer.addEventListener('scroll', () => this.checkUserScroll());
-//        } else {
-//            console.log("chatContainer not found, retrying...");
-//            setTimeout(this.attachScrollListener.bind(this), 100);
-//        }
-//    }
-//};
-
-//document.addEventListener('DOMContentLoaded', () => {
-//    console.log("DOMContentLoaded event fired");
-//    window.scrollHelper.attachScrollListener();
-//});
+window.isAtBottom = function (elementId) {
+    var element = document.getElementById(elementId);
+    if (element) {
+        return element.scrollHeight - element.scrollTop === element.clientHeight;
+    }
+    return false;
+};

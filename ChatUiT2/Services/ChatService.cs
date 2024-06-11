@@ -48,10 +48,10 @@ public class ChatService : IChatService
         }
 
         chat.Messages.Add(responseMessage);
+        await _userService.StreamUpdated();
 
         chat.Updated = DateTimeTools.GetTimestamp();
         await _userService.UpdateWorkItem(chat);
-        _userService.RaiseUpdate();
 
         Model model = _configService.GetModel(chat.Settings.Model);
         ModelEndpoint endpoint = _configService.GetEndpoint(model.Deployment);
@@ -66,7 +66,8 @@ public class ChatService : IChatService
                 {
                     responseMessage.Content += chatUpdate.ContentUpdate;
 
-                    _userService.RaiseUpdate();
+                    //_userService.RaiseUpdate();
+                    await _userService.StreamUpdated();
 
                     // TODO: Handle finish reason
                     /*var finishReason = chatUpdate.FinishReason;
@@ -105,7 +106,8 @@ public class ChatService : IChatService
                     //var contentUpdate = chatUpdate["choices"]?[0]?["message"]?["content"];
                     responseMessage.Content += chatUpdate?["choices"]?[0]?["delta"]?["content"];
 
-                    _userService.RaiseUpdate();
+                    //_userService.RaiseUpdate();
+                    await _userService.StreamUpdated();
                 }
             }
             catch (Exception ex)
