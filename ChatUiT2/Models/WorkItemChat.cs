@@ -21,6 +21,8 @@ public class WorkItemChat : IWorkItem
 
     [JsonIgnore]
     public List<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
+    [JsonIgnore]
+    public DateTime? SavedTime { get; set; } = null;
 }
 
 public class ChatMessage

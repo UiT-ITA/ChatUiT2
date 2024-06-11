@@ -1,5 +1,6 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
+using ChatUiT2.Tools;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
@@ -269,16 +270,20 @@ public class DatabaseService : IDatabaseService
     /// <returns></returns>
     public async Task SaveChatMessages(User user, WorkItemChat chat)
     {
-        await DeleteMissingMessages(user, chat);
-
         List<Task> tasks = new List<Task>();
 
         foreach (var message in chat.Messages)
         {
+            if (chat.SavedTime != null && message.Created < chat.SavedTime)
+            {
+                continue;
+            }
+
             tasks.Add(SaveChatMessage(user, message, chat.Id));
         }
 
         await Task.WhenAll(tasks);
+        chat.SavedTime = DateTimeTools.GetTimestamp();
     }
 
     /// <summary>

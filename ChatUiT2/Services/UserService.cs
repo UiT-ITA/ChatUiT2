@@ -260,14 +260,21 @@ public class UserService : IUserService
 
     public async Task RegerateFromIndex(int index)
     {
-        CurrentChat.Messages.RemoveRange(
-            index: index +1, 
-            count: CurrentChat.Messages.Count - index -1
-        );
+        var chat = CurrentChat;
+        Waiting = true;
+        List<Task> tasks = new List<Task>();
+        for (int i = index + 1; i < chat.Messages.Count; i++)
+        {
+            var message = chat.Messages[i];
+            tasks.Add(_databaseService.DeleteChatMessage(message));
+            chat.Messages.Remove(message);
+        }
+        await Task.WhenAll(tasks);
+
         await SendMessage(null);
     }
 
-    public async Task StreamUpdated()
+    public void StreamUpdated()
     {
         RaiseUpdate();
     }
