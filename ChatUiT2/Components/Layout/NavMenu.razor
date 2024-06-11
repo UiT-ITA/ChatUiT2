@@ -2,10 +2,10 @@
     <div>
 
         <div style="display: flex; align-items: center; justify-content:space-between;" class="pt-0">
-            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" OnClick="CloseDrawer" Color="Color.Inherit"/>
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" OnClick="CloseDrawer" Color="Color.Tertiary"/>
             @if (UserService.CurrentWorkItem == null || UserService.CurrentWorkItem.Type == WorkItemType.Chat)
             {
-                <MudButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Text" Class="ml-2 mr-1" OnClick="UserService.NewChat" FullWidth Style="justify-content:flex-end"  Color="Color.Inherit">
+                <MudButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Text" Class="ml-2 mr-1" OnClick="UserService.NewChat" FullWidth Style="justify-content:flex-end"  Color="Color.Tertiary">
                     <MudText Typo="Typo.h5">New chat</MudText>
                     <MudIcon Icon="@Icons.Material.Filled.Add" Class="ml-1"/>
                 </MudButton>
@@ -35,7 +35,7 @@
         <MudDivider/>
 
         @* Download current conversation *@
-        <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DownloadConversation">
+        <MudButton FullWidth Class="pl-2 pt-4" Style="display:flex; justify-content:flex-start" OnClick="DownloadConversation" Color="Color.Tertiary">
             <MudStack Row>
                 <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
                 <MudText Typo="Typo.h5" Class="">Download chat</MudText>
@@ -43,7 +43,7 @@
         </MudButton>
 
         @* Delete all user data *@
-        <MudButton FullWidth Class="pl-2 pt-2" Style="display:flex; justify-content:flex-start" OnClick="DeleteAll">
+        <MudButton FullWidth Class="pl-2 pt-2 pb-2" Style="display:flex; justify-content:flex-start" OnClick="DeleteAll" Color="Color.Tertiary">
             <MudStack Row>
                 <MudIcon Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
                 <MudText Typo="Typo.h5" Class="">Delete all data</MudText>

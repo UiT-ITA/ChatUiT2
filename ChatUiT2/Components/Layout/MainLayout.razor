@@ -10,8 +10,8 @@
     <MudAppBar Elevation="0" Dense Color="Color.Transparent" DisableGutters>
         @if (!drawerOpen)
         {
-            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" />
-            <MudIconButton Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" />
+            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" Color="Color.Tertiary" />
+            <MudIconButton Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
             <MudDivider Vertical Style="height:32px" Class="pl-2" />
 
         }
@@ -23,7 +23,7 @@
            
         @* Model config *@
         <div class="d-flex">
-            <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenChatSettings" />
+            <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenChatSettings" Color="Color.Tertiary" />
         </div>
 
         @* Save work item*@
@@ -44,13 +44,13 @@
         <MudSpacer />
 
         @* Render using markdown *@
-        <MudToggleIconButton Class="mr-2" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
+        <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="mr-2" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
 
         @* Allow user to select how wide the chat area should be*@
         <MudHidden Breakpoint="Breakpoint.SmAndDown">
             <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="pr-3">
                 <ActivatorContent>
-                    <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" />
+                    <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" Color="Color.Tertiary" />
                 </ActivatorContent>
                 <ChildContent>
                     <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Small))">
@@ -110,13 +110,13 @@
 
 
         @* Dark mode *@
-        <MudSwitch @bind-Value="UserService.IsDarkMode" Color="Color.Dark" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
+        <MudSwitch @bind-Value="UserService.IsDarkMode" ThumbIconColor="Color.Tertiary" Color="Color.Dark" UnCheckedColor="Color.Default" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
 
 
         @* User menu *@
         <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
             <ActivatorContent>
-                <MudButton Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                <MudButton Color="Color.Tertiary" Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
                     <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large"/>
                 </MudButton>
             </ActivatorContent>
@@ -145,7 +145,7 @@
     </MudAppBar>
 
 
-    <MudDrawer @bind-Open="drawerOpen" Fixed Elevation="0" Style="background-color: var(--mud-palette-background-grey)">
+    <MudDrawer @bind-Open="drawerOpen" Fixed Elevation="0">
         <NavMenu OnClose="CloseDrawer" />
     </MudDrawer>
 
@@ -304,12 +304,28 @@
         {
             Surface = "f0f0f0",
             Primary = "#2a688d",
+            // DrawerBackground = "#f0f0f0",
+                DrawerBackground = "#e1eeff",
+            DrawerText = "#ffffff",
+            ChipDefaultHover = "rgba(0, 0, 0, 0.05)",
+            ChipDefault = "rgba(0,0,0, 0)",
+                BackgroundGrey = "rgba(0, 0, 0, 0.1)",
+            Tertiary = "#373740",
+            TertiaryContrastText = "#ffffff",
         },
         PaletteDark = new PaletteDark
         {
             //Info = "#6fa7d4" //"#2196f3",
-            Background = "#1f1f1f",
-            Primary = "#2a688d",
+                Background = "#212121",
+                Primary = "#2a688d",
+                // DrawerBackground = "#171717",
+                DrawerBackground = "#001014",
+                // BackgroundGrey = "#2f2f2f",
+                BackgroundGrey = "rgba(255, 255, 255, 0.1)",
+                ChipDefaultHover = "rgba(255, 255, 255, 0.05)",
+                ChipDefault = "rgba(255,255,255, 0)",
+                DrawerIcon = "#000000",
+                Tertiary = "#b3b3b3",
                 
         },
         LayoutProperties = new LayoutProperties

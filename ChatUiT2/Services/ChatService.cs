@@ -38,6 +38,7 @@ public class ChatService : IChatService
             await _userService.UpdateWorkItem(chat);
         }
 
+
         ChatMessage userMessage = chat.Messages.Last();
 
         ChatMessage responseMessage = new ChatMessage { Content = "", Role = ChatMessageRole.Assistant, Status = ChatMessageStatus.Working };
@@ -48,6 +49,7 @@ public class ChatService : IChatService
 
         chat.Messages.Add(responseMessage);
 
+        chat.Updated = DateTimeTools.GetTimestamp();
         await _userService.UpdateWorkItem(chat);
         _userService.RaiseUpdate();
 

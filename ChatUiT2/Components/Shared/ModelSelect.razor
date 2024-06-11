@@ -2,8 +2,8 @@
 <MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Dense>
     <ActivatorContent>
         <MudButton Class="ml-2">
-            <MudText Typo="Typo.h6">@(UserService.CurrentChat.Settings.Model)</MudText>
-            <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" />
+            <MudText Typo="Typo.h6" Color="Color">@(UserService.CurrentChat.Settings.Model)</MudText>
+            <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Color="Color"/>
         </MudButton>
     </ActivatorContent>
     <ChildContent>
@@ -29,6 +29,9 @@
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IConfigService ConfigService { get; set; } = null!;
+
+    [Parameter] public Color Color { get; set; } = Color.Tertiary;
+
 
     private List<Model> Models { get; set; } = new List<Model>();
 
