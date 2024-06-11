@@ -92,8 +92,8 @@
     {
         if (firstRender)
         {
-            //await JS.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
         }
+        await JS.InvokeVoidAsync("updateScroll", "chatContainer");
     }
 
     protected override void OnInitialized()

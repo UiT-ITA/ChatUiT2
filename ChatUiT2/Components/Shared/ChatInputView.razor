@@ -9,7 +9,7 @@
         <MudTextField @bind-Value="prompt" Variant="Variant.Text" @onkeypress="HandleKeyPress"
                       AutoFocus AutoGrow Immediate Placeholder="Ask anything!" Lines="1" MaxLines="10"
                        Style="position: relative; top: -12px;" Class="ml-0 pl-0"
-                       DisableUnderLine Disabled="UserService.Waiting"/>
+                       DisableUnderLine/>
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             @if (!UserService.Waiting)
             {
@@ -92,7 +92,7 @@
 
     private async void DelayedPromptClear()
     {
-        await Task.Delay(10);
+        await Task.Delay(100);
         prompt = "";
         StateHasChanged();
     }

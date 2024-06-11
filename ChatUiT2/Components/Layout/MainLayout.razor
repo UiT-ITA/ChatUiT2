@@ -10,26 +10,37 @@
     <MudAppBar Elevation="0" Dense Color="Color.Transparent" DisableGutters>
         @if (!drawerOpen)
         {
-            <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" Color="Color.Tertiary" />
-            <MudIconButton Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
+            <MudTooltip Text="Open sidebar" Placement="Placement.End" Arrow>
+                <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" Color="Color.Tertiary" />
+            </MudTooltip>
+            <MudTooltip Text="Start new chat" Arrow>
+                <MudIconButton Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
+            </MudTooltip>
             <MudDivider Vertical Style="height:32px" Class="pl-2" />
 
         }
 
         @* Model selection *@
         <MudHidden Breakpoint="Breakpoint.Xs">
-            <ModelSelect />
+            <MudTooltip Text="Select model" Arrow>
+                <ModelSelect />
+            </MudTooltip>
         </MudHidden>
            
         @* Model config *@
-        <div class="d-flex">
-            <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenChatSettings" Color="Color.Tertiary" />
-        </div>
+        @if (UserService.CurrentChat.Messages.Count > 0)
+        {
+            <MudTooltip Text="Configuration of thee model" Arrow>
+                <div class="d-flex">
+                    <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenChatSettings" Color="Color.Tertiary" />
+                </div>
+            </MudTooltip>
+        }
 
         @* Save work item*@
         @if (!UserService.CurrentWorkItem.IsFavorite)
         {            
-            <MudTooltip Text="@(CurrentWorkItemPersistant ? "This chat will be saved" : "This chat will not be saved")">
+            <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")">
                 <MudSwitch @bind-Value="CurrentWorkItemPersistant" 
                     Disabled="UserService.CurrentWorkItem.IsFavorite" 
                     T="bool" 
@@ -44,13 +55,13 @@
         <MudSpacer />
 
         @* Render using markdown *@
-        <MudTooltip Text="Select rendering mode">
+        <MudTooltip Text="Select rendering mode" Arrow>
             <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="mr-2" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
         </MudTooltip>
 
         @* Allow user to select how wide the chat area should be*@
         <MudHidden Breakpoint="Breakpoint.SmAndDown">
-            <MudTooltip Text="Selct maximum width of the chat">
+            <MudTooltip Text="Selct maximum width of the chat" Arrow>
                 <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="pr-3">
                     <ActivatorContent>
                         <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" Color="Color.Tertiary" />
@@ -114,38 +125,41 @@
 
 
         @* Dark mode *@
-        <MudSwitch @bind-Value="UserService.IsDarkMode" ThumbIconColor="Color.Tertiary" Color="Color.Dark" UnCheckedColor="Color.Default" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
-
+        <MudTooltip Text="Toggle darkmode on and off" Arrow>
+            <MudSwitch @bind-Value="UserService.IsDarkMode" ThumbIconColor="Color.Tertiary" Color="Color.Dark" UnCheckedColor="Color.Default" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
+        </MudTooltip>
 
         @* User menu *@
-        <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-            <ActivatorContent>
-                <MudButton Color="Color.Tertiary" Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                    <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large"/>
-                </MudButton>
-            </ActivatorContent>
-            <ChildContent>
-                <div class="pl-4 pb-2">
-                    <MudText Typo="Typo.body2">Logged in as:</MudText>
-                    @if (username != "") { <MudText Typo="Typo.body1">@username</MudText> }
-                    else { <MudText Typo="Typo.body1">Not logged in</MudText> }
-                </div>
-                <MudDivider />
-                <MudMenuItem OnClick="OpenUserSettings">
-                    <MudStack Row Style="width:150px">
-                        <MudIcon Icon="@Icons.Material.Filled.Settings" /> 
-                        Preferences 
-                    </MudStack>
-                </MudMenuItem>
-                <MudDivider />
-                <MudMenuItem OnClick="Logout">
-                    <MudStack Row Style="width:150px">
-                        <MudIcon Icon="@Icons.Material.Filled.ExitToApp" /> 
-                        Logout
-                    </MudStack>
-                </MudMenuItem>
-            </ChildContent>
-        </MudMenu>
+        <MudTooltip Text="User menu" Arrow Placement="Placement.Start">
+            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+                <ActivatorContent>
+                    <MudButton Color="Color.Tertiary" Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large"/>
+                    </MudButton>
+                </ActivatorContent>
+                <ChildContent>
+                    <div class="pl-4 pb-2 pt-4">
+                        <MudText Typo="Typo.body2">Logged in as:</MudText>
+                        <MudText Typo="Typo.body1">@UserService.Name</MudText>
+                    </div>
+                    <MudDivider />
+                    <MudMenuItem OnClick="OpenUserSettings" Disabled>
+                        <MudStack Row Style="width:150px">
+                            <MudIcon Icon="@Icons.Material.Filled.Settings" /> 
+                            Preferences 
+                        </MudStack>
+                    </MudMenuItem>
+                    <MudDivider />
+                    <MudMenuItem OnClick="Logout" Disabled>
+                        <MudStack Row Style="width:150px">
+                            <MudIcon Icon="@Icons.Material.Filled.ExitToApp" /> 
+                            Logout
+                        </MudStack>
+                    </MudMenuItem>
+                </ChildContent>
+            </MudMenu>
+
+        </MudTooltip>
     </MudAppBar>
 
 
@@ -271,20 +285,13 @@
     {
         await Task.Delay(10);
 
-        Nav.NavigateTo("/signout-oidc");
+        Nav.NavigateTo("/MicrosoftIdentity/Account/SignOut");
     }
 
     private void ChangeDarkmode(bool value)
     {
         UserService.IsDarkMode = value;
         UserService.RaiseUpdate();
-    }
-
-    private async Task Scroll()
-    {
-        bool result = await JS.InvokeAsync<bool>("isAtBottom", "chatContainer");
-        Console.WriteLine($"Is at bottom: {result}");
-        await JS.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
     }
 
 

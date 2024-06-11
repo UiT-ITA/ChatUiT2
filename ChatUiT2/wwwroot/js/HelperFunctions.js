@@ -6,10 +6,3 @@ function downloadFileFromBase64(fileName, base64) {
     link.click();
     document.body.removeChild(link);
 }
-
-function scrollToBottom(elementId) {
-    var element = document.getElementById(elementId);
-    if (element) {
-        element.scrollTop = element.scrollHeight;
-    }
-}

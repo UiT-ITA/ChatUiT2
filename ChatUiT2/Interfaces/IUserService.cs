@@ -9,6 +9,7 @@ public interface IUserService
     bool UseMarkdown { get; set; }
     bool Waiting { get; set; }
     bool Loading { get; }
+    string Name { get; set; }
     IConfigService _configService { get; set; }
     WorkItemChat CurrentChat { get; }
     ChatWidth ChatWidth { get; set; }

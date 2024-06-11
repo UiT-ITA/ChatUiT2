@@ -1,6 +1,7 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using System.Configuration;
 
@@ -28,6 +29,7 @@ public class UserService : IUserService
     }
     public bool Waiting { get; set; } = false;
     public bool Loading { get; private set; } = true;
+    public string Name { get; set; } = "Unauthorized";
     private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
     private IChatService _chatService { get; set; }
@@ -99,6 +101,7 @@ public class UserService : IUserService
         }
 
         User.Username = username;
+        Name = await _authUserService.GetName()??"Unauthorized";
         if (_configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: false))
         {
             User.AesKey = await _keyVaultService.GetKeyAsync(username);
@@ -266,9 +269,7 @@ public class UserService : IUserService
 
     public async Task StreamUpdated()
     {
-        //bool scroll = await _jsRuntime.InvokeAsync<bool>("isAtBottom", "chatContainer");
         RaiseUpdate();
-        //await _jsRuntime.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
     }
 
  
