@@ -9,7 +9,7 @@
         <MudTextField @bind-Value="prompt" Variant="Variant.Text" @onkeypress="HandleKeyPress"
                       AutoFocus AutoGrow Immediate Placeholder="Ask anything!" Lines="1" MaxLines="10"
                        Style="position: relative; top: -12px;" Class="ml-0 pl-0"
-                       DisableUnderLine />
+                       DisableUnderLine Disabled="UserService.Waiting"/>
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             @if (!UserService.Waiting)
             {
@@ -68,7 +68,7 @@
     }
 
 
-    private async Task SendMessage()
+    private async void SendMessage()
     {
         if (string.IsNullOrWhiteSpace(prompt))
         {
@@ -76,10 +76,7 @@
         }
 
         string sendPrompt = prompt;
-        prompt = "";
-
-        await Task.Delay(10);
-        StateHasChanged();
+        DelayedPromptClear();
 
         await UserService.SendMessage(sendPrompt);
     }
@@ -88,8 +85,16 @@
     {
         if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
         {
-            _ = SendMessage();
+            SendMessage();
+            //DelayedPromptClear();
         }
+    }
+
+    private async void DelayedPromptClear()
+    {
+        await Task.Delay(10);
+        prompt = "";
+        StateHasChanged();
     }
 
     private void StopGeneration()

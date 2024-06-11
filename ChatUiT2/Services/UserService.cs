@@ -247,6 +247,7 @@ public class UserService : IUserService
         if (!User.Chats.Contains(CurrentChat))
         {
             User.Chats.Add(CurrentChat);
+            RaiseUpdate();
             await UpdateWorkItem(CurrentChat);
         }
         await _jsRuntime.InvokeVoidAsync("forceScrollToBottom", "chatContainer");

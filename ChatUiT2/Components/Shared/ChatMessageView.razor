@@ -88,6 +88,14 @@
     private bool isEditing = false;
     private string newContent = "";
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("forceScrollToBottom", "chatContainer");
+        }
+    }
+
     protected override void OnInitialized()
     {
         UserService.OnUpdate += StateHasChanged;
