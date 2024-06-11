@@ -2,6 +2,10 @@
 @using ChatUiT2.Services
 @using MongoDB.Bson.Serialization
 
+<div style="height: 48px;">
+
+</div>
+
 <MudText Typo="Typo.h6">Testing purposes ONLY!</MudText>
 
 <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="Testing">Testing</MudButton>
@@ -15,13 +19,11 @@
 
     public async Task Testing()
     {
-        WorkItemChat chat = new WorkItemChat();
-        chat.Messages.Add(new ChatMessage{Content = "Hello", Role = ChatMessageRole.User});
-        var model = testService._configService.GetModels()[0];
-        var endpoint = testService._configService.GetEndpoint(model.Deployment);
+        bool result = await testService._authUserService.TestInRole(["Default", "Admin", "User"]);
+        string? name = await testService._authUserService.GetName();
 
-        var response = await AzureOpenAIService.GetResponse(chat, model, endpoint);
-        debug_text = response;
+        debug_text = $"Name: {name}, Result: {result}";
+
         StateHasChanged();
     }
 }

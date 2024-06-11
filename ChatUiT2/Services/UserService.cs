@@ -263,7 +263,7 @@ public class UserService : IUserService
         var chat = CurrentChat;
         Waiting = true;
         List<Task> tasks = new List<Task>();
-        for (int i = index + 1; i < chat.Messages.Count; i++)
+        for (int i = chat.Messages.Count -1; i > index; i--)
         {
             var message = chat.Messages[i];
             tasks.Add(_databaseService.DeleteChatMessage(message));

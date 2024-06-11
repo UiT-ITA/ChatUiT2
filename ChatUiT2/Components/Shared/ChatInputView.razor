@@ -86,7 +86,6 @@
         if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
         {
             SendMessage();
-            //DelayedPromptClear();
         }
     }
 
@@ -94,6 +93,7 @@
     {
         await Task.Delay(100);
         prompt = "";
+        await Task.Delay(10);
         StateHasChanged();
     }
 
