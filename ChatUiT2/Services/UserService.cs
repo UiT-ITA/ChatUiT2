@@ -1,6 +1,7 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
 using System.Configuration;
@@ -30,6 +31,7 @@ public class UserService : IUserService
     public bool Waiting { get; set; } = false;
     public bool Loading { get; private set; } = true;
     public string Name { get; set; } = "Unauthorized";
+    public bool IsAdmin { get; set; } = false;
     private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
     private IChatService _chatService { get; set; }
@@ -38,6 +40,7 @@ public class UserService : IUserService
     private IDatabaseService _databaseService { get; set; }
     private IKeyVaultService _keyVaultService { get; set; }
     private IJSRuntime _jsRuntime { get; set; }
+    private NavigationManager _navigationManager { get; set; }
     public WorkItemChat CurrentChat 
     { 
         get => (WorkItemChat) CurrentWorkItem; 
@@ -63,7 +66,8 @@ public class UserService : IUserService
                         IAuthUserService authUserService, 
                         IDatabaseService databaseService,
                         IKeyVaultService keyVaultService,
-                        IJSRuntime jSRuntime)
+                        IJSRuntime jSRuntime,
+                        NavigationManager navigationManager)
     {
         _configuration = configuration;
         _configService = configService;
@@ -71,6 +75,7 @@ public class UserService : IUserService
         _databaseService = databaseService;
         _keyVaultService = keyVaultService;
         _jsRuntime = jSRuntime;
+        _navigationManager = navigationManager;
 
 
 
@@ -102,6 +107,9 @@ public class UserService : IUserService
 
         User.Username = username;
         Name = await _authUserService.GetName()??"Unauthorized";
+        IsAdmin = await _authUserService.TestInRole(["Admin"]);
+
+
         if (_configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: false))
         {
             User.AesKey = await _keyVaultService.GetKeyAsync(username);
@@ -136,6 +144,11 @@ public class UserService : IUserService
         CurrentWorkItem.Persistant = User.Preferences.SaveHistory;
         CurrentChat.Settings.Copy(User.Preferences.DefaultChatSettings);
         RaiseUpdate();
+
+        if (_navigationManager.Uri != _navigationManager.BaseUri)
+        {
+            _navigationManager.NavigateTo("/");
+        }
     }
 
     public bool GetSaveHistory()

@@ -15,12 +15,12 @@
         @if (!drawerOpen)
         {
             <MudTooltip Text="Open sidebar" Placement="Placement.End" Arrow>
-                <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" Color="Color.Tertiary" />
+                <MudIconButton Class="appbar-item" Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" Color="Color.Tertiary" />
             </MudTooltip>
             <MudTooltip Text="Start new chat" Arrow>
-                <MudIconButton Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
+                <MudIconButton Class="appbar-item" Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
             </MudTooltip>
-            <MudDivider Vertical Style="height:32px" Class="pl-2" />
+            <MudDivider Vertical Style="height:32px" Class="pl-2 appbar-item" />
 
         }
         @if (UserService.CurrentChat.Messages.Count > 0)
@@ -43,16 +43,18 @@
             @* Save work item*@
             @if (!UserService.CurrentWorkItem.IsFavorite)
             {            
-                <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")">
-                    <MudSwitch @bind-Value="CurrentWorkItemPersistant" 
-                        Disabled="UserService.CurrentWorkItem.IsFavorite" 
-                        T="bool" 
-                        Class="appbar-item"
-                        Color="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
-                        UnCheckedColor="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
-                        ThumbIconColor="@(CurrentWorkItemPersistant ? Color.Success : Color.Error)" 
-                        ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
-                </MudTooltip>
+                <MudHidden Breakpoint="Breakpoint.Xs">
+                    <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")">
+                        <MudSwitch @bind-Value="CurrentWorkItemPersistant" 
+                            Disabled="UserService.CurrentWorkItem.IsFavorite" 
+                            T="bool" 
+                            Class="appbar-item"
+                            Color="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
+                            UnCheckedColor="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
+                            ThumbIconColor="@(CurrentWorkItemPersistant ? Color.Success : Color.Error)" 
+                            ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
+                    </MudTooltip>
+                </MudHidden>
             }
         }
         <MudSpacer />

@@ -14,15 +14,32 @@
 
 @code {
     [Inject] private TestService testService { get; set; } = null!;
+    [Inject] private AuthenticationStateProvider Auth { get; set; } = null!;
 
     string? debug_text = "Debug text";
 
     public async Task Testing()
     {
-        bool result = await testService._authUserService.TestInRole(["Default", "Admin", "User"]);
-        string? name = await testService._authUserService.GetName();
+        var isAdmin = await testService._authUserService.TestInRole(["Admin", "User2"]);
+        debug_text = isAdmin.ToString();
 
-        debug_text = $"Name: {name}, Result: {result}";
+
+
+        var state = await Auth.GetAuthenticationStateAsync();
+        if (state.User?.Identity?.IsAuthenticated != true)
+        {
+            Console.WriteLine("Not authenticated");
+            return;
+        }
+
+
+        var name = state.User.Identity.Name;
+
+        state.User.Claims.ToList().ForEach(claim => Console.WriteLine($"{claim.Type}: {claim.Value}"));
+
+        debug_text = state.User.Identity.AuthenticationType;
+
+
 
         StateHasChanged();
     }

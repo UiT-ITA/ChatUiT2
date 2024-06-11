@@ -39,20 +39,46 @@
         <MudDivider/>
 
         @* Download current conversation *@
-        <MudButton FullWidth Class="pl-2 pt-4" Style="display:flex; justify-content:flex-start" OnClick="DownloadConversation" Color="Color.Tertiary">
+        <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="DownloadConversation" Color="Color.Tertiary">
             <MudStack Row>
                 <MudIcon Icon="@Icons.Material.Filled.Download" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
-                <MudText Typo="Typo.h5" Class="">Download chat</MudText>
+                <MudText Typo="Typo.h5" Class="pt-1">Download chat</MudText>
             </MudStack>
         </MudButton>
 
         @* Delete all user data *@
-        <MudButton FullWidth Class="pl-2 pt-2 pb-2" Style="display:flex; justify-content:flex-start" OnClick="DeleteAll" Color="Color.Tertiary">
+        <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="DeleteAll" Color="Color.Tertiary">
             <MudStack Row>
                 <MudIcon Icon="@Icons.Material.Filled.DeleteForever" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
-                <MudText Typo="Typo.h5" Class="">Delete all data</MudText>
+                <MudText Typo="Typo.h5" Class="pt-1">Delete all data</MudText>
             </MudStack>
         </MudButton>
+
+        @if (Nav.Uri != Nav.BaseUri)
+        {
+            <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/"))" Color="Color.Tertiary">
+                <MudStack Row>
+                    <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                    <MudText Typo="Typo.h5" Class="pt-1">Home</MudText>
+                </MudStack>
+            </MudButton>
+        }
+
+        @if (!Nav.Uri.EndsWith("/admin") && UserService.IsAdmin)
+        {
+            <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/admin"))" Color="Color.Tertiary">
+                <MudStack Row>
+                    <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                    <MudText Typo="Typo.h5" Class="pt-1">Admin area</MudText>
+                </MudStack>
+            </MudButton>
+        }
+
+
+        @* Admin area *@
+        
+
+        
     </div>
 </div>
 

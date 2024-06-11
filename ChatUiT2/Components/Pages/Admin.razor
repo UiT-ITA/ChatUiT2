@@ -1,0 +1,39 @@
+﻿@page "/admin"
+
+<div style="height:48px;">
+
+</div>
+
+<h3>Admin area</h3>
+
+@if (!isAdmin)
+{
+    <p>You are not authorized to view this page.</p>
+}
+else
+{
+    <p>Welcome to the admin area.</p>
+}
+
+@code {
+    [Inject] private IAuthUserService Auth { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+
+    private bool isAdmin;
+
+    
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isAdmin = await Auth.TestInRole(["Admin"]);
+            if (!isAdmin)
+            {
+                Nav.NavigateTo("/");
+            }
+            StateHasChanged();
+        }
+    }
+}

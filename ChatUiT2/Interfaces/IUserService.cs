@@ -10,6 +10,7 @@ public interface IUserService
     bool Waiting { get; set; }
     bool Loading { get; }
     string Name { get; set; }
+    bool IsAdmin { get; set; }
     IConfigService _configService { get; set; }
     WorkItemChat CurrentChat { get; }
     ChatWidth ChatWidth { get; set; }

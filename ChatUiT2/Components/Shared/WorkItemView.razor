@@ -65,6 +65,7 @@
 @code {
     [Parameter] public IWorkItem workItem { get; set; } = null!;
     [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
 
     private string newName { get; set; } = string.Empty;
 
@@ -93,6 +94,13 @@
         }
         UserService.CurrentWorkItem = workItem;
         UserService.RaiseUpdate();
+
+        if(Nav.Uri != Nav.BaseUri)
+        {
+            Nav.NavigateTo("/");
+        }
+
+        
     }
 
 
