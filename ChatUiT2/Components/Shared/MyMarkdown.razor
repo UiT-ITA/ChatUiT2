@@ -23,6 +23,7 @@ else
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IJSRuntime JS { get; set; } = null!;
 
     [Parameter] public string Value { get; set; } = null!;
     [Parameter] public MudBlazor.CodeBlockTheme CodeBlockTheme { get; set; }
@@ -41,6 +42,7 @@ else
     {
         UserService.OnUpdate += StateHasChanged;
     }
+
 
     public void Dispose()
     {
@@ -90,6 +92,8 @@ else
 
     private string ProcessMarkdown(string markdownContent)
     {
+        return markdownContent;
+
         var regex = new Regex(@"\s*```(\w+)?\s*([\s\S]*?)\s*```", RegexOptions.Compiled);
         var newText = regex.Replace(markdownContent, match =>
         {

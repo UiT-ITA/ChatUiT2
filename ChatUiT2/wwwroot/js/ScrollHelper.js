@@ -27,6 +27,17 @@ window.updateScroll = function (elementId) {
     }
 };
 
+window.forceScroll = function (elementId) {
+    var element = document.getElementById(elementId);
+    if (element) {
+        element.scrollTop = element.scrollHeight;
+    }
+};
+
 window.resetAutoscroll = function () {
     window.autoScrollEnabled = true;
+};
+
+window.isAutoScrollEnabled = function () {
+    return window.autoScrollEnabled;
 };

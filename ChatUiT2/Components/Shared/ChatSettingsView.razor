@@ -126,7 +126,6 @@
     protected override void OnInitialized()
     {
         UserService.OnUpdate += StateHasChanged;
-        Console.WriteLine(UserService.CurrentChat.Settings.Prompt);
         base.OnInitialized();
     }
 

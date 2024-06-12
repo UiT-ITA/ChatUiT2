@@ -290,6 +290,14 @@ public class UserService : IUserService
     public void StreamUpdated()
     {
         RaiseUpdate();
+        _jsRuntime.InvokeVoidAsync("forceScroll", "chatContainer");
+        ScrollDelayed();
+    }
+
+    private async void ScrollDelayed()
+    {
+        await Task.Delay(200);
+        await _jsRuntime.InvokeVoidAsync("forceScroll", "chatContainer");
     }
 
  
