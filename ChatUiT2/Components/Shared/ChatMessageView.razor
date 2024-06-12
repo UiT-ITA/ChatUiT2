@@ -82,7 +82,8 @@
 
     private bool isUserMessage => Message.Role == ChatMessageRole.User;
 
-    private CodeBlockTheme CodeBlockTheme => UserService.IsDarkMode ? CodeBlockTheme.AtomOneDark : CodeBlockTheme.AtomOneLight;
+    //private CodeBlockTheme CodeBlockTheme => UserService.IsDarkMode ? CodeBlockTheme.AtomOneDark : CodeBlockTheme.AtomOneLight;
+    private CodeBlockTheme CodeBlockTheme => UserService.IsDarkMode ? CodeBlockTheme.Vs2015 : CodeBlockTheme.Vs;
 
 
     private bool isEditing = false;
