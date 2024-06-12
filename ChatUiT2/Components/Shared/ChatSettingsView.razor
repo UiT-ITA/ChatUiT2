@@ -57,7 +57,7 @@
                 </div>
             </MudItem>
             <MudItem xs="12" md="6" Style="min-width: 300px;">
-                <MudTextField Lines="10" Value="UserService.CurrentChat.Settings.Prompt" Immediate Variant="Variant.Filled" DisableUnderLine />
+                <MudTextField T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" DisableUnderLine />
             </MudItem>
         </MudGrid>
         <MudDivider />
@@ -126,6 +126,7 @@
     protected override void OnInitialized()
     {
         UserService.OnUpdate += StateHasChanged;
+        Console.WriteLine(UserService.CurrentChat.Settings.Prompt);
         base.OnInitialized();
     }
 

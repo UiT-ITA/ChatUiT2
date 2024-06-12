@@ -6,10 +6,10 @@
             </MudTooltip>
         </div>
 
-        <MudTextField @bind-Value="prompt" Variant="Variant.Text" @onkeypress="HandleKeyPress"
+        <MudTextField id="inputField" @bind-Value="prompt" Variant="Variant.Text" @onkeyup="HandleKeyPress"
                       AutoFocus AutoGrow Immediate Placeholder="Ask anything!" Lines="1" MaxLines="10"
                        Style="position: relative; top: -12px;" Class="ml-0 pl-0"
-                       DisableUnderLine/>
+                       DisableUnderLine @ref="inputFieldRef" TextUpdateSuppression="false"/>
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             @if (!UserService.Waiting)
             {
@@ -38,15 +38,20 @@
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
-    private string _prompt = "";
-    private string prompt 
+    private MudTextField<string> inputFieldRef;
+
+    private bool generating = false;
+
+    private string prompt = "";
+    private string _prompt 
     {
         get => _prompt;
         set
         {
-            if (UserService.Waiting)
+            if (generating)
             {
                 _prompt = "";
+                StateHasChanged();
             }
             else
             {
@@ -72,6 +77,7 @@
     {
         if (string.IsNullOrWhiteSpace(prompt))
         {
+            StateHasChanged();
             return;
         }
 
@@ -79,12 +85,16 @@
         DelayedPromptClear();
 
         await UserService.SendMessage(sendPrompt);
+        generating = false;
+        StateHasChanged();
+        await inputFieldRef.FocusAsync();
     }
 
     private void HandleKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
         {
+            generating = true;
             SendMessage();
         }
     }
@@ -92,8 +102,10 @@
     private async void DelayedPromptClear()
     {
         await Task.Delay(100);
-        prompt = "";
-        await Task.Delay(10);
+        await inputFieldRef.Clear();
+        await Task.Delay(100);
+
+
         StateHasChanged();
     }
 
