@@ -9,7 +9,7 @@
     
     <MudAppBar Class="appbar-hover" Elevation="0" Dense Color="Color.Transparent" DisableGutters>
 
-        <MudStack Row Style="width: 100%; height: 48px;" Class="appbar-background">
+        <MudStack Row Style="width: 100%; height: 48px;" Class="appbar-background" Spacing="0">
 
 
         @if (!drawerOpen)
@@ -20,19 +20,13 @@
             <MudTooltip Text="Start new chat" Arrow>
                 <MudIconButton Class="appbar-item" Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
             </MudTooltip>
-            <MudDivider Vertical Style="height:32px" Class="pl-2 appbar-item" />
 
+        } else
+        {
+            <div/>
         }
         @if (UserService.CurrentChat.Messages.Count > 0)
         {
-
-            @* Model selection *@
-            <MudHidden Breakpoint="Breakpoint.Xs">
-                <MudTooltip Text="Select model" Arrow>
-                    <ModelSelect Class="appbar-item" />
-                </MudTooltip>
-            </MudHidden>
-           
             @* Model config *@
             <MudTooltip Text="Configuration of thee model" Arrow>
                 <div class="d-flex appbar-item">
@@ -45,17 +39,17 @@
             {            
                 <MudHidden Breakpoint="Breakpoint.Xs">
                     <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")">
-                        <MudSwitch @bind-Value="CurrentWorkItemPersistant" 
-                            Disabled="UserService.CurrentWorkItem.IsFavorite" 
-                            T="bool" 
-                            Class="appbar-item"
-                            Color="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
-                            UnCheckedColor="@(UserService.IsDarkMode ? Color.Dark : Color.Default)" 
-                            ThumbIconColor="@(CurrentWorkItemPersistant ? Color.Success : Color.Error)" 
-                            ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
+                        <MudToggleIconButton @bind-Toggled="CurrentWorkItemPersistant" Icon="@Icons.Material.Filled.CloudOff" ToggledIcon="@Icons.Material.Filled.CloudDone" Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-item" />
                     </MudTooltip>
                 </MudHidden>
             }
+
+            @* Model selection *@
+            <MudHidden Breakpoint="Breakpoint.Xs">
+                <MudTooltip Text="Select model" Arrow>
+                    <ModelSelect Class="appbar-item ma-0 pa-0 pl-2" />
+                </MudTooltip>
+            </MudHidden>
         }
         <MudSpacer />
         @* Branding? *@
@@ -63,13 +57,13 @@
 
         @* Render using markdown *@
         <MudTooltip Text="Select rendering mode" Arrow>
-            <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="mr-2 appbar-item" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
+            <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-item" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
         </MudTooltip>
 
         @* Allow user to select how wide the chat area should be*@
         <MudHidden Breakpoint="Breakpoint.SmAndDown">
             <MudTooltip Text="Selct maximum width of the chat" Arrow>
-                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="pr-3 appbar-item">
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="appbar-item">
                     <ActivatorContent>
                         <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" Color="Color.Tertiary" />
                     </ActivatorContent>
@@ -132,8 +126,8 @@
 
 
         @* Dark mode *@
-        <MudTooltip Text="Toggle darkmode on and off" Arrow>
-            <MudSwitch Class="appbar-item" @bind-Value="UserService.IsDarkMode" ThumbIconColor="Color.Tertiary" Color="Color.Dark" UnCheckedColor="Color.Default" ThumbIcon="@(UserService.IsDarkMode ? Icons.Material.Filled.DarkMode : Icons.Material.Filled.LightMode)" Size="Size.Large" />
+        <MudTooltip Text="@(UserService.IsDarkMode ? "Switch to light mode" : "Switch to dark mode")" Arrow>
+            <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-item mx-0" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" @bind-Toggled="UserService.IsDarkMode" />    
         </MudTooltip>
 
         @* User menu *@
@@ -157,7 +151,7 @@
                         </MudStack>
                     </MudMenuItem>
                     <MudDivider />
-                    <MudMenuItem OnClick="Logout" Disabled>
+                    <MudMenuItem OnClick="Logout">
                         <MudStack Row Style="width:150px">
                             <MudIcon Icon="@Icons.Material.Filled.ExitToApp" /> 
                             Logout
@@ -196,7 +190,7 @@
         padding-bottom: 0px;
     }
     .appbar-item {
-        opacity: 0;
+        /* opacity: 0.5; */
         transition: opacity 0.3s ease-in-out;
     }
 
@@ -205,11 +199,13 @@
     }
 
     .appbar-background {
-        background-color: rgba(0, 0, 0, 0);
+        /* background-color: rgba(50, 50, 50, 0.5); */
+        opacity: 1;
         transition: background-color 0.3s ease-in-out;
     }
 
     .appbar-hover:hover .appbar-background{
+        opacity: 1;
         background-color: var(--mud-palette-drawer-background);
     }
 
@@ -311,7 +307,11 @@
     {
         await Task.Delay(10);
 
-        Nav.NavigateTo("/MicrosoftIdentity/Account/SignOut");
+        //Nav.NavigateTo("MicrosoftIdentity/Account/SignOut", true);
+
+        var returnUrl = Nav.ToAbsoluteUri("/"); // Redirect to the home page after logout
+        var logoutUrl = $"MicrosoftIdentity/Account/SignOut?post_logout_redirect_uri={returnUrl}";
+        Nav.NavigateTo(logoutUrl, true);
     }
 
     private void ChangeDarkmode(bool value)
