@@ -8,7 +8,7 @@ public interface IUserService
     bool IsDarkMode { get; set; }
     bool UseMarkdown { get; set; }
     bool Waiting { get; set; }
-    bool Loading { get; }
+    bool Loading { get; set;  }
     string Name { get; set; }
     bool IsAdmin { get; set; }
     IConfigService _configService { get; set; }

@@ -13,6 +13,10 @@
 else
 {
     <p>Welcome to the admin area.</p>
+
+    <MudButton OnClick="ToggleLoading">Loading</MudButton>
+
+    <MudButton OnClick="ToggleWaiting">Waiting</MudButton>
 }
 
 @code {
@@ -22,7 +26,7 @@ else
 
     private bool isAdmin;
 
-    
+
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -35,5 +39,17 @@ else
             }
             StateHasChanged();
         }
+    }
+
+    private void ToggleLoading()
+    {
+        UserService.Loading = !UserService.Loading;
+        UserService.RaiseUpdate();
+    }
+
+    private void ToggleWaiting()
+    {
+        UserService.Waiting = !UserService.Waiting;
+        UserService.RaiseUpdate();
     }
 }

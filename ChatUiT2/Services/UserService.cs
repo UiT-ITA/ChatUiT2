@@ -29,7 +29,7 @@ public class UserService : IUserService
         }
     }
     public bool Waiting { get; set; } = false;
-    public bool Loading { get; private set; } = true;
+    public bool Loading { get; set; } = true;
     public string Name { get; set; } = "Unauthorized";
     public bool IsAdmin { get; set; } = false;
     private User User { get; set; } = new User();
