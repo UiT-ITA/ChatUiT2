@@ -147,7 +147,8 @@ public class UserService : IUserService
 
         if (_navigationManager.Uri != _navigationManager.BaseUri)
         {
-            _navigationManager.NavigateTo("/");
+            // TODO: When done testing, uncomment
+            //_navigationManager.NavigateTo("/");
         }
     }
 

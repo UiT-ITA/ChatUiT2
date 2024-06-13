@@ -49,6 +49,7 @@ else
         UserService.OnUpdate -= StateHasChanged;
     }
 
+    // Not needed anymore?
     private readonly HashSet<string> _supportedLanguages = new HashSet<string>
     {
         "1c", "abnf", "accesslog", "ada", "armasm", "avrasm", "actionscript", "angelscript", "apache",
@@ -80,6 +81,7 @@ else
         "smalltalk", "st", "stan", "stanfuncs", "stata", "iecst", "solidity", "sol"
     };
 
+    // Manually curated list of safe languages (Not needed anymore)
     private readonly HashSet<string> _safeLanguages = new HashSet<string>
     {
         "bash", "csharp", "cs", "c", "cpp", "c++", "cmake", "css", "bat", "cmd", "dockerfile", "docker", 
@@ -93,7 +95,7 @@ else
     private string ProcessMarkdown(string markdownContent)
     {
         return markdownContent;
-
+        /*
         var regex = new Regex(@"\s*```(\w+)?\s*([\s\S]*?)\s*```", RegexOptions.Compiled);
         var newText = regex.Replace(markdownContent, match =>
         {
@@ -109,5 +111,6 @@ else
             return $"\n```{language}\n{code}\n```";
         });
         return newText;
+         */
     }
 }

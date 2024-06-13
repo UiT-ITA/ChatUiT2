@@ -61,20 +61,8 @@ public static class AzureOpenAIService
                 continue;
             }
 
-            OpenAI.Chat.ChatMessage requestMessage;
+            OpenAI.Chat.ChatMessage requestMessage = GetOpenAIMessage(message);
 
-            if (message.Role == Models.ChatMessageRole.User)
-            {
-                requestMessage = new UserChatMessage(message.Content);
-            }
-            else if (message.Role == Models.ChatMessageRole.Assistant)
-            {
-                requestMessage = new AssistantChatMessage(message.Content);
-            }
-            else
-            {
-                throw new Exception("Unkown message role");
-            }
 
             messages.Insert(1, requestMessage);
             availableTokens -= messageTokens;
@@ -83,6 +71,23 @@ public static class AzureOpenAIService
         return client.CompleteChatStreamingAsync(messages, options);
 
 
+    }
+
+    public static OpenAI.Chat.ChatMessage GetOpenAIMessage(Models.ChatMessage message)
+    {
+
+       if (message.Role == Models.ChatMessageRole.User)
+        {
+            return new UserChatMessage(message.Content);
+        }
+        else if (message.Role == Models.ChatMessageRole.Assistant)
+        {
+            return new AssistantChatMessage(message.Content);
+        }
+        else
+        {
+            throw new Exception("Unkown message role");
+        }
     }
 
     public static int GetTokens(string model, string content)
