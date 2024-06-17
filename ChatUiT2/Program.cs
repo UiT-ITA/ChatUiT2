@@ -25,6 +25,15 @@ builder.Services.AddControllersWithViews()
 //builder.Services.AddServerSideBlazor()
 //    .AddMicrosoftIdentityConsentHandler();
 
+// Handle signalR buffer problems
+builder.Services.AddServerSideBlazor()
+    .AddHubOptions(options =>
+    {
+        options.MaximumReceiveMessageSize = 10 * 1024 * 1024; // 10MB
+        options.ClientTimeoutInterval = TimeSpan.FromSeconds(120);
+        options.HandshakeTimeout = TimeSpan.FromSeconds(120);
+    });
+
 
 // Mudblazor
 builder.Services.AddMudServices();
