@@ -28,6 +28,16 @@ public class UserService : IUserService
             RaiseUpdate();
         }
     }
+
+    public bool SmoothOutput
+    {
+        get => User.Preferences.SmoothOutput;
+        set
+        {
+            User.Preferences.SmoothOutput = value;
+            RaiseUpdate();
+        }
+    }
     public bool Waiting { get; set; } = false;
     public bool Loading { get; set; } = true;
     public string Name { get; set; } = "Unauthorized";
@@ -301,5 +311,5 @@ public class UserService : IUserService
         await _jsRuntime.InvokeVoidAsync("forceScroll", "chatContainer");
     }
 
- 
+
 }

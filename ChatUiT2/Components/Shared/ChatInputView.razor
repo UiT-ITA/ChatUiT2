@@ -38,7 +38,7 @@
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
 
-    private MudTextField<string> inputFieldRef;
+    private MudTextField<string> inputFieldRef = null!;
 
     private bool generating = false;
 

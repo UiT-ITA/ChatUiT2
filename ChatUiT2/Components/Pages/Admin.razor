@@ -14,9 +14,11 @@ else
 {
     <p>Welcome to the admin area.</p>
 
-    <MudButton OnClick="ToggleLoading">Loading</MudButton>
+    <MudButton OnClick="ToggleLoading">Loading: @UserService.Waiting</MudButton>
 
-    <MudButton OnClick="ToggleWaiting">Waiting</MudButton>
+    <MudButton OnClick="ToggleWaiting">Waiting: @UserService.Waiting</MudButton>
+
+    <MudButton OnClick="ToggleSmoothOutput">Smooth output: @UserService.SmoothOutput</MudButton>
 }
 
 @code {
@@ -50,6 +52,12 @@ else
     private void ToggleWaiting()
     {
         UserService.Waiting = !UserService.Waiting;
+        UserService.RaiseUpdate();
+    }
+
+    private void ToggleSmoothOutput()
+    {
+        UserService.SmoothOutput = !UserService.SmoothOutput;
         UserService.RaiseUpdate();
     }
 }

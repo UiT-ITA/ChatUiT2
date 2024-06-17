@@ -1,8 +1,5 @@
 ﻿using ChatUiT2.Models;
 using ChatUiT2.Interfaces;
-using MongoDB.Driver.Core.WireProtocol.Messages;
-using MudBlazor;
-using System.Text.Json;
 using ChatUiT2.Tools;
 using System.Text.RegularExpressions;
 
@@ -63,33 +60,38 @@ public class ChatService : IChatService
             {
                 var response = AzureOpenAIService.GetStreamingResponse(chat, model, endpoint);
                 // TODO: NOT sure!
+
                 await foreach (var chatUpdates in response)
                 {
                     foreach (var update in chatUpdates.ContentUpdate)
                     {
                         responseMessage.Content += update.Text;
+                        if (_userService.SmoothOutput)
+                        {
+                            await Task.Delay(20);
+                            _userService.StreamUpdated();
+                        }
                     }
-
-                    //_userService.RaiseUpdate();
                     _userService.StreamUpdated();
 
                     // TODO: Handle finish reason
-                    /*var finishReason = chatUpdate.FinishReason;
+                    var finishReason = chatUpdates.FinishReason;
                     if (finishReason != null)
                     {
-                        switch (finishReason.ToString())
+                        Console.WriteLine(finishReason.Value.ToString());
+                        switch (finishReason.Value.ToString())
                         {
-                            case "stop":
+                            case "Stop":
                                 responseMessage.Status = ChatMessageStatus.Done;
                                 break;
-                            case "length":
+                            case "Length":
                                 responseMessage.Status = ChatMessageStatus.TokenLimit;
                                 break;
                             default:
                                 responseMessage.Status = ChatMessageStatus.Error;
                                 break;
                         }
-                    }*/
+                    }
                 }
             }
             catch (Exception ex)

@@ -11,6 +11,7 @@ public class Preferences
     public bool DarkMode { get; set; } = true;
     public bool SaveHistory { get; set; } = true;
     public bool UseMarkdown { get; set; } = true;
+    public bool SmoothOutput { get; set; } = false;
     public ChatWidth ChatWidth { get; set; } = ChatWidth.Medium;
     public string Language { get; set; } = "en";
     public ChatSettings DefaultChatSettings { get; set; } = new ChatSettings();

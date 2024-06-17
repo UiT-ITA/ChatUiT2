@@ -7,6 +7,7 @@ public interface IUserService
     IWorkItem CurrentWorkItem { get; set; }
     bool IsDarkMode { get; set; }
     bool UseMarkdown { get; set; }
+    bool SmoothOutput { get; set; }
     bool Waiting { get; set; }
     bool Loading { get; set;  }
     string Name { get; set; }
