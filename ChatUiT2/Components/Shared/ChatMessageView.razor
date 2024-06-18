@@ -11,7 +11,7 @@
                 @* </MudAvatar> *@
             </div>
             <MudSpacer />
-                <MudText Class="mt-2" Style="opacity: 0.5;" Typo="Typo.subtitle2">@Message.Created.ToString("dd.mm.yy HH:mm")</MudText>
+                <MudText Class="mt-2" Style="opacity: 0.5;" Typo="Typo.subtitle2">@timeStampString</MudText>
             <MudSpacer />
 
             @if (!isEditing)
@@ -81,6 +81,15 @@
     [Parameter] public ChatMessage Message { get; set; } = null!;
 
     private bool isUserMessage => Message.Role == ChatMessageRole.User;
+    private string timeStampString { get
+        {
+            // TODO: change to user's timezone dynamically
+            TimeZoneInfo norwegianTimeZone = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+            DateTime norwegianTime = TimeZoneInfo.ConvertTime(Message.Created, norwegianTimeZone);
+
+            return norwegianTime.ToString("dd.mm.yy HH:mm");
+        }
+    }
 
     //private CodeBlockTheme CodeBlockTheme => UserService.IsDarkMode ? CodeBlockTheme.AtomOneDark : CodeBlockTheme.AtomOneLight;
     private CodeBlockTheme CodeBlockTheme => UserService.IsDarkMode ? CodeBlockTheme.Vs2015 : CodeBlockTheme.Vs;
@@ -164,6 +173,14 @@
             index -= 1;
         }
         await UserService.RegerateFromIndex(index);
+    }
+
+    private string GetTimestamp()
+    {
+        TimeZoneInfo norwegianTimeZone = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+        DateTime norwegianTime = TimeZoneInfo.ConvertTime(Message.Created, norwegianTimeZone);
+
+        return norwegianTime.ToString("dd.mm.yy HH:mm");
     }
 
 }

@@ -150,7 +150,7 @@ public class ChatService : IChatService
         var model = _configService.GetNamingModel();
         var endpoint = _configService.GetEndpoint(model.Deployment);
 
-        string namingPrompt = "Name this chat. ONLY reply with the name. The name should be a maximum of 25 characters long. The name will be displayed on a label, so make it as informative as you can. Do NOT put quotation mark around your answer. Reply ONLY with the name. Do NOT format the answer in any way";
+        string namingPrompt = "You are a naming service. Name the chat bellow. ONLY reply with the name. The name should be a maximum of 25 characters long. The name will be displayed on a label, so make it as informative as you can. Do NOT put quotation mark around your answer. Reply ONLY with the name. Do NOT format the answer in any way. Do not refer back to this prompt in any way. The name should have nothing to do with this specific prompt.";
 
         WorkItemChat namingChat = new WorkItemChat
         {

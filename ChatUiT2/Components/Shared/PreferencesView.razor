@@ -1,0 +1,162 @@
+﻿<div class="container" style="overflow: hidden;">
+    <MudPaper Class="pa-4" Style="border-radius: 8px;" Elevation="0">
+
+        <div class="px-2 pb-2 text-center">
+            <MudText Typo="Typo.h4">Chat settings</MudText>
+            <MudText Typo="Typo.body2">Customize the chat experience</MudText>
+        </div>
+        <MudDivider />
+
+        @* <MudGrid Class="pa-2" AlignItems="FlexStart">
+            <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
+                <MudIcon Icon="@Icons.Material.Filled.DarkMode" Size="Size.Large" Class="me-2" />
+                <div>
+                    <MudText Typo="Typo.h6" Class="m-0">Dark mode</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="m-0">Start application in dark mode?</MudText>
+                </div>
+            </MudItem>
+            <MudItem xs="12" md="6" Style="min-width: 300px;">
+                <MudSwitch @bind-Checked="UserService.IsDarkMode" Label="@(UserService.IsDarkMode ? "On": "Off")" Color="Color.Info" UnCheckedColor="Color.Info"/>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider /> *@
+
+        <MudGrid Class="pa-2">
+            <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
+                <MudIcon Icon="@Icons.Material.Filled.Language" Size="Size.Large" Class="me-2" />
+                <div>
+                    <MudText Typo="Typo.h6" Class="m-0">Language</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="m-0">Select the language of the app</MudText>
+                </div>
+            </MudItem>
+            <MudItem xs="12" md="6" Style="min-width: 300px;">
+                <MudSelect Label="Language" @bind-Value="selectedLanguage" Variant="Variant.Outlined" DisableUnderLine>
+                    <MudSelectItem Value="@("en-us")">
+                        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/a/a4/Flag_of_the_United_States.svg/800px-Flag_of_the_United_States.svg.png?20151118161041" height="14" class="mr-1" />
+                        English
+                    </MudSelectItem>
+                    <MudSelectItem Value="@("no-nb")">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/d/d9/Flag_of_Norway.svg" height="14" class="mr-1" />
+                        Bokmål
+                    </MudSelectItem>
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider />
+
+        <MudGrid Class="pa-2" AlignItems="FlexStart">
+            <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
+                <MudIcon Icon="@Icons.Material.Filled.ListAlt" Size="Size.Large" Class="me-2" />
+                <div>
+                    <MudText Typo="Typo.h6" Class="m-0">@($"Tokens: {UserService.CurrentChat.Settings.MaxTokens}")</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="m-0">Controls answer length</MudText>
+                </div>
+            </MudItem>
+            <MudItem xs="12" md="6" Style="min-width: 300px;">
+                <MudSlider T="int" Max="@maxTokens" Min="@(maxTokens/16)" Step="@(maxTokens/16)" @bind-Value="UserService.CurrentChat.Settings.MaxTokens" Size="Size.Large" Color="Color.Info" />
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider />
+
+        <MudGrid Class="pa-2" AlignItems="FlexStart">
+            <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
+                <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Class="me-2" />
+                <div>
+                    <MudText Typo="Typo.h6" Class="m-0">System prompt</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="m-0">Instructions to the model</MudText>
+                </div>
+            </MudItem>
+            <MudItem xs="12" md="6" Style="min-width: 300px;">
+                <MudTextField T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" DisableUnderLine />
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider />
+
+        <MudGrid Class="pa-2" AlignItems="FlexStart">
+            <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
+                <MudIcon Icon="@Icons.Material.Filled.Cloud" Size="Size.Large" Class="me-2" />
+                <div>
+                    <MudText Typo="Typo.h6" Class="m-0">Save chat</MudText>
+                    <MudText Typo="Typo.subtitle2" Class="m-0">Save to cloud</MudText>
+                </div>
+            </MudItem>
+            <MudItem xs="12" md="6" Style="min-width: 300px;">
+                <MudStack Row>
+                    <MudSwitch Class="ml-1" @bind-Value="CurrentWorkItemPersistant" T="bool" ThumbIconColor="Color.Dark" Color="Color.Success" UnCheckedColor="Color.Error" ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
+                    @if (CurrentWorkItemPersistant)
+                    {
+                        <MudText Typo="Typo.h6" Class="mt-3">Chat will be saved</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h6" Class="mt-3">Temporary chat</MudText>
+                    }
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+
+        <MudDivider />
+        <MudStack Row Class="mx-2" Style="justify-content: flex-end;">
+            <MudButton Variant="Variant.Text" Class="mt-3" Color="Color.Info" OnClick="UserService.SetDefaultChatSettings">Set as default</MudButton>
+        </MudStack>
+    </MudPaper>
+</div>
+
+
+
+@code {
+    [Inject] private IUserService UserService { get; set; } = null!;
+
+    [Parameter] public bool IncludeHeader { get; set; } = false;
+    [Parameter] public bool IncludeInstructions { get; set; } = false;
+
+    private string selectedLanguage = "en-us";
+
+    private string cachedModel = "";
+    private int _maxTokens = 4096;
+    private int maxTokens
+    {
+        get
+        {
+            if (cachedModel != UserService.CurrentChat.Settings.Model)
+            {
+                cachedModel = UserService.CurrentChat.Settings.Model;
+                _maxTokens = GetMaxTokens();
+            }
+            return _maxTokens;
+        }
+    }
+
+    private bool CurrentWorkItemPersistant
+    {
+        get => UserService.CurrentWorkItem.Persistant;
+        set
+        {
+            UserService.CurrentWorkItem.Persistant = value;
+            UserService.RaiseUpdate();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        UserService.OnUpdate += StateHasChanged;
+        base.OnInitialized();
+    }
+
+    public void Dispose()
+    {
+        UserService.OnUpdate -= StateHasChanged;
+    }
+
+    private int GetMaxTokens()
+    {
+        int maxTokens = UserService.GetMaxTokens();
+
+        return maxTokens;
+    }
+
+}

@@ -144,7 +144,7 @@
                         <MudText Typo="Typo.body1">@UserService.Name</MudText>
                     </div>
                     <MudDivider />
-                    <MudMenuItem OnClick="OpenUserSettings" Disabled>
+                    <MudMenuItem OnClick="OpenPreferences" Disabled>
                         <MudStack Row Style="width:150px">
                             <MudIcon Icon="@Icons.Material.Filled.Settings" /> 
                             Preferences 
@@ -276,6 +276,19 @@
             ClassBackground = "bg-transparent",
         };
         DialogService.Show<ChatSettingsView>(title: "Chat settings", options: chatSettingsOptions);
+    }
+
+    private void OpenPreferences()
+    {
+        DialogOptions preferencesOptions = new DialogOptions
+        {
+            MaxWidth = MaxWidth.ExtraLarge,
+            NoHeader = false,
+            CloseButton = true,
+            FullWidth = false,
+            ClassBackground = "bg-transparent",
+        };
+        DialogService.Show<PreferencesView>(title: "Preferences", options: preferencesOptions);
     }
 
     private async void GetUsername()
