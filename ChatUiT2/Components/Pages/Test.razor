@@ -10,11 +10,15 @@
 
 <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="Testing">Testing</MudButton>
 <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="TestAI">TestAI</MudButton>
+<MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="TestStorage">Test storage</MudButton>
+<MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="ToggleFileUpload">@("Turn file upload " + (userService.EnableFileUpload ? "off" : "on"))</MudButton>
 
 <span>@debug_text</span>
 
 @code {
     [Inject] private TestService testService { get; set; } = null!;
+    [Inject] private StorageService storageService { get; set; } = null!;
+    [Inject] private IUserService userService { get; set; } = null!;
     // [Inject] private AuthenticationStateProvider Auth { get; set; } = null!;
 
     string? debug_text = "Debug text";
@@ -72,5 +76,34 @@
         debug_text = content;
         StateHasChanged();
     }
-   
+
+    public async Task TestStorage()
+    {
+        // Define test data
+        string username = "testuser";
+        string filename = "test.txt";
+        byte[] fileContent = System.Text.Encoding.UTF8.GetBytes("Hello world!\n");
+
+        // Upload the file
+        await storageService.UploadFile(username, filename, fileContent);
+        Console.WriteLine("File uploaded successfully.");
+
+        // Download the file
+        byte[]? downloadedFileContent = await storageService.GetFileBytes(username, filename);
+        if (downloadedFileContent != null)
+        {
+            string downloadedText = System.Text.Encoding.UTF8.GetString(downloadedFileContent);
+            Console.WriteLine("Downloaded file content: " + downloadedText);
+        }
+        else
+        {
+            Console.WriteLine("Failed to download file.");
+        }
+    }
+
+    public void ToggleFileUpload()
+    {
+        userService.EnableFileUpload = !userService.EnableFileUpload;
+    }
+
 }

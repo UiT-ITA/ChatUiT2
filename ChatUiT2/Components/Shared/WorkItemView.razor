@@ -90,6 +90,10 @@
     {
         if (IsSelected())
         {
+            if (Nav.Uri != Nav.BaseUri)
+            {
+                Nav.NavigateTo("/");
+            }
             return;
         }
         UserService.CurrentWorkItem = workItem;

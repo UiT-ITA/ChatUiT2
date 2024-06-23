@@ -2,7 +2,17 @@
     <div style="display: flex; align-items: flex-end; justify-content: space-between;">
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             <MudTooltip Text="Comming soon!" Placement="Placement.Bottom">
-                <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Size="Size.Medium" Disabled="true" Style="width:54px; height: 54px;"/>
+                @* <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Size="Size.Medium" Disabled="!UserService.EnableFileUpload" Style="width:54px; height: 54px;" OnClick="UploadFile"/> *@
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles" Accept="@acceptedFiles"
+                               Style="width:54px; height: 54px; background-color:transparent;" InputStyle="background-color:transparent;"
+                                Class="ma-0 pa-0">
+                    <ButtonTemplate>
+                        <MudFab HtmlTag="label" DisableElevation Disabled="!UserService.EnableFileUpload"
+                                StartIcon="@Icons.Material.Filled.AttachFile"
+                                Style="width:54px; height: 54px; background-color:transparent;"
+                                for="@context.Id" />
+                    </ButtonTemplate>
+                </MudFileUpload>
             </MudTooltip>
         </div>
 
@@ -33,6 +43,15 @@
     </div>
 </div>
 
+@* List the names of the files selected here: *@
+@if (files.Count > 0)
+{
+    <span>
+            @files.Select(f => f.Name).Aggregate((a, b) => $"{a}, {b}")
+    </span>
+}
+
+
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
@@ -60,6 +79,31 @@
         }
     }
 
+    private string acceptedFiles = ".png, .jpg, .jpeg, .pdf, .txt, .docx";
+    private IList<IBrowserFile> files = new List<IBrowserFile>();
+
+    private WorkItemChat? CurrentChat = null;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (UserService.CurrentChat != CurrentChat)
+        {
+            inputFieldRef.FocusAsync();
+            if (CurrentChat == null)
+            {
+                return;
+            }
+            if (UserService.CurrentChat.Messages.Count == 0)
+            {
+                return;
+            }
+
+            CurrentChat = UserService.CurrentChat;
+            prompt = "";
+            files = new List<IBrowserFile>();
+            StateHasChanged();
+        }
+    }
 
     protected override void OnInitialized()
     {
@@ -114,5 +158,13 @@
         // TODO: Implement stopping generation
         UserService.Waiting = false;
         StateHasChanged();
+    }
+
+    private void UploadFiles(IReadOnlyList<IBrowserFile> newFiles)
+    {
+        foreach (var file in newFiles)
+        {
+            files.Add(file);
+        }
     }
 }

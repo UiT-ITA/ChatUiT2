@@ -42,6 +42,7 @@ public class UserService : IUserService
     public bool Loading { get; set; } = true;
     public string Name { get; set; } = "Unauthorized";
     public bool IsAdmin { get; set; } = false;
+    public bool EnableFileUpload { get; set; } = false;
     private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
     private IChatService _chatService { get; set; }

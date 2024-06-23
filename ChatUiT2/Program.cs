@@ -43,6 +43,7 @@ builder.Services.AddMudMarkdownServices();
 builder.Services.AddSingleton<IConfigService, ConfigService>();
 builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IKeyVaultService, KeyVaultService>();
+builder.Services.AddSingleton<StorageService>();
 
 // Scoped services
 builder.Services.AddScoped<IUserService, UserService>();
