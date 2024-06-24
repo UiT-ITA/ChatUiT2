@@ -2,7 +2,7 @@
 
 public class ChatFile
 {
-    public string FileName { get; set; }
+    public string FileName { get; set; } = "";
     public FileType FileType { get; set; }
     public byte[]? Bytes { get; set; }
 
