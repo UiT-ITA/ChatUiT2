@@ -1,0 +1,86 @@
+﻿@using System.Drawing
+@using System.Drawing.Imaging
+
+<div style="" class="ma-2">
+
+        @if (File.FileType == FileType.Image)
+        {
+            <MudImage Src="@GetImageSrc()" Alt="@File.FileName" Style="height: 64px; width: 64px; border-radius:16px;"/>
+        }
+        else if (File.FileType == FileType.Document)
+        {
+            <MudPaper Style="border-radius: 16px; height: 64px; width: 128px;">
+
+            <MudStack Row>
+
+            <MudIcon Icon="@Icons.Material.Filled.AttachFile" Style="width: 32px; height: 32px; margin-left: 8px; margin-top: 16px;" />
+            <MudStack Class="pt-2" Spacing="0">
+                <MudText Typo="Typo.h4">@File.FileName</MudText>
+                <MudText Typo="Typo.h6">Document</MudText>
+            </MudStack>
+            
+            </MudStack>
+            </MudPaper>
+        }
+        else if (File.FileType == FileType.Data)
+        {
+            <MudIcon Icon="@Icons.Material.Filled.DataArray" Style="width: 56px; height: 56px;" />
+        }
+
+        @* <MudText Typo="Typo.body2">@File.FileName</MudText> *@
+    
+</div>
+
+@code {
+    [Parameter] public ChatFile File { get; set; } = null!;
+
+    private string GetImageSrc()
+    {
+        return $"data:image/png;base64,{GenerateThumbnailBase64(File)}";
+    }
+
+    public static string GenerateThumbnailBase64(ChatFile chatFile)
+    {
+        if (chatFile.Bytes == null)
+        {
+            throw new ArgumentException("Invalid image file.");
+        }
+        using (var ms = new MemoryStream(chatFile.Bytes))
+        {
+            using (var originalImage = Image.FromStream(ms))
+            {
+                int originalWidth = originalImage.Width;
+                int originalHeight = originalImage.Height;
+                int cropSize = Math.Min(originalWidth, originalHeight);
+                int cropX = (originalWidth - cropSize) / 2;
+                int cropY = (originalHeight - cropSize) / 2;
+
+                using (var croppedImage = new Bitmap(cropSize, cropSize))
+                {
+                    using (var graphics = Graphics.FromImage(croppedImage))
+                    {
+                        graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                        graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                        graphics.DrawImage(originalImage, new Rectangle(0, 0, cropSize, cropSize), new Rectangle(cropX, cropY, cropSize, cropSize), GraphicsUnit.Pixel);
+                    }
+
+                    var thumbnail = new Bitmap(64, 64);
+                    using (var graphics = Graphics.FromImage(thumbnail))
+                    {
+                        graphics.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                        graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+                        graphics.DrawImage(croppedImage, 0, 0, 64, 64);
+                    }
+
+                    using (var thumbnailStream = new MemoryStream())
+                    {
+                        thumbnail.Save(thumbnailStream, ImageFormat.Png);
+                        return Convert.ToBase64String(thumbnailStream.ToArray());
+                    }
+                }
+            }
+        }
+    }
+}

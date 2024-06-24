@@ -1,8 +1,23 @@
+@using ChatUiT2.Services
 <div class="ma-2 pa-0 mb-6" style="position: relative; background-color: var(--mud-palette-background-grey); border-radius:27px;">
+    
+    @if (chatFiles.Count > 0)
+    {
+        <div class="px-6 pt-2"> 
+            @foreach (var file in chatFiles)
+            {
+                <FileView File="@file" />
+            }
+        </div>
+    }
+
     <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+        
+        @* Upload files *@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             <MudTooltip Text="Comming soon!" Placement="Placement.Bottom">
                 @* <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Size="Size.Medium" Disabled="!UserService.EnableFileUpload" Style="width:54px; height: 54px;" OnClick="UploadFile"/> *@
+            </MudTooltip>
                 <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles" Accept="@acceptedFiles"
                                Style="width:54px; height: 54px; background-color:transparent;" InputStyle="background-color:transparent;"
                                 Class="ma-0 pa-0">
@@ -13,13 +28,15 @@
                                 for="@context.Id" />
                     </ButtonTemplate>
                 </MudFileUpload>
-            </MudTooltip>
         </div>
 
+        @* Input field *@
         <MudTextField id="inputField" @bind-Value="prompt" Variant="Variant.Text" @onkeyup="HandleKeyPress"
                       AutoFocus AutoGrow Immediate Placeholder="Ask anything!" Lines="1" MaxLines="10"
                        Style="position: relative; top: -12px;" Class="ml-0 pl-0"
                        DisableUnderLine @ref="inputFieldRef" TextUpdateSuppression="false"/>
+
+        @* Send message *@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             @if (!UserService.Waiting)
             {
@@ -43,19 +60,16 @@
     </div>
 </div>
 
-@* List the names of the files selected here: *@
-@if (files.Count > 0)
-{
-    <span>
-            @files.Select(f => f.Name).Aggregate((a, b) => $"{a}, {b}")
-    </span>
-}
-
-
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    // TODO: Remove temp direct access to storage:
+    [Inject] private StorageService StorageService { get; set; } = null!;
+
+    private int debug = 0;
 
     private MudTextField<string> inputFieldRef = null!;
 
@@ -79,8 +93,15 @@
         }
     }
 
-    private string acceptedFiles = ".png, .jpg, .jpeg, .pdf, .txt, .docx";
+    private string acceptedFiles
+    {
+        // Convert List of file types to a string containing all fileendings with the format ".filetype". List of filetypes is List<string> ChatFiles.AllFiles
+        get => string.Join(",", ChatFile.AllFiles.Select(x => "." + x));
+    }
+
     private IList<IBrowserFile> files = new List<IBrowserFile>();
+
+    private List<ChatFile> chatFiles = new List<ChatFile>();
 
     private WorkItemChat? CurrentChat = null;
 
@@ -91,17 +112,16 @@
             inputFieldRef.FocusAsync();
             if (CurrentChat == null)
             {
+                CurrentChat = UserService.CurrentChat;
                 return;
             }
             if (UserService.CurrentChat.Messages.Count == 0)
             {
+                CurrentChat = UserService.CurrentChat;
                 return;
             }
-
             CurrentChat = UserService.CurrentChat;
-            prompt = "";
-            files = new List<IBrowserFile>();
-            StateHasChanged();
+            ClearPrompt();
         }
     }
 
@@ -126,7 +146,7 @@
         }
 
         string sendPrompt = prompt;
-        DelayedPromptClear();
+        ClearPrompt();
 
         await UserService.SendMessage(sendPrompt);
         generating = false;
@@ -143,13 +163,13 @@
         }
     }
 
-    private async void DelayedPromptClear()
+    private async void ClearPrompt()
     {
         await Task.Delay(100);
         await inputFieldRef.Clear();
+        chatFiles.Clear();
+        files.Clear();
         await Task.Delay(100);
-
-
         StateHasChanged();
     }
 
@@ -160,11 +180,89 @@
         StateHasChanged();
     }
 
-    private void UploadFiles(IReadOnlyList<IBrowserFile> newFiles)
+    private async Task<ChatFile?> UploadFile(IBrowserFile file)
     {
-        foreach (var file in newFiles)
+        ChatFile chatFile = new ChatFile();
+        chatFile.FileName = file.Name;
+        chatFile.FileType = ChatFile.GetFileTypeFromName(file.Name);
+        chatFile.Bytes = new byte[file.Size];
+
+        try
         {
-            files.Add(file);
+            using (var stream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024))
+            {
+                int totalBytesRead = 0;
+                while (totalBytesRead < file.Size)
+                {
+                    int bytesRead = await stream.ReadAsync(chatFile.Bytes, totalBytesRead, (int)file.Size - totalBytesRead);
+                    if (bytesRead == 0)
+                    {
+                        break; // end of the stream
+                    }
+                    totalBytesRead += bytesRead;
+                }
+
+                if (totalBytesRead != file.Size)
+                {
+                    throw new Exception("Failed to read the entire file.");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Error reading file: " + e.Message);
+            return null;
+        }
+
+        //await StorageService.UploadFile("testuser", chatFile);
+        return chatFile;
+    }
+
+    private async Task UploadFiles(IReadOnlyList<IBrowserFile> newFiles)
+    {
+        int currentDebug = debug++;
+        Console.WriteLine("Debug " + currentDebug + ": Starting");
+        Console.WriteLine("Debug " + currentDebug + ": " + newFiles.Count + " files uploaded");
+
+        try
+        {
+            foreach (var file in newFiles)
+            {
+                if (chatFiles.Select(x => x.FileName).Contains(file.Name))
+                {
+                    Snackbar.Add(file.Name + " is already uploaded", Severity.Info);
+                    continue;
+                }
+
+                if (file.Size > 100 * 1024 * 1024)
+                {
+                    Snackbar.Add(file.Name + " is " + file.Size / 1024 / 1024 + "MB. Maximum filesize is 20MB", Severity.Error);
+                    continue;
+                }
+
+                var chatFile = await UploadFile(file);
+                if (chatFile != null)
+                {
+                    Snackbar.Add("Uploaded " + file.Name, Severity.Success);
+
+                    // Lock mechanism to prevent concurrent modifications
+                    lock (chatFiles)
+                    {
+                        chatFiles.Add(chatFile);
+                    }
+
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Error uploading files: " + e.Message);
+            Console.WriteLine(e.StackTrace);
+        }
+        finally
+        {
+            Console.WriteLine("Debug " + currentDebug + " Done");
         }
     }
 }

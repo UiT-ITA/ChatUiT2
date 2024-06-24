@@ -79,26 +79,26 @@
 
     public async Task TestStorage()
     {
-        // Define test data
-        string username = "testuser";
-        string filename = "test.txt";
-        byte[] fileContent = System.Text.Encoding.UTF8.GetBytes("Hello world!\n");
+        // // Define test data
+        // string username = "testuser";
+        // string filename = "test.txt";
+        // byte[] fileContent = System.Text.Encoding.UTF8.GetBytes("Hello world!\n");
 
-        // Upload the file
-        await storageService.UploadFile(username, filename, fileContent);
-        Console.WriteLine("File uploaded successfully.");
+        // // Upload the file
+        // await storageService.UploadFile(username, filename, fileContent);
+        // Console.WriteLine("File uploaded successfully.");
 
-        // Download the file
-        byte[]? downloadedFileContent = await storageService.GetFileBytes(username, filename);
-        if (downloadedFileContent != null)
-        {
-            string downloadedText = System.Text.Encoding.UTF8.GetString(downloadedFileContent);
-            Console.WriteLine("Downloaded file content: " + downloadedText);
-        }
-        else
-        {
-            Console.WriteLine("Failed to download file.");
-        }
+        // // Download the file
+        // byte[]? downloadedFileContent = await storageService.GetFileBytes(username, filename);
+        // if (downloadedFileContent != null)
+        // {
+        //     string downloadedText = System.Text.Encoding.UTF8.GetString(downloadedFileContent);
+        //     Console.WriteLine("Downloaded file content: " + downloadedText);
+        // }
+        // else
+        // {
+        //     Console.WriteLine("Failed to download file.");
+        // }
     }
 
     public void ToggleFileUpload()
