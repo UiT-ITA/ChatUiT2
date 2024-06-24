@@ -3,38 +3,89 @@
 @using SixLabors.ImageSharp.PixelFormats
 @using SixLabors.ImageSharp.Processing
 
-<div style="" class="ma-2">
-
-        @if (File.FileType == FileType.Image)
-        {
-            <MudImage Src="@GetImageSrc()" Alt="@File.FileName" Style="height: 64px; width: 64px; border-radius:16px;"/>
-        }
-        else if (File.FileType == FileType.Document)
-        {
-            <MudPaper Style="border-radius: 16px; height: 64px; width: 128px;">
-
-            <MudStack Row>
-
-            <MudIcon Icon="@Icons.Material.Filled.AttachFile" Style="width: 32px; height: 32px; margin-left: 8px; margin-top: 16px;" />
-            <MudStack Class="pt-2" Spacing="0">
-                <MudText Typo="Typo.h4">@File.FileName</MudText>
-                <MudText Typo="Typo.h6">Document</MudText>
+<div class="file-container ma-1">
+    @if (File.FileType == FileType.Image)
+    {
+        <MudImage Src="@GetImageSrc()" Alt="@File.FileName" Style="height: 64px; width: 64px; border-radius:16px;" />
+    }
+    else
+    {
+        <MudPaper Style="border-radius: 16px; height: 64px; max-width: 100%; display: inline-block; background-color: var(--mud-palette-drawer-background);">
+            <MudStack Row Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.AttachFile" Style="width: 32px; height: 32px;" Class="mt-4 ml-2 mr-0" />
+                <MudStack Class="pt-2 pr-4" Spacing="0">
+                    <MudText Typo="Typo.h6">@shortFilename</MudText>
+                    <MudText Typo="Typo.h6">@(File.FileType == FileType.Document ? "Document" :"Data file")</MudText>
+                </MudStack>
             </MudStack>
-            
-            </MudStack>
-            </MudPaper>
-        }
-        else if (File.FileType == FileType.Data)
-        {
-            <MudIcon Icon="@Icons.Material.Filled.DataArray" Style="width: 56px; height: 56px;" />
-        }
-
-        @* <MudText Typo="Typo.body2">@File.FileName</MudText> *@
-    
+        </MudPaper>
+    }
+    <div class="tooltip-container">
+        <MudTooltip Text="Remove File" Placement="Placement.Top" Arrow>
+            <button class="remove-button" @onclick="RemoveFile">X</button>
+        </MudTooltip>
+    </div>
 </div>
+
+<style>
+    .file-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip-container {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        display: none;
+    }
+
+    .remove-button {
+        background-color: red;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        text-align: center;
+        cursor: pointer;
+    }
+
+    .file-container:hover .tooltip-container {
+        display: block;
+    }
+</style>
 
 @code {
     [Parameter] public ChatFile File { get; set; } = null!;
+    [Parameter] public List<ChatFile> FileList { get; set; } = null!;
+
+    [Inject] private IUserService UserService { get; set; } = null!;
+
+    private int maxFileNameLength = 25;
+
+    private string shortFilename
+    {
+        get
+        {
+            if (File.FileName.Length > maxFileNameLength)
+            {
+                int extensionIndex = File.FileName.LastIndexOf('.');
+                if (extensionIndex == -1 || extensionIndex <= maxFileNameLength - 3)
+                {
+                    return File.FileName.Substring(0, maxFileNameLength - 3) + "...";
+                }
+
+                int charactersToShow = maxFileNameLength - 3 - (File.FileName.Length - extensionIndex);
+                return File.FileName.Substring(0, charactersToShow) + "..." + File.FileName.Substring(extensionIndex);
+            }
+            else
+            {
+                return File.FileName;
+            }
+        }
+    }
+
 
     private string GetImageSrc()
     {
@@ -49,31 +100,41 @@
         }
 
         using (var ms = new MemoryStream(chatFile.Bytes))
+        using (var originalImage = Image.Load<Rgba32>(ms))
         {
-            using (var originalImage = Image.Load<Rgba32>(ms))
+            var (cropX, cropY, cropSize) = GetCropParameters(originalImage);
+
+            using (var croppedImage = originalImage.Clone(ctx => ctx.Crop(new Rectangle(cropX, cropY, cropSize, cropSize))
+                                                                    .Resize(new ResizeOptions { Size = new SixLabors.ImageSharp.Size(64, 64), Mode = SixLabors.ImageSharp.Processing.ResizeMode.Max })))
             {
-                int originalWidth = originalImage.Width;
-                int originalHeight = originalImage.Height;
-                int cropSize = Math.Min(originalWidth, originalHeight);
-                int cropX = (originalWidth - cropSize) / 2;
-                int cropY = (originalHeight - cropSize) / 2;
-
-                // Crop the image to a square
-                var croppedImage = originalImage.Clone(ctx => ctx.Crop(new Rectangle(cropX, cropY, cropSize, cropSize)));
-
-                // Resize the image to 64x64
-                croppedImage.Mutate(ctx => ctx.Resize(new ResizeOptions
-                    {
-                        Size = new SixLabors.ImageSharp.Size(64, 64),
-                        Mode = SixLabors.ImageSharp.Processing.ResizeMode.Max
-                    }));
-
-                using (var thumbnailStream = new MemoryStream())
-                {
-                    croppedImage.Save(thumbnailStream, new PngEncoder());
-                    return Convert.ToBase64String(thumbnailStream.ToArray());
-                }
+                return ConvertImageToBase64(croppedImage);
             }
         }
     }
+
+    private static (int cropX, int cropY, int cropSize) GetCropParameters(Image<Rgba32> image)
+    {
+        int originalWidth = image.Width;
+        int originalHeight = image.Height;
+        int cropSize = Math.Min(originalWidth, originalHeight);
+        int cropX = (originalWidth - cropSize) / 2;
+        int cropY = (originalHeight - cropSize) / 2;
+        return (cropX, cropY, cropSize);
+    }
+
+    private static string ConvertImageToBase64(Image<Rgba32> image)
+    {
+        using (var thumbnailStream = new MemoryStream())
+        {
+            image.Save(thumbnailStream, new PngEncoder());
+            return Convert.ToBase64String(thumbnailStream.ToArray());
+        }
+    }
+
+    public void RemoveFile()
+    {
+        FileList.Remove(File);
+        UserService.RaiseUpdate();
+    }
+
 }

@@ -120,6 +120,13 @@ public class UserService : IUserService
         Name = await _authUserService.GetName()??"Unauthorized";
         IsAdmin = await _authUserService.TestInRole(["Admin"]);
 
+        // TODO: Remove when done testing
+        EnableFileUpload = await _authUserService.TestInRole(["TestUser"]);
+        if (Name == "Øystein Tveito Test")
+        {
+            EnableFileUpload = true;
+        }
+
 
         if (_configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: false))
         {

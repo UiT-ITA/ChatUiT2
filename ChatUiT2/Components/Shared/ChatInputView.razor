@@ -3,10 +3,10 @@
     
     @if (chatFiles.Count > 0)
     {
-        <div class="px-6 pt-2"> 
+        <div class="px-2 pt-2" style="display: flex; flex-wrap: wrap;"> 
             @foreach (var file in chatFiles)
             {
-                <FileView File="@file" />
+                <FileView File="@file" FileList="chatFiles"/>
             }
         </div>
     }
