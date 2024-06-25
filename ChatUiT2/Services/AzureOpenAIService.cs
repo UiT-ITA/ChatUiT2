@@ -76,7 +76,9 @@ public static class AzureOpenAIService
     public static OpenAI.Chat.ChatMessage GetOpenAIMessage(Models.ChatMessage message)
     {
 
-       if (message.Role == Models.ChatMessageRole.User)
+
+
+        if (message.Role == Models.ChatMessageRole.User)
         {
             return new UserChatMessage(message.Content);
         }

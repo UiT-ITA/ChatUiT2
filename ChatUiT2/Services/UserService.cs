@@ -50,6 +50,7 @@ public class UserService : IUserService
     private IAuthUserService _authUserService { get; set; }
     private IDatabaseService _databaseService { get; set; }
     private IKeyVaultService _keyVaultService { get; set; }
+    private StorageService _storageService { get; set; }
     private IJSRuntime _jsRuntime { get; set; }
     private NavigationManager _navigationManager { get; set; }
     public WorkItemChat CurrentChat 
@@ -77,6 +78,7 @@ public class UserService : IUserService
                         IAuthUserService authUserService, 
                         IDatabaseService databaseService,
                         IKeyVaultService keyVaultService,
+                        StorageService storageService,
                         IJSRuntime jSRuntime,
                         NavigationManager navigationManager)
     {
@@ -87,6 +89,7 @@ public class UserService : IUserService
         _keyVaultService = keyVaultService;
         _jsRuntime = jSRuntime;
         _navigationManager = navigationManager;
+        _storageService = storageService;
 
 
 
@@ -294,6 +297,17 @@ public class UserService : IUserService
             Status = ChatMessageStatus.Done,
             Files = files
         };
+
+        if (files.Count > 0)
+        {
+            List<Task> tasks = new List<Task>();
+            foreach (var file in files)
+            {
+                tasks.Add(_storageService.UploadFile(User.Username, file));
+            }
+            await Task.WhenAll(tasks);
+        }
+
         CurrentChat.Messages.Add(chatMessage);
         RaiseUpdate();
         await UpdateWorkItem(CurrentChat);
@@ -328,7 +342,7 @@ public class UserService : IUserService
         }
         await Task.WhenAll(tasks);
 
-        await SendMessage(null);
+        await SendMessage();
     }
 
     public void StreamUpdated()
