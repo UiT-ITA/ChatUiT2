@@ -89,7 +89,16 @@
 
     private string GetImageSrc()
     {
-        return $"data:image/png;base64,{GenerateThumbnailBase64(File)}";
+        try
+        {
+            string base64 = GenerateThumbnailBase64(File);
+            return $"data:image/png;base64,{GenerateThumbnailBase64(File)}";
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            return "";
+        }
     }
 
     public static string GenerateThumbnailBase64(ChatFile chatFile)
