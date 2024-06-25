@@ -271,12 +271,13 @@ public class UserService : IUserService
         RaiseUpdate();
     }
 
-    public async Task SendMessage()
+
+    public async Task SendMessage(string message)
     {
-        await SendMessage(null);
+        await SendMessage(message, []);
     }
 
-    public async Task SendMessage(string? message)
+    public async Task SendMessage(string message, List<ChatFile> files)
     {
         Waiting = true;
         if (!User.Chats.Contains(CurrentChat))
@@ -285,7 +286,31 @@ public class UserService : IUserService
             RaiseUpdate();
             await UpdateWorkItem(CurrentChat);
         }
-        await _chatService.GetChatResponse(message);
+
+        var chatMessage = new ChatMessage
+        {
+            Role = ChatMessageRole.User,
+            Content = message,
+            Status = ChatMessageStatus.Done,
+            Files = files
+        };
+        CurrentChat.Messages.Add(chatMessage);
+        RaiseUpdate();
+        await UpdateWorkItem(CurrentChat);
+        await SendMessage();
+
+    }
+
+    public async Task SendMessage()
+    {
+        Waiting = true;
+        if (CurrentChat.Messages.Count == 0)
+        {
+            Waiting = false;
+            return;
+        }
+
+        await _chatService.GetChatResponse(CurrentChat);
         Waiting = false;
         RaiseUpdate();
     }

@@ -33,8 +33,9 @@ public interface IUserService
     Task DeleteWorkItem();
     Task DeleteWorkItem(IWorkItem workItem);
     Task DeleteUser();
+    Task SendMessage(string message);
+    Task SendMessage(string message, List<ChatFile> files);
     Task SendMessage();
-    Task SendMessage(string? message);
     Task RegerateFromIndex(int index);
     void StreamUpdated();
 }

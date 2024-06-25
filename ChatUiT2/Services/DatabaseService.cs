@@ -31,13 +31,21 @@ public class DatabaseService : IDatabaseService
         var connectionString = configuration.GetConnectionString("MongoDb");
 
         var client = new MongoClient(connectionString);
-        var systemDatabase = client.GetDatabase(configuration["DBSettings:SystemDatabaseName"]);
-        var userDatabase = client.GetDatabase(configuration["DBSettings:UserDatabaseName"]);
+        //var systemDatabase = client.GetDatabase(configuration["DBSettings:SystemDatabaseName"]);
+        //var userDatabase = client.GetDatabase(configuration["DBSettings:UserDatabaseName"]);
 
-        _configCollection = systemDatabase.GetCollection<BsonDocument>(configuration["DBSettings:ConfigCollectionName"]);
-        _userCollection = userDatabase.GetCollection<BsonDocument>(configuration["DBSettings:UserCollectionName"]);
-        _workItemCollection = userDatabase.GetCollection<BsonDocument>(configuration["DBSettings:WorkItemCollectionName"]);
-        _chatMessageCollection = userDatabase.GetCollection<BsonDocument>(configuration["DBSettings:ChatMessageCollectionName"]);
+        //_configCollection = systemDatabase.GetCollection<BsonDocument>(configuration["DBSettings:ConfigCollectionName"]);
+        //_userCollection = userDatabase.GetCollection<BsonDocument>(configuration["DBSettings:UserCollectionName"]);
+        //_workItemCollection = userDatabase.GetCollection<BsonDocument>(configuration["DBSettings:WorkItemCollectionName"]);
+        //_chatMessageCollection = userDatabase.GetCollection<BsonDocument>(configuration["DBSettings:ChatMessageCollectionName"]);
+
+        var systemDatabase = client.GetDatabase("System");
+        var userDatabase = client.GetDatabase("Users");
+
+        _configCollection = systemDatabase.GetCollection<BsonDocument>("Configuration");
+        _userCollection = userDatabase.GetCollection<BsonDocument>("Users");
+        _workItemCollection = userDatabase.GetCollection<BsonDocument>("WorkItems");
+        _chatMessageCollection = userDatabase.GetCollection<BsonDocument>("ChatMessages");
 
         _useEncryption = configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: true);
     }

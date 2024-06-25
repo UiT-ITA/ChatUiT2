@@ -2,6 +2,7 @@
 using ChatUiT2.Interfaces;
 using ChatUiT2.Tools;
 using System.Text.RegularExpressions;
+//using OpenAI.Chat;
 
 namespace ChatUiT2.Services;
 
@@ -16,26 +17,32 @@ public class ChatService : IChatService
         _configService = configService;
     }
 
-    
-    public async Task GetChatResponse(string? message)
+
+    // Not in use
+    public async Task GetChatResponse(WorkItemChat chat, string message)
     {
-        await GetChatResponse(_userService.CurrentChat, message);
+        var chatMessage = new ChatMessage
+        {
+            Role = ChatMessageRole.User,
+            Content = message,
+            Status = ChatMessageStatus.Done
+        };
+        
+        
+        await GetChatResponse(chat, chatMessage);
     }
 
-    public async Task GetChatResponse(WorkItemChat chat, string? message)
+    // Not in use
+    public async Task GetChatResponse(WorkItemChat chat, ChatMessage message)
     {
-        if (message != null)
-        {
-            chat.Messages.Add(new ChatMessage
-            {
-                Content = message,
-                Role = ChatMessageRole.User,
-                Status = ChatMessageStatus.Done
-            });
-            await _userService.UpdateWorkItem(chat);
-        }
+        chat.Messages.Add(message);
+        _userService.RaiseUpdate();
+        await _userService.UpdateWorkItem(chat);
+        await GetChatResponse(chat);
+    }
 
-
+    public async Task GetChatResponse(WorkItemChat chat)
+    {
         ChatMessage userMessage = chat.Messages.Last();
 
         ChatMessage responseMessage = new ChatMessage { Content = "", Role = ChatMessageRole.Assistant, Status = ChatMessageStatus.Working };
@@ -78,7 +85,7 @@ public class ChatService : IChatService
                     var finishReason = chatUpdates.FinishReason;
                     if (finishReason != null)
                     {
-                        Console.WriteLine(finishReason.Value.ToString());
+                        //Console.WriteLine(finishReason.Value.ToString());
                         switch (finishReason.Value.ToString())
                         {
                             case "Stop":

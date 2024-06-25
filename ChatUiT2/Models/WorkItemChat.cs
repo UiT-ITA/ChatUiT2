@@ -32,6 +32,7 @@ public class ChatMessage
     public string Content { get; set; } = string.Empty;
     public ChatMessageStatus Status { get; set; } = ChatMessageStatus.Working;
     public DateTime Created { get; set; } = DateTimeTools.GetTimestamp();
+    public List<ChatFile> Files { get; set; } = new List<ChatFile>();
 
 }
 

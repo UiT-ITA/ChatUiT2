@@ -95,11 +95,9 @@
 
     private string acceptedFiles
     {
-        // Convert List of file types to a string containing all fileendings with the format ".filetype". List of filetypes is List<string> ChatFiles.AllFiles
         get => string.Join(",", ChatFile.AllFiles.Select(x => "." + x));
     }
 
-    private IList<IBrowserFile> files = new List<IBrowserFile>();
 
     private List<ChatFile> chatFiles = new List<ChatFile>();
 
@@ -146,6 +144,8 @@
         }
 
         string sendPrompt = prompt;
+        List<ChatFile> files = chatFiles;
+
         ClearPrompt();
 
         await UserService.SendMessage(sendPrompt);
@@ -167,8 +167,7 @@
     {
         await Task.Delay(100);
         await inputFieldRef.Clear();
-        chatFiles.Clear();
-        files.Clear();
+        chatFiles = new List<ChatFile>();
         await Task.Delay(100);
         StateHasChanged();
     }

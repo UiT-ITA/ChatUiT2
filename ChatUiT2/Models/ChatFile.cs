@@ -30,9 +30,10 @@ public class ChatFile
         }
     }
 
-    public static List<string> ImageFiles = new() { "jpg", "png", "bmp" };
-    public static List<string> DataFiles = new() { "xlsx", "csv", "json" };
-    public static List<string> DocumentFiles = new() { "pdf", "txt", "docx"};
+    // TODO: add support for more files
+    public static List<string> ImageFiles = new() { "png", /*"jpg", "bmp" */};
+    public static List<string> DataFiles = new() { /*"xlsx", "csv", "json" */};
+    public static List<string> DocumentFiles = new() { "txt", /*"pdf", "docx"*/};
     public static List<string> AllFiles = ImageFiles.Concat(DataFiles).Concat(DocumentFiles).ToList();
 
     public static bool VerifyFile(ChatFile file)
