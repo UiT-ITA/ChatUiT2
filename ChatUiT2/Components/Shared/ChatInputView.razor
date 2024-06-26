@@ -139,7 +139,6 @@
     {
         if (string.IsNullOrWhiteSpace(prompt))
         {
-            Console.WriteLine("Prompt is empty");
             StateHasChanged();
             return;
         }
@@ -160,14 +159,10 @@
         if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
         {
             generating = true;
-            //SendMessage();
-            // await inputFieldRef.Clear();
 
             await buttonRef.FocusAsync();
             await inputFieldRef.FocusAsync();
 
-            // Console.WriteLine(prompt);
-            ClearPrompt();
             SendMessage();
         }
     }
