@@ -31,17 +31,18 @@
         </div>
 
         @* Input field *@
-        <MudTextField id="inputField" @bind-Value="prompt" Variant="Variant.Text" @onkeyup="HandleKeyPress"
-                      AutoFocus AutoGrow Immediate Placeholder="Ask anything!" Lines="1" MaxLines="10"
-                       Style="position: relative; top: -12px;" Class="ml-0 pl-0"
+        <MudTextField id="inputField" @bind-Value="prompt" Variant="Variant.Text" @onkeydown="HandleKeyPress"
+                      AutoFocus AutoGrow Placeholder="Ask anything!" Lines="1" MaxLines="10"
+                       Style="position: relative; top: -12px;" Class="ml-0 pl-0" ReadOnly="generating"
                        DisableUnderLine @ref="inputFieldRef" TextUpdateSuppression="false"/>
+
 
         @* Send message *@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             @if (!UserService.Waiting)
             {
                 <MudTooltip Text="Send message" Placement="Placement.Bottom">
-                    <MudIconButton Icon="@Icons.Material.Filled.Send" Size="Size.Medium" OnClick="SendMessage" Style="width: 54px; height: 54px;" Disabled="string.IsNullOrWhiteSpace(prompt)" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Send" Size="Size.Medium" OnClick="SendMessage" Style="width: 54px; height: 54px;" @ref="buttonRef" />
                 </MudTooltip>
             }
             else
@@ -70,6 +71,7 @@
     [Inject] private StorageService StorageService { get; set; } = null!;
 
     private MudTextField<string> inputFieldRef = null!;
+    private MudIconButton buttonRef = null!;
 
     private bool generating = false;
 
@@ -137,6 +139,7 @@
     {
         if (string.IsNullOrWhiteSpace(prompt))
         {
+            Console.WriteLine("Prompt is empty");
             StateHasChanged();
             return;
         }
@@ -152,11 +155,19 @@
         await inputFieldRef.FocusAsync();
     }
 
-    private void HandleKeyPress(KeyboardEventArgs e)
+    private async void HandleKeyPress(KeyboardEventArgs e)
     {
         if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
         {
             generating = true;
+            //SendMessage();
+            // await inputFieldRef.Clear();
+
+            await buttonRef.FocusAsync();
+            await inputFieldRef.FocusAsync();
+
+            // Console.WriteLine(prompt);
+            ClearPrompt();
             SendMessage();
         }
     }
@@ -164,6 +175,8 @@
     private async void ClearPrompt()
     {
         await Task.Delay(100);
+        // await inputFieldRef.Clear();
+        prompt = "";
         await inputFieldRef.Clear();
         chatFiles = new List<ChatFile>();
         await Task.Delay(100);

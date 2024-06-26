@@ -195,7 +195,8 @@ public class DatabaseService : IDatabaseService
         }
         catch (Exception ex)
         {
-            await DeleteWorkItem(user, new WorkItemChat { Id = workItem.Id });
+            // TODO: Better error handling on workitem load
+            //await DeleteWorkItem(user, new WorkItemChat { Id = workItem.Id });
             Console.WriteLine("Error loading chat: " + ex.Message);
         }
         finally
