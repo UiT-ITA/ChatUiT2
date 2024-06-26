@@ -137,7 +137,8 @@ public class UserService : IUserService
         }
         
         User.Preferences = await _databaseService.GetUserPreferences(username);
-        var workItems = await _databaseService.GetWorkItemList(User);
+        //var workItems = await _databaseService.GetWorkItemList(User);
+        var workItems = await _databaseService.GetWorkITemListLazy(User, RaiseUpdate);
         User.Chats = workItems.OfType<WorkItemChat>().ToList();
         Loading = false;
         NewChat();
@@ -155,6 +156,11 @@ public class UserService : IUserService
 
     public void NewChat()
     {
+        if (Waiting)
+        {
+            return;
+        }
+
         if (CurrentChat.Messages.Count == 0)
         {
             // TODO: Implement
@@ -290,6 +296,11 @@ public class UserService : IUserService
             await UpdateWorkItem(CurrentChat);
         }
 
+        foreach (var file in files)
+        {
+            file.FileName = ((DateTimeOffset)DateTimeTools.GetTimestamp()).ToUnixTimeSeconds().ToString() + "_" + file.FileName;
+        }
+
         var chatMessage = new ChatMessage
         {
             Role = ChatMessageRole.User,
@@ -297,16 +308,6 @@ public class UserService : IUserService
             Status = ChatMessageStatus.Done,
             Files = files
         };
-
-        if (files.Count > 0)
-        {
-            List<Task> tasks = new List<Task>();
-            foreach (var file in files)
-            {
-                tasks.Add(_storageService.UploadFile(User.Username, file));
-            }
-            await Task.WhenAll(tasks);
-        }
 
         CurrentChat.Messages.Add(chatMessage);
         RaiseUpdate();
@@ -337,7 +338,7 @@ public class UserService : IUserService
         for (int i = chat.Messages.Count -1; i > index; i--)
         {
             var message = chat.Messages[i];
-            tasks.Add(_databaseService.DeleteChatMessage(message));
+            tasks.Add(_databaseService.DeleteChatMessage(message, chat));
             chat.Messages.Remove(message);
         }
         await Task.WhenAll(tasks);

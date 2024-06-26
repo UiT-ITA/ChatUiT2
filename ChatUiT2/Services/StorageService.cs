@@ -19,16 +19,18 @@ public class StorageService
         _blobServiceClient = new BlobServiceClient(connectionString);
     }
 
-    private async Task<byte[]?> GetFileBytes(string username, string filename)
+    private async Task<byte[]?> GetFileBytes(string container, string filename)
     {
         try
         {
-            var containerClient = _blobServiceClient.GetBlobContainerClient(username);
+            var containerClient = _blobServiceClient.GetBlobContainerClient(container);
             var blobClient = containerClient.GetBlobClient(filename);
             var response = await blobClient.DownloadAsync();
-            var bytes = new byte[response.Value.ContentLength];
-            await response.Value.Content.ReadAsync(bytes);
-            return bytes;
+            using (var memoryStream = new MemoryStream())
+            {
+                await response.Value.Content.CopyToAsync(memoryStream);
+                return memoryStream.ToArray();
+            }
         }
         catch (Exception ex)
         {
@@ -37,47 +39,13 @@ public class StorageService
         }
     }
 
-    private async Task UploadFile(string username, string filename, byte[] bytes)
-    {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(username);
-        await containerClient.CreateIfNotExistsAsync();
-        var blobClient = containerClient.GetBlobClient(filename);
-        await blobClient.UploadAsync(new MemoryStream(bytes));
-    }
-
-    public async Task DeleteFile(string username, string filename)
-    {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(username);
-        var blobClient = containerClient.GetBlobClient(filename);
-        await blobClient.DeleteIfExistsAsync();
-    }
-
-    public async Task<IEnumerable<string>> ListFiles(string username)
-    {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(username);
-        var files = new List<string>();
-        await foreach (var blobItem in containerClient.GetBlobsAsync())
-        {
-            files.Add(blobItem.Name);
-        }
-        return files;
-    }
-
-    public async Task DeleteContainer(string username)
-    {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(username);
-        await containerClient.DeleteIfExistsAsync();
-    }
-
-    
-
-    public async Task<ChatFile> GetFile(string username, string filename)
+    public async Task<ChatFile> GetFile(string workItemId, string filename)
     {
         ChatFile file = new()
         {
             FileName = filename,
             FileType = ChatFile.GetFileTypeFromName(filename),
-            Bytes = await GetFileBytes(username, filename)
+            Bytes = await GetFileBytes(workItemId, filename)
         };
 
         if (file.Bytes == null)
@@ -88,14 +56,58 @@ public class StorageService
         return file;
     }
 
-    public async Task UploadFile(string username, ChatFile file)
+    private async Task UploadFile(string container, string filename, byte[] bytes)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(container);
+        await containerClient.CreateIfNotExistsAsync();
+        var blobClient = containerClient.GetBlobClient(filename);
+        if (await blobClient.ExistsAsync())
+        {
+            return;
+        }
+
+        await blobClient.UploadAsync(new MemoryStream(bytes));
+    }
+
+    public async Task UploadFile(IWorkItem workItem, ChatFile file)
     {
         if (file.Bytes == null)
         {
             throw new Exception("File bytes are null");
         }
-        await UploadFile(username, file.FileName, file.Bytes);
+
+        await UploadFile(workItem.Id, file.FileName, file.Bytes);
     }
+
+    public async Task DeleteFile(IWorkItem workItem, string filename)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(workItem.Id);
+        var blobClient = containerClient.GetBlobClient(filename);
+        await blobClient.DeleteIfExistsAsync();
+    }
+
+    public async Task<IEnumerable<string>> ListChatFiles(IWorkItem workItem)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(workItem.Id);
+        var files = new List<string>();
+        await foreach (var blobItem in containerClient.GetBlobsAsync())
+        {
+            files.Add(blobItem.Name);
+        }
+        return files;
+    }
+
+    public async Task DeleteContainer(IWorkItem workItem)
+    {
+        var containerClient = _blobServiceClient.GetBlobContainerClient(workItem.Id);
+        await containerClient.DeleteIfExistsAsync();
+    }
+
+    
+
+    
+
+    
 
 
 }

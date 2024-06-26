@@ -16,6 +16,8 @@ public class WorkItemChat : IWorkItem
     public bool IsFavorite { get; set; } = false;
     [JsonIgnore]
     public bool Persistant { get; set; } = true;
+    [JsonIgnore]
+    public bool Loading { get; set; } = false;
 
     public ChatSettings Settings { get; set; } = new ChatSettings();
 

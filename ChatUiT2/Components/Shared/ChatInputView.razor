@@ -69,8 +69,6 @@
     // TODO: Remove temp direct access to storage:
     [Inject] private StorageService StorageService { get; set; } = null!;
 
-    private int debug = 0;
-
     private MudTextField<string> inputFieldRef = null!;
 
     private bool generating = false;
@@ -148,7 +146,7 @@
 
         ClearPrompt();
 
-        await UserService.SendMessage(sendPrompt);
+        await UserService.SendMessage(sendPrompt, files);
         generating = false;
         StateHasChanged();
         await inputFieldRef.FocusAsync();

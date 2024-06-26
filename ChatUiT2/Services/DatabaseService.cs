@@ -13,6 +13,7 @@ public class DatabaseService : IDatabaseService
     // Services
     private readonly IKeyVaultService _keyVaultService;
     private readonly IEncryptionService _encryptionService;
+    private StorageService _storageService;
 
     // Collections
     private readonly IMongoCollection<BsonDocument> _configCollection;
@@ -23,10 +24,14 @@ public class DatabaseService : IDatabaseService
     // Settings
     private readonly bool _useEncryption;
 
-    public DatabaseService(IConfiguration configuration, IEncryptionService encryptionService, IKeyVaultService keyVaultService)
+    public DatabaseService(IConfiguration configuration, 
+                           IEncryptionService encryptionService, 
+                           IKeyVaultService keyVaultService,
+                           StorageService storageService)
     {
         _keyVaultService = keyVaultService;
         _encryptionService = encryptionService;
+        _storageService = storageService;
 
         var connectionString = configuration.GetConnectionString("MongoDb");
 
@@ -122,14 +127,11 @@ public class DatabaseService : IDatabaseService
     public async Task<List<IWorkItem>> GetWorkItemList(User user)
     {
         var workItems = new List<IWorkItem>();
-
         var filter = Builders<BsonDocument>.Filter.Eq("Username", user.Username);
         var sort = Builders<BsonDocument>.Sort.Descending("Updated");
-
         var documents = await _workItemCollection.Find(filter).ToListAsync();
-        foreach (var doc in documents)
+        var tasks = documents.Select(async doc =>
         {
-
             if (doc["Type"] == WorkItemType.Chat.ToString())
             {
                 try
@@ -138,7 +140,7 @@ public class DatabaseService : IDatabaseService
                     if (workItem != null)
                     {
                         workItem.Messages = await GetChatMessages(user, workItem.Id);
-                        workItems.Add(workItem);
+                        return workItem;
                     }
                 }
                 catch (Exception ex)
@@ -151,8 +153,56 @@ public class DatabaseService : IDatabaseService
             {
                 throw new Exception("Unknown work item type");
             }
+            return null;
+        }).ToList();
+        var results = await Task.WhenAll(tasks);
+        workItems.AddRange(results.Where(item => item != null));
+        return workItems;
+    }
+
+    public async Task<List<IWorkItem>> GetWorkITemListLazy(User user, Action onWorkItemLoaded)
+    {
+        var workItems = new List<IWorkItem>();
+        var filter = Builders<BsonDocument>.Filter.Eq("Username", user.Username);
+        var sort = Builders<BsonDocument>.Sort.Descending("Updated");
+        var documents = await _workItemCollection.Find(filter).ToListAsync();
+        foreach (var doc in documents)
+        {
+            if (doc["Type"] == WorkItemType.Chat.ToString())
+            {
+                var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
+                if (workItem != null)
+                {
+                    workItem.Loading = true;
+                    workItems.Add(workItem);
+                    // Start loading messages in the background
+                    _ = LoadWorkItemComponentsAsync(user, workItem, onWorkItemLoaded);
+                }
+            }
+            else
+            {
+                throw new Exception("Unknown work item type");
+            }
         }
         return workItems;
+    }
+
+    private async Task LoadWorkItemComponentsAsync(User user, WorkItemChat workItem, Action onWorkItemLoaded)
+    {
+        try
+        {
+            workItem.Messages = await GetChatMessages(user, workItem.Id);
+        }
+        catch (Exception ex)
+        {
+            await DeleteWorkItem(user, new WorkItemChat { Id = workItem.Id });
+            Console.WriteLine("Error loading chat: " + ex.Message);
+        }
+        finally
+        {
+            workItem.Loading = false;
+            onWorkItemLoaded?.Invoke();
+        }
     }
 
     /// <summary>
@@ -257,13 +307,25 @@ public class DatabaseService : IDatabaseService
                 content = doc["Content"].AsString;
             }
 
+            // Get files
+            var files = new List<ChatFile>();
+            if (doc.Contains("Files"))
+            {
+                foreach (var file in doc["Files"].AsBsonArray)
+                {
+                    files.Add(await _storageService.GetFile(chatId, file.AsString));
+                }
+            }
+
             messages.Add(new ChatMessage
             {
                 Id = doc["_id"].AsString,
                 Role = (ChatMessageRole)doc["Role"].AsInt32,
                 Content = content,
                 Status = (ChatMessageStatus)doc["Status"].AsInt32,
-                Created = doc["Created"].ToUniversalTime()
+                Created = doc["Created"].ToUniversalTime(),
+                Files = files
+
             });
         }
 
@@ -287,7 +349,7 @@ public class DatabaseService : IDatabaseService
                 continue;
             }
 
-            tasks.Add(SaveChatMessage(user, message, chat.Id));
+            tasks.Add(SaveChatMessage(user, message, chat));
         }
 
         await Task.WhenAll(tasks);
@@ -301,28 +363,38 @@ public class DatabaseService : IDatabaseService
     /// <param name="message"></param>
     /// <param name="chatId"></param>
     /// <returns></returns>
-    private async Task SaveChatMessage(User user, ChatMessage message, string chatId)
+    private async Task SaveChatMessage(User user, ChatMessage message, WorkItemChat chat)
     {
         if (_useEncryption && user.AesKey == null)
         {
             user.AesKey = await _keyVaultService.GetKeyAsync(user.Username);
         }
+        // save files
+        List<Task> tasks = new List<Task>();
+        foreach (ChatFile file in message.Files)
+        {
+            tasks.Add(_storageService.UploadFile(chat, file));
+        }
+        await Task.WhenAll(tasks);
 
         var document = new BsonDocument
         {
             {"_id", message.Id},
-            {"ChatId", chatId},
+            {"ChatId", chat.Id},
             {"Username", user.Username},
             {"Content", _useEncryption ? _encryptionService.Encrypt(message.Content, user.AesKey!) : message.Content},
             {"Role", (int)message.Role},
             {"Status", (int)message.Status},
-            {"Created", message.Created}
+            {"Created", message.Created},
+            {"Files", new BsonArray(message.Files.Select(f => f.FileName)) }
         };
 
         var fileter = Builders<BsonDocument>.Filter.Eq("_id", message.Id);
         var options = new ReplaceOptions { IsUpsert = true };
 
         await _chatMessageCollection.ReplaceOneAsync(fileter, document, options);
+
+
     }
 
     /// <summary>
@@ -339,7 +411,7 @@ public class DatabaseService : IDatabaseService
         List<Task> tasks = new List<Task>();
         foreach (var message in messagesToDelete)
         {
-            tasks.Add(DeleteChatMessage(message));
+            tasks.Add(DeleteChatMessage(message, chat));
         }
         await Task.WhenAll(tasks);
     }
@@ -349,8 +421,16 @@ public class DatabaseService : IDatabaseService
     /// </summary>
     /// <param name="message"></param>
     /// <returns></returns>
-    public async Task DeleteChatMessage(ChatMessage message)
+    public async Task DeleteChatMessage(ChatMessage message, WorkItemChat chat)
     {
+        // Delete files
+        List<Task> tasks = new List<Task>();
+        foreach (ChatFile file in message.Files)
+        {
+            tasks.Add(_storageService.DeleteFile(chat, file.FileName));
+        }
+        await Task.WhenAll(tasks);
+
         var filter = Builders<BsonDocument>.Filter.Eq("_id", message.Id);
         await _chatMessageCollection.DeleteOneAsync(filter);
     }
@@ -362,7 +442,10 @@ public class DatabaseService : IDatabaseService
     /// <returns></returns>
     private async Task DeleteChat(WorkItemChat chat)
     {
+        await _storageService.DeleteContainer(chat);
+
         var filter = Builders<BsonDocument>.Filter.Eq("_id", chat.Id);
         await _chatMessageCollection.DeleteManyAsync(filter);
+
     }
 }

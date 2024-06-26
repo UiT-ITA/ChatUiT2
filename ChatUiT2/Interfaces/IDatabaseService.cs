@@ -11,11 +11,12 @@ public interface IDatabaseService
 
     // WorkItems
     Task<List<IWorkItem>> GetWorkItemList(User user);
+    Task<List<IWorkItem>> GetWorkITemListLazy(User user, Action onWorkItemLoaded);
     Task SaveWorkItem(User user, IWorkItem workItem);
     Task DeleteWorkItem(User user, IWorkItem workItem);
 
     // ChatMessages
     Task SaveChatMessages(User user, WorkItemChat chat);
-    Task DeleteChatMessage(ChatMessage message);
+    Task DeleteChatMessage(ChatMessage message, WorkItemChat chat);
     Task DeleteMissingMessages(User user, WorkItemChat chat);
 }

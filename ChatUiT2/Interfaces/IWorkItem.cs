@@ -12,6 +12,7 @@ public interface IWorkItem
     public DateTime Updated { get; set; }
     public bool IsFavorite { get; set; }
     public bool Persistant { get; set; }
+    public bool Loading { get; set; }
 }
 
 public enum WorkItemType

@@ -10,8 +10,12 @@
                     <MudIcon Icon="@GetIcon()" Size="Size.Large" Style="opacity:0.6;"/>
                 @* </MudAvatar> *@
             </div>
-            <MudSpacer />
                 <MudText Class="mt-2" Style="opacity: 0.5;" Typo="Typo.subtitle2">@timeStampString</MudText>
+            <MudSpacer />
+            @foreach (ChatFile file in Message.Files)
+            {
+                <FileView File="@file" FileList="Message.Files"/>
+            }
             <MudSpacer />
 
             @if (!isEditing)

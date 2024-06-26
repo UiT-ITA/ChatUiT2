@@ -88,6 +88,10 @@
 
     private void SelectWorkItem()
     {
+        if (UserService.Waiting)
+        {
+            return;
+        }
         if (IsSelected())
         {
             if (Nav.Uri != Nav.BaseUri)
