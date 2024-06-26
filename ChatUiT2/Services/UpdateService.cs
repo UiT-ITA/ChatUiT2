@@ -9,6 +9,11 @@ public class UpdateService: IUpdateService
     public event Action? OnWorkItemUpdate;
     public event Action? OnGlobalUpdate;
 
+    public UpdateService()
+    {
+        Console.WriteLine("UpdateService created");
+    }
+
     public void Update(UpdateType type)
     {
         if (type == UpdateType.Input)
