@@ -11,9 +11,10 @@ public class ConfigService : IConfigService
     private Model namingModel { get; set; } = null!;
 
 
-    public ConfigService(IConfiguration configuration, IKeyVaultService keyVaultService, IDatabaseService databaseService)
+    public ConfigService(IConfiguration configuration)
     {
         ReadModelConfig(configuration);
+        Console.WriteLine("ConfigService created");
     }
 
 

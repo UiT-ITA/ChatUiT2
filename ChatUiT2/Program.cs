@@ -44,11 +44,12 @@ builder.Services.AddSingleton<IConfigService, ConfigService>();
 builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IKeyVaultService, KeyVaultService>();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
-builder.Services.AddSingleton<StorageService>();
+builder.Services.AddSingleton<IStorageService, StorageService>();
 
 // Scoped services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthUserService, AuthUserService>();
+builder.Services.AddScoped<IUpdateService, UpdateService>();
 
 // Transient services
 

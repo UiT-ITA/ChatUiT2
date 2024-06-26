@@ -16,7 +16,8 @@ public class UserService : IUserService
         set
         {
             User.Preferences.DarkMode = value;
-            RaiseUpdate();
+            // TODO: Global needed?
+            _updateService.Update(UpdateType.Global);
         }
     }
     public bool UseMarkdown
@@ -25,7 +26,9 @@ public class UserService : IUserService
         set
         {
             User.Preferences.UseMarkdown = value;
-            RaiseUpdate();
+            // TODO: Global needed?
+            _updateService.Update(UpdateType.Global);
+            _updateService.Update(UpdateType.ChatMessage);
         }
     }
 
@@ -35,7 +38,8 @@ public class UserService : IUserService
         set
         {
             User.Preferences.SmoothOutput = value;
-            RaiseUpdate();
+            // TODO: Global needed?
+            _updateService.Update(UpdateType.Global);
         }
     }
     public bool Waiting { get; set; } = false;
@@ -50,7 +54,8 @@ public class UserService : IUserService
     private IAuthUserService _authUserService { get; set; }
     private IDatabaseService _databaseService { get; set; }
     private IKeyVaultService _keyVaultService { get; set; }
-    private StorageService _storageService { get; set; }
+    private IUpdateService _updateService { get; set; }
+    private IStorageService _storageService { get; set; }
     private IJSRuntime _jsRuntime { get; set; }
     private NavigationManager _navigationManager { get; set; }
     public WorkItemChat CurrentChat 
@@ -65,11 +70,10 @@ public class UserService : IUserService
         { 
             User.Preferences.ChatWidth = value;
             _databaseService.SaveUserPreferences(User.Username, User.Preferences);
-            RaiseUpdate();
+            _updateService.Update(UpdateType.Global);
         }
     }
 
-    public event Action? OnUpdate;
 
     SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
 
@@ -78,7 +82,8 @@ public class UserService : IUserService
                         IAuthUserService authUserService, 
                         IDatabaseService databaseService,
                         IKeyVaultService keyVaultService,
-                        StorageService storageService,
+                        IStorageService storageService,
+                        IUpdateService updateService,
                         IJSRuntime jSRuntime,
                         NavigationManager navigationManager)
     {
@@ -90,6 +95,7 @@ public class UserService : IUserService
         _jsRuntime = jSRuntime;
         _navigationManager = navigationManager;
         _storageService = storageService;
+        _updateService = updateService;
 
 
 
@@ -99,6 +105,8 @@ public class UserService : IUserService
 
         // Load user
         _ = LoadUser();
+
+        Console.WriteLine("UserService created");
     }
 
 
@@ -137,22 +145,16 @@ public class UserService : IUserService
         }
         
         User.Preferences = await _databaseService.GetUserPreferences(username);
+        // TODO: All needed?
+        _updateService.Update(UpdateType.Global);
         //var workItems = await _databaseService.GetWorkItemList(User);
-        var workItems = await _databaseService.GetWorkITemListLazy(User, RaiseUpdate);
+        var workItems = await _databaseService.GetWorkItemListLazy(User, _updateService);
         User.Chats = workItems.OfType<WorkItemChat>().ToList();
         Loading = false;
         NewChat();
-        RaiseUpdate();
+        _updateService.Update(UpdateType.Global);
     }
 
-
-    /// <summary>
-    /// Raises an update on all components that is subscribed to the event
-    /// </summary>
-    public void RaiseUpdate()
-    {
-        OnUpdate?.Invoke();
-    }
 
     public void NewChat()
     {
@@ -161,22 +163,31 @@ public class UserService : IUserService
             return;
         }
 
-        if (CurrentChat.Messages.Count == 0)
+        var newChat = new WorkItemChat();
+        newChat.Persistant = User.Preferences.SaveHistory;
+        newChat.Settings.Copy(User.Preferences.DefaultChatSettings);
+
+        SetWorkItem(newChat);
+    }
+
+    public void SetWorkItem(IWorkItem workItem)
+    {
+        if (Waiting)
         {
-            // TODO: Implement
-            // Destroy the object?
+            return;
+        }
+        if (workItem == CurrentWorkItem)
+        {
+            return;
         }
 
-        CurrentWorkItem = new WorkItemChat();
-        CurrentWorkItem.Persistant = User.Preferences.SaveHistory;
-        CurrentChat.Settings.Copy(User.Preferences.DefaultChatSettings);
-        RaiseUpdate();
+        CurrentWorkItem = workItem;
 
         if (_navigationManager.Uri != _navigationManager.BaseUri)
         {
-            // TODO: When done testing, uncomment
-            //_navigationManager.NavigateTo("/");
+            _navigationManager.NavigateTo("/");
         }
+        _updateService.Update(UpdateType.WorkItem);
     }
 
     public bool GetSaveHistory()
@@ -192,7 +203,7 @@ public class UserService : IUserService
             await _databaseService.SaveWorkItem(User, workItem);
         }
 
-        RaiseUpdate();
+        _updateService.Update(UpdateType.Global);
     }
 
     public async Task SetDefaultChatSettings()
@@ -202,7 +213,7 @@ public class UserService : IUserService
         
         await _databaseService.SaveUserPreferences(User.Username, User.Preferences);
 
-        RaiseUpdate();
+        _updateService.Update(UpdateType.Global);
 
     }
 
@@ -233,6 +244,11 @@ public class UserService : IUserService
             .ToList();
     }
 
+    public async Task LoadWorkItem(IWorkItem workItem)
+    {
+        // TODO: Implement!
+    }
+
     public async Task UpdateWorkItem()
     {
         await UpdateWorkItem(CurrentWorkItem);
@@ -241,7 +257,6 @@ public class UserService : IUserService
     public async Task UpdateWorkItem(IWorkItem workItem)
     {
         await _databaseService.SaveWorkItem(User, workItem);
-        RaiseUpdate();
     }
 
 
@@ -269,7 +284,7 @@ public class UserService : IUserService
         }
 
         await _databaseService.DeleteWorkItem(User, workItem);
-        RaiseUpdate();
+        _updateService.Update(UpdateType.WorkItem);
     }
 
     public async Task DeleteUser()
@@ -277,7 +292,7 @@ public class UserService : IUserService
         await _databaseService.DeleteUser(User.Username);
         User = new User();
         await LoadUser();
-        RaiseUpdate();
+        _updateService.Update(UpdateType.All);
     }
 
 
@@ -292,8 +307,7 @@ public class UserService : IUserService
         if (!User.Chats.Contains(CurrentChat))
         {
             User.Chats.Add(CurrentChat);
-            RaiseUpdate();
-            await UpdateWorkItem(CurrentChat);
+            _updateService.Update(UpdateType.WorkItem);
         }
 
         foreach (var file in files)
@@ -310,7 +324,7 @@ public class UserService : IUserService
         };
 
         CurrentChat.Messages.Add(chatMessage);
-        RaiseUpdate();
+        _updateService.Update(UpdateType.ChatMessage);
         await UpdateWorkItem(CurrentChat);
         await SendMessage();
 
@@ -327,7 +341,8 @@ public class UserService : IUserService
 
         await _chatService.GetChatResponse(CurrentChat);
         Waiting = false;
-        RaiseUpdate();
+        _updateService.Update(UpdateType.ChatMessage);
+        _updateService.Update(UpdateType.Input);
     }
 
     public async Task RegerateFromIndex(int index)
@@ -348,7 +363,8 @@ public class UserService : IUserService
 
     public void StreamUpdated()
     {
-        RaiseUpdate();
+        _updateService.Update(UpdateType.ChatMessage);
+        _updateService.Update(UpdateType.WorkItem);
         _jsRuntime.InvokeVoidAsync("forceScroll", "chatContainer");
         ScrollDelayed();
     }

@@ -5,7 +5,7 @@ using ChatUiT2.Models;
 
 namespace ChatUiT2.Services;
 
-public class StorageService
+public class StorageService : IStorageService
 {
     private readonly BlobServiceClient _blobServiceClient;
 
@@ -17,6 +17,8 @@ public class StorageService
             throw new Exception("Storage connection string not found");
         }
         _blobServiceClient = new BlobServiceClient(connectionString);
+
+        Console.WriteLine("StorageService created");
     }
 
     private async Task<byte[]?> GetFileBytes(string container, string filename)
@@ -84,6 +86,12 @@ public class StorageService
         var containerClient = _blobServiceClient.GetBlobContainerClient(workItem.Id);
         var blobClient = containerClient.GetBlobClient(filename);
         await blobClient.DeleteIfExistsAsync();
+
+        // If no files are left, delete the container
+        if (!containerClient.GetBlobs().Any())
+        {
+            await containerClient.DeleteIfExistsAsync();
+        }
     }
 
     public async Task<IEnumerable<string>> ListChatFiles(IWorkItem workItem)

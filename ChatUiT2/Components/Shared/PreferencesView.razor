@@ -110,6 +110,7 @@
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
     [Parameter] public bool IncludeHeader { get; set; } = false;
     [Parameter] public bool IncludeInstructions { get; set; } = false;
@@ -137,19 +138,18 @@
         set
         {
             UserService.CurrentWorkItem.Persistant = value;
-            UserService.RaiseUpdate();
+            UpdateService.Update(UpdateType.Global);
         }
     }
 
     protected override void OnInitialized()
     {
-        UserService.OnUpdate += StateHasChanged;
-        base.OnInitialized();
+        UpdateService.OnGlobalUpdate += StateHasChanged;
     }
 
     public void Dispose()
     {
-        UserService.OnUpdate -= StateHasChanged;
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
     }
 
     private int GetMaxTokens()

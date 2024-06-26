@@ -13,7 +13,7 @@ public class DatabaseService : IDatabaseService
     // Services
     private readonly IKeyVaultService _keyVaultService;
     private readonly IEncryptionService _encryptionService;
-    private StorageService _storageService;
+    private IStorageService _storageService;
 
     // Collections
     private readonly IMongoCollection<BsonDocument> _configCollection;
@@ -27,7 +27,7 @@ public class DatabaseService : IDatabaseService
     public DatabaseService(IConfiguration configuration, 
                            IEncryptionService encryptionService, 
                            IKeyVaultService keyVaultService,
-                           StorageService storageService)
+                           IStorageService storageService)
     {
         _keyVaultService = keyVaultService;
         _encryptionService = encryptionService;
@@ -53,6 +53,8 @@ public class DatabaseService : IDatabaseService
         _chatMessageCollection = userDatabase.GetCollection<BsonDocument>("ChatMessages");
 
         _useEncryption = configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: true);
+    
+        Console.WriteLine("DatabaseService created");
     }
 
 
@@ -160,7 +162,7 @@ public class DatabaseService : IDatabaseService
         return workItems;
     }
 
-    public async Task<List<IWorkItem>> GetWorkITemListLazy(User user, Action onWorkItemLoaded)
+    public async Task<List<IWorkItem>> GetWorkItemListLazy(User user, IUpdateService updateService)
     {
         var workItems = new List<IWorkItem>();
         var filter = Builders<BsonDocument>.Filter.Eq("Username", user.Username);
@@ -173,10 +175,10 @@ public class DatabaseService : IDatabaseService
                 var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
                 if (workItem != null)
                 {
-                    workItem.Loading = true;
+                    workItem.State = WorkItemState.Loading;
                     workItems.Add(workItem);
                     // Start loading messages in the background
-                    _ = LoadWorkItemComponentsAsync(user, workItem, onWorkItemLoaded);
+                    _ = LoadWorkItemComponentsAsync(user, workItem, updateService);
                 }
             }
             else
@@ -187,7 +189,7 @@ public class DatabaseService : IDatabaseService
         return workItems;
     }
 
-    private async Task LoadWorkItemComponentsAsync(User user, WorkItemChat workItem, Action onWorkItemLoaded)
+    private async Task LoadWorkItemComponentsAsync(User user, WorkItemChat workItem, IUpdateService updateService)
     {
         try
         {
@@ -201,8 +203,8 @@ public class DatabaseService : IDatabaseService
         }
         finally
         {
-            workItem.Loading = false;
-            onWorkItemLoaded?.Invoke();
+            workItem.State = WorkItemState.Ready;
+            updateService.Update(UpdateType.All);
         }
     }
 

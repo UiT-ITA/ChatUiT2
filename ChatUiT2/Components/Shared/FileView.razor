@@ -60,11 +60,12 @@
 </style>
 
 @code {
-        [Parameter] public ChatFile File { get; set; } = null!;
-        [Parameter] public List<ChatFile>? FileList { get; set; }
-        [Parameter] public bool AllowRemove { get; set; } = false;
+    [Parameter] public ChatFile File { get; set; } = null!;
+    [Parameter] public List<ChatFile>? FileList { get; set; }
+    [Parameter] public bool AllowRemove { get; set; } = false;
 
-        [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
     private int maxFileNameLength = 25;
 
@@ -154,8 +155,8 @@
 
     public void RemoveFile()
     {
-        FileList.Remove(File);
-        UserService.RaiseUpdate();
+        FileList!.Remove(File);
+        UpdateService.Update(UpdateType.Input);
     }
 
 }

@@ -17,7 +17,7 @@ public class WorkItemChat : IWorkItem
     [JsonIgnore]
     public bool Persistant { get; set; } = true;
     [JsonIgnore]
-    public bool Loading { get; set; } = false;
+    public WorkItemState State { get; set; } = WorkItemState.Ready;
 
     public ChatSettings Settings { get; set; } = new ChatSettings();
 

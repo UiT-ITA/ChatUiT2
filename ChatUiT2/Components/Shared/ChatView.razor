@@ -1,13 +1,7 @@
 ﻿<div id="chatContainer" style="overflow-y: auto; height: 100%; padding-top:48px;">
     <div style="@(GetChatContainerStyle() + "height: 100%;")" class="pt-1">
         
-        @if (UserService.CurrentChat.Loading)
-        {
-            <div style="display: flex; align-items: center; justify-content: center; min-height: 100%; height: auto;" class="flex-grow-1">
-                <MudProgressCircular Indeterminate="true" />
-            </div>
-        }
-        else if (UserService.CurrentChat.Messages.Count == 0)
+        @if (UserService.CurrentChat.Messages.Count == 0 && UserService.CurrentChat.State == WorkItemState.Ready)
         {
             <div style="display: flex; align-items: center; justify-content: center; min-height: 100%; height: auto;" class="flex-grow-1">
                 <ChatSettingsView IncludeHeader IncludeInstructions />
@@ -27,16 +21,19 @@
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
     protected override void OnInitialized()
     {
-        UserService.OnUpdate += StateHasChanged;
+        UpdateService.OnWorkItemUpdate += StateHasChanged;
+        UpdateService.OnChatMessageUpdate += StateHasChanged;
         base.OnInitialized();
     }
 
     public void Dispose()
     {
-        UserService.OnUpdate -= StateHasChanged;
+        UpdateService.OnWorkItemUpdate -= StateHasChanged;
+        UpdateService.OnChatMessageUpdate -= StateHasChanged;
     }
 
     private string GetChatContainerStyle()

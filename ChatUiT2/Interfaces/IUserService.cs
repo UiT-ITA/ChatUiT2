@@ -17,9 +17,8 @@ public interface IUserService
     WorkItemChat CurrentChat { get; }
     ChatWidth ChatWidth { get; set; }
 
-    event Action? OnUpdate;
-    void RaiseUpdate();
     void NewChat();
+    void SetWorkItem(IWorkItem workItem);
     bool GetSaveHistory();
     Task SetSaveHistory(IWorkItem workItem, bool value);
     Task SetDefaultChatSettings();

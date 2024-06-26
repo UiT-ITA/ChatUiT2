@@ -65,6 +65,7 @@
 @code {
     [Parameter] public IWorkItem workItem { get; set; } = null!;
     [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
 
     private string newName { get; set; } = string.Empty;
@@ -73,12 +74,12 @@
 
     override protected void OnInitialized()
     {
-        UserService.OnUpdate += StateHasChanged;
+        UpdateService.OnWorkItemUpdate += StateHasChanged;
     }
 
     public void Dispose()
     {
-        UserService.OnUpdate -= StateHasChanged;
+        UpdateService.OnWorkItemUpdate -= StateHasChanged;
     }
 
     private bool IsSelected()
@@ -88,27 +89,7 @@
 
     private void SelectWorkItem()
     {
-        if (UserService.Waiting)
-        {
-            return;
-        }
-        if (IsSelected())
-        {
-            if (Nav.Uri != Nav.BaseUri)
-            {
-                Nav.NavigateTo("/");
-            }
-            return;
-        }
-        UserService.CurrentWorkItem = workItem;
-        UserService.RaiseUpdate();
-
-        if(Nav.Uri != Nav.BaseUri)
-        {
-            Nav.NavigateTo("/");
-        }
-
-        
+        UserService.SetWorkItem(workItem);
     }
 
 
@@ -175,7 +156,7 @@
             workItem.Name = newName;
             await UserService.UpdateWorkItem(workItem);
         }
-        UserService.RaiseUpdate();
+        UpdateService.Update(UpdateType.WorkItem);
     }
     
     private async Task OnKeyDown(KeyboardEventArgs e)
@@ -195,7 +176,7 @@
         }
         
         await UserService.UpdateWorkItem(workItem);
-        UserService.RaiseUpdate();
+        UpdateService.Update(UpdateType.WorkItem);
     }
 
 }

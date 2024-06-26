@@ -25,6 +25,8 @@ public class TestService
         _databaseService = (DatabaseService)databaseService;
         _userService = (UserService)userService;
         _keyVaultService = (KeyVaultService)keyVaultService;
+
+        Console.WriteLine("TestService created");
     }
 
     public void Test()

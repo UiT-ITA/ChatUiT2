@@ -15,6 +15,8 @@ public class ChatService : IChatService
     {
         _userService = userService;
         _configService = configService;
+
+        Console.WriteLine("ChatService created");
     }
 
 
@@ -36,7 +38,7 @@ public class ChatService : IChatService
     public async Task GetChatResponse(WorkItemChat chat, ChatMessage message)
     {
         chat.Messages.Add(message);
-        _userService.RaiseUpdate();
+        _userService.StreamUpdated();
         await _userService.UpdateWorkItem(chat);
         await GetChatResponse(chat);
     }

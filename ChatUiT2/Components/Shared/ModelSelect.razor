@@ -29,6 +29,7 @@
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IConfigService ConfigService { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
     [Parameter] public Color Color { get; set; } = Color.Tertiary;
     [Parameter] public string Class { get; set; } = "";
@@ -38,13 +39,13 @@
 
     override protected void OnInitialized()
     {
-        UserService.OnUpdate += StateHasChanged;
+        UpdateService.OnGlobalUpdate += StateHasChanged;
         Models = ConfigService.GetModels();
     }
 
     public void Dispose()
     {
-        UserService.OnUpdate -= StateHasChanged;
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
     }
 
 
@@ -70,6 +71,8 @@
             UserService.CurrentChat.Settings.MaxTokens = model.MaxTokens;
         }
 
-        UserService.RaiseUpdate();
+        
+
+
     }
 }

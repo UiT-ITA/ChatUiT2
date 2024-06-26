@@ -224,6 +224,7 @@
     [Inject] private IConfiguration Configuration { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
 
@@ -245,14 +246,14 @@
 
     protected override void OnInitialized()
     {
-        UserService.OnUpdate += UpdateView;
+        UpdateService.OnGlobalUpdate += UpdateView;
         GetUsername();
         // ShowMessage("Encryption is turned on. All previous chats has been deleted.");
     }
 
     public void Dispose()
     {
-        UserService.OnUpdate -= UpdateView;
+        UpdateService.OnGlobalUpdate -= UpdateView;
     }
 
     public void UpdateView()
@@ -331,7 +332,6 @@
     private void ChangeDarkmode(bool value)
     {
         UserService.IsDarkMode = value;
-        UserService.RaiseUpdate();
     }
 
     private void ShowMessage(string message)

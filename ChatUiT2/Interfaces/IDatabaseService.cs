@@ -11,7 +11,7 @@ public interface IDatabaseService
 
     // WorkItems
     Task<List<IWorkItem>> GetWorkItemList(User user);
-    Task<List<IWorkItem>> GetWorkITemListLazy(User user, Action onWorkItemLoaded);
+    Task<List<IWorkItem>> GetWorkItemListLazy(User user, IUpdateService updateService);
     Task SaveWorkItem(User user, IWorkItem workItem);
     Task DeleteWorkItem(User user, IWorkItem workItem);
 

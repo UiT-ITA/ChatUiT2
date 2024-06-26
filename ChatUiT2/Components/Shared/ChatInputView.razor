@@ -6,7 +6,7 @@
         <div class="px-2 pt-2" style="display: flex; flex-wrap: wrap; max-height: 160px; overflow-y: auto;"> 
             @foreach (var file in chatFiles)
             {
-                <FileView File="@file" FileList="chatFiles"/>
+                <FileView File="@file" FileList="chatFiles" AllowRemove="true"/>
             }
         </div>
     }
@@ -64,11 +64,11 @@
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
-    // TODO: Remove temp direct access to storage:
-    [Inject] private StorageService StorageService { get; set; } = null!;
+    [Inject] private IStorageService StorageService { get; set; } = null!;
 
     private MudTextField<string> inputFieldRef = null!;
     private MudIconButton buttonRef = null!;
@@ -125,13 +125,15 @@
 
     protected override void OnInitialized()
     {
-        UserService.OnUpdate += StateHasChanged;
+        UpdateService.OnInputUpdate += StateHasChanged;
+        UpdateService.OnWorkItemUpdate += StateHasChanged;
         base.OnInitialized();
     }
 
     public void Dispose()
     {
-        UserService.OnUpdate -= StateHasChanged; 
+        UpdateService.OnInputUpdate -= StateHasChanged;
+        UpdateService.OnWorkItemUpdate -= StateHasChanged;
     }
 
 

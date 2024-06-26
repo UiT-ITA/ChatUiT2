@@ -1,7 +1,16 @@
 <div>
-    @foreach (var message in UserService.CurrentChat.Messages)
+    @if (UserService.CurrentChat.State == WorkItemState.Ready)
     {
-        <ChatMessageView Message="message" />
+        @foreach (var message in UserService.CurrentChat.Messages)
+        {
+            <ChatMessageView Message="message" />
+        }
+    }
+    else
+    {
+        <div style="display: flex; align-items: center; justify-content: center; min-height: 100%; height: auto;" class="flex-grow-1">
+            <MudProgressCircular Indeterminate="true" />
+        </div>
     }
 </div>
 
@@ -9,17 +18,18 @@
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
     WorkItemChat? lastChat;
 
     protected override void OnInitialized()
     {
-        UserService.OnUpdate += StateHasChanged;
+        UpdateService.OnWorkItemUpdate += StateHasChanged;
     }
 
     public void Dispose()
     {
-        UserService.OnUpdate -= StateHasChanged;
+        UpdateService.OnWorkItemUpdate -= StateHasChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

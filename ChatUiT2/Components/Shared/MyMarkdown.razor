@@ -24,6 +24,7 @@ else
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
     [Parameter] public string Value { get; set; } = null!;
     [Parameter] public MudBlazor.CodeBlockTheme CodeBlockTheme { get; set; }
@@ -40,13 +41,13 @@ else
 
     protected override void OnInitialized()
     {
-        UserService.OnUpdate += StateHasChanged;
+        UpdateService.OnChatMessageUpdate += StateHasChanged;
     }
 
 
     public void Dispose()
     {
-        UserService.OnUpdate -= StateHasChanged;
+        UpdateService.OnChatMessageUpdate -= StateHasChanged;
     }
 
     // Not needed anymore?

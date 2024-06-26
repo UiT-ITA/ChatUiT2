@@ -105,8 +105,19 @@
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
     [Parameter] public EventCallback OnClose { get; set; }
+
+    protected override void OnInitialized()
+    {
+        UpdateService.OnWorkItemUpdate += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        UpdateService.OnWorkItemUpdate -= StateHasChanged;
+    }
 
 
     private void CloseDrawer()

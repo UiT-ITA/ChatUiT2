@@ -24,6 +24,7 @@ else
 @code {
     [Inject] private IAuthUserService Auth { get; set; } = null!;
     [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
 
     private bool isAdmin;
@@ -46,18 +47,18 @@ else
     private void ToggleLoading()
     {
         UserService.Loading = !UserService.Loading;
-        UserService.RaiseUpdate();
+        UpdateService.Update(UpdateType.All);
     }
 
     private void ToggleWaiting()
     {
         UserService.Waiting = !UserService.Waiting;
-        UserService.RaiseUpdate();
+        UpdateService.Update(UpdateType.All);
     }
 
     private void ToggleSmoothOutput()
     {
         UserService.SmoothOutput = !UserService.SmoothOutput;
-        UserService.RaiseUpdate();
+        UpdateService.Update(UpdateType.All);
     }
 }
