@@ -46,7 +46,7 @@ public class UserService : IUserService
     public bool Loading { get; set; } = true;
     public string Name { get; set; } = "Unauthorized";
     public bool IsAdmin { get; set; } = false;
-    public bool EnableFileUpload { get; set; } = false;
+    public bool EnableFileUpload { get; set; } = true;
     private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
     private IChatService _chatService { get; set; }
@@ -71,6 +71,7 @@ public class UserService : IUserService
             User.Preferences.ChatWidth = value;
             _databaseService.SaveUserPreferences(User.Username, User.Preferences);
             _updateService.Update(UpdateType.Global);
+            _updateService.Update(UpdateType.WorkItem);
         }
     }
 
@@ -134,7 +135,7 @@ public class UserService : IUserService
 
         // TODO: Remove when done testing
         Console.WriteLine("Testing TestUser");
-        EnableFileUpload = await _authUserService.TestInRole(["TestUser"]);
+        //EnableFileUpload = await _authUserService.TestInRole(["TestUser"]);
         //if (Name == "Øystein Tveito Test")
         //{
         //    EnableFileUpload = true;
