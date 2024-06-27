@@ -30,7 +30,7 @@ public static class AzureOpenAIService
         return content;
     }
 
-    public static AsyncResultCollection<StreamingChatCompletionUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
+    public static AsyncResultCollection<StreamingChatCompletionUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint, bool allowFiles = false)
     {
         var client = new AzureOpenAIClient(new Uri(endpoint.Url), new Azure.AzureKeyCredential(endpoint.Key)).GetChatClient(model.DeploymentName);
 
@@ -47,6 +47,7 @@ public static class AzureOpenAIService
 
         for (int i = chat.Messages.Count - 1; i >= 0; i--)
         {
+            Console.WriteLine("Processing message: " + chat.Messages[i].Role + ": " + chat.Messages[i].Content );
             var message = chat.Messages[i];
             if (message.Status == ChatMessageStatus.Error) continue;
             int messageTokens = GetTokens(model.DeploymentName, message.Content);
@@ -61,8 +62,15 @@ public static class AzureOpenAIService
                 continue;
             }
 
-            //OpenAI.Chat.ChatMessage requestMessage = GetOpenAIMessage(message);
-            OpenAI.Chat.ChatMessage requestMessage = ChatMessageWithFiles(message);
+            OpenAI.Chat.ChatMessage requestMessage;
+            if (allowFiles)
+            {
+                requestMessage = ChatMessageWithFiles(message);
+            }
+            else
+            {
+                requestMessage = GetOpenAIMessage(message);
+            }
 
 
             messages.Insert(1, requestMessage);
@@ -102,7 +110,6 @@ public static class AzureOpenAIService
         List<ChatMessageContentPart> messageContentParts = new List<ChatMessageContentPart>();
         foreach (var file in message.Files)
         {
-            Console.WriteLine("Adding file: " + file.FileName);
             if (file.Bytes == null)
             {
                 throw new Exception("File is empty");
@@ -112,7 +119,7 @@ public static class AzureOpenAIService
             {
                 var messagePart = ChatMessageContentPart.CreateImageMessageContentPart(
                     imageBytes: new BinaryData(file.Bytes!),
-                    imageBytesMediaType: "image/" + file.FileName.Split(".").Last()
+                    imageBytesMediaType: ChatFile.GetMimeType(file)
                     );
                 messageContentParts.Add(messagePart);
             }
@@ -120,8 +127,13 @@ public static class AzureOpenAIService
             {
                 if (file.FileName.Split(".").Last() == "txt")
                 {
-                    string text = System.Text.Encoding.UTF8.GetString(file.Bytes!);
-                    var messageText = "This is a file named " + file.FileName + ":\n" + text + "\n\n";
+                    // filename has the form 3749873294_file_name.txt I want to get the file_name.txt
+                    int underscoreIndex = file.FileName.IndexOf('_');
+                    string fileName = file.FileName.Substring(underscoreIndex + 1);
+
+
+                    string fileText = ChatFile.GetText(file);
+                    string messageText = "This is a file named " + fileName + ":\n" + fileText + "\n\n";
 
                     var messagePart = ChatMessageContentPart.CreateTextMessageContentPart(messageText);
                     messageContentParts.Add(messagePart);

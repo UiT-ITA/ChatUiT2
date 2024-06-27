@@ -46,7 +46,6 @@ public class StorageService : IStorageService
         ChatFile file = new()
         {
             FileName = filename,
-            FileType = ChatFile.GetFileTypeFromName(filename),
             Bytes = await GetFileBytes(workItemId, filename)
         };
 

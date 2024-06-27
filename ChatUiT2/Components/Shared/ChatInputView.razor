@@ -6,7 +6,7 @@
         <div class="px-2 pt-2" style="display: flex; flex-wrap: wrap; max-height: 160px; overflow-y: auto;"> 
             @foreach (var file in chatFiles)
             {
-                <FileView File="@file" FileList="chatFiles" AllowRemove="true"/>
+                <FileView File="@file" FileList="chatFiles" AllowRemove="true" RemoveTimestamp="false"/>
             }
         </div>
     }
@@ -192,7 +192,6 @@
         ChatFile chatFile = new ChatFile
         {
             FileName = file.Name,
-            FileType = ChatFile.GetFileTypeFromName(file.Name),
             Bytes = new byte[file.Size]
         };
 

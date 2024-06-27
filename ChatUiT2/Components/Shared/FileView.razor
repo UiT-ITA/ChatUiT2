@@ -63,6 +63,7 @@
     [Parameter] public ChatFile File { get; set; } = null!;
     [Parameter] public List<ChatFile>? FileList { get; set; }
     [Parameter] public bool AllowRemove { get; set; } = false;
+    [Parameter] public bool RemoveTimestamp { get; set; } = true;
 
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
@@ -73,20 +74,27 @@
     {
         get
         {
-            if (File.FileName.Length > maxFileNameLength)
+            string fileName = File.FileName;
+            if (RemoveTimestamp)
             {
-                int extensionIndex = File.FileName.LastIndexOf('.');
+                int underscoreIndex = File.FileName.IndexOf('_');
+                fileName = File.FileName.Substring(underscoreIndex + 1);
+            }
+
+            if (fileName.Length > maxFileNameLength)
+            {
+                int extensionIndex = fileName.LastIndexOf('.');
                 if (extensionIndex == -1 || extensionIndex <= maxFileNameLength - 3)
                 {
-                    return File.FileName.Substring(0, maxFileNameLength - 3) + "...";
+                    return fileName.Substring(0, maxFileNameLength - 3) + "...";
                 }
 
-                int charactersToShow = maxFileNameLength - 3 - (File.FileName.Length - extensionIndex);
-                return File.FileName.Substring(0, charactersToShow) + "..." + File.FileName.Substring(extensionIndex);
+                int charactersToShow = maxFileNameLength - 3 - (fileName.Length - extensionIndex);
+                return fileName.Substring(0, charactersToShow) + "..." + fileName.Substring(extensionIndex);
             }
             else
             {
-                return File.FileName;
+                return fileName;
             }
         }
     }

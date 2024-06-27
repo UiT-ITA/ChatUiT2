@@ -67,7 +67,7 @@ public class ChatService : IChatService
         {
             try
             {
-                var response = AzureOpenAIService.GetStreamingResponse(chat, model, endpoint);
+                var response = AzureOpenAIService.GetStreamingResponse(chat, model, endpoint, allowFiles: true);
                 // TODO: NOT sure!
 
                 await foreach (var chatUpdates in response)
@@ -145,6 +145,7 @@ public class ChatService : IChatService
 
 
             chat.Name = await GetName(chat);
+            _userService.StreamUpdated();
 
         }
 
