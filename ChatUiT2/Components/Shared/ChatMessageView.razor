@@ -10,12 +10,12 @@
                     <MudIcon Icon="@GetIcon()" Size="Size.Large" Style="opacity:0.6;"/>
                 @* </MudAvatar> *@
             </div>
-                <MudText Class="mt-2" Style="opacity: 0.5;" Typo="Typo.subtitle2">@timeStampString</MudText>
             <MudSpacer />
-            @foreach (ChatFile file in Message.Files)
+            <MudText Class="mt-2" Style="opacity: 0.5;" Typo="Typo.subtitle2">@timeStampString</MudText>
+           @*  @foreach (ChatFile file in Message.Files)
             {
                 <FileView File="@file" FileList="Message.Files"/>
-            }
+            } *@
             <MudSpacer />
 
             @if (!isEditing)
@@ -46,6 +46,15 @@
                 </div>
             }
         </MudStack>
+        @if (Message.Files.Count > 0)
+        {
+            <div class="px-2 pt-2" style="display: flex; flex-wrap: wrap; max-height: 160px; overflow-y: auto;">
+                @foreach (var file in Message.Files)
+                {
+                    <FileView File="@file" />
+                }
+            </div>
+        }
         <div class="mx-6 mb-4">
             @if (isEditing)
             {
