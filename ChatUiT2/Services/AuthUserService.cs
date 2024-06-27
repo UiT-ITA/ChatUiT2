@@ -14,18 +14,11 @@ public class AuthUserService(AuthenticationStateProvider AuthenticationStateProv
         if (state.User.Identity is not null)
             if (state.User.Identity.IsAuthenticated)
             {
-                state.User.Claims.ToList().ForEach(c => Console.WriteLine(c.Type + ": " + c.Value));
-
                 foreach (var r in role)
                 {
                     if (state.User.IsInRole(r))
                     {
-                        Console.WriteLine("In role: " + r);
                         return true;
-                    }
-                    else
-                    {
-                        Console.WriteLine("Not in role: " + r);
                     }
                 }
             }
