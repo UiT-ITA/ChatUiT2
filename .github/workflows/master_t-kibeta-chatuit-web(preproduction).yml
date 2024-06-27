@@ -40,13 +40,22 @@ jobs:
     environment:
       name: 'PreProduction'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    
+    permissions:
+      id-token: write #This is required for requesting the JWT
+
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v3
         with:
           name: .net-app
       
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_B65B07062EE34E72AF03C94357B3DCA4 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_AC038D83A02440ED8828876CF1AE6492 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F8E4D28E21DE4A39A13BB59001D4CFEA }}
+
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v2
@@ -54,4 +63,4 @@ jobs:
           app-name: 't-kibeta-chatuit-web'
           slot-name: 'PreProduction'
           package: .
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_F3BFBA52ED5845F9B460DD0F42D08229 }}
+          
