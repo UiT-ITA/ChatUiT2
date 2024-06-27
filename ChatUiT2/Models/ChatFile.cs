@@ -60,7 +60,7 @@ public class ChatFile
     }
 
     // TODO: add support for more files
-    public static List<string> ImageFiles = new() { "png", "jpg" };
+    public static List<string> ImageFiles = new() { "png", "jpg", "jpeg" };
     public static List<string> DataFiles = new() { /*"xlsx", "csv", "json" */};
     public static List<string> DocumentFiles = new() { "txt", /*"pdf", "docx"*/};
     public static List<string> AllFiles = ImageFiles.Concat(DataFiles).Concat(DocumentFiles).ToList();
