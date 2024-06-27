@@ -17,7 +17,7 @@
 
 @code {
     [Inject] private TestService testService { get; set; } = null!;
-    [Inject] private StorageService storageService { get; set; } = null!;
+    [Inject] private IStorageService storageService { get; set; } = null!;
     [Inject] private IUserService userService { get; set; } = null!;
     // [Inject] private AuthenticationStateProvider Auth { get; set; } = null!;
 
@@ -32,49 +32,49 @@
 
     public async Task TestAI()
     {
-        Model model = testService._configService.GetModel("GPT-4o");
-        Console.WriteLine(model.Name);
-        ModelEndpoint endpoint = testService._configService.GetEndpoint(model.Deployment);
+        // Model model = testService._configService.GetModel("GPT-4o");
+        // Console.WriteLine(model.Name);
+        // ModelEndpoint endpoint = testService._configService.GetEndpoint(model.Deployment);
 
 
 
 
 
 
-        var client = new AzureOpenAIClient(new Uri(endpoint.Url), new Azure.AzureKeyCredential(endpoint.Key)).GetChatClient(model.DeploymentName);
+        // var client = new AzureOpenAIClient(new Uri(endpoint.Url), new Azure.AzureKeyCredential(endpoint.Key)).GetChatClient(model.DeploymentName);
 
-        var options = new ChatCompletionOptions()
-                {
-                MaxTokens = Math.Min(model.MaxTokens, 4096),
-                Temperature = 0.2f
-        };
+        // var options = new ChatCompletionOptions()
+        //         {
+        //         MaxTokens = Math.Min(model.MaxTokens, 4096),
+        //         Temperature = 0.2f
+        // };
 
-        int availableTokens = model.MaxContext - (int)options.MaxTokens;
-        List<OpenAI.Chat.ChatMessage> messages = new();
+        // int availableTokens = model.MaxContext - (int)options.MaxTokens;
+        // List<OpenAI.Chat.ChatMessage> messages = new();
 
-        messages.Add(new SystemChatMessage("You are a helpful ai assistant, respond using markdown."));
+        // messages.Add(new SystemChatMessage("You are a helpful ai assistant, respond using markdown."));
 
-        var contentPartText = OpenAI.Chat.ChatMessageContentPart.CreateTextMessageContentPart("What is in this image?");
-        var contentPartImage = OpenAI.Chat.ChatMessageContentPart.CreateImageMessageContentPart(new Uri("https://upload.wikimedia.org/wikipedia/commons/3/3e/Emperor_Penguins_(15885611526).jpg"));
+        // var contentPartText = OpenAI.Chat.ChatMessageContentPart.CreateTextMessageContentPart("What is in this image?");
+        // var contentPartImage = OpenAI.Chat.ChatMessageContentPart.CreateImageMessageContentPart(new Uri("https://upload.wikimedia.org/wikipedia/commons/3/3e/Emperor_Penguins_(15885611526).jpg"));
 
-        var UserChatMessage = new UserChatMessage([contentPartText, contentPartImage]);
+        // var UserChatMessage = new UserChatMessage([contentPartText, contentPartImage]);
 
-        messages.Add(UserChatMessage);
+        // messages.Add(UserChatMessage);
 
 
 
-        var response = client.CompleteChatStreamingAsync(messages, options);
+        // var response = client.CompleteChatStreamingAsync(messages, options);
 
-        string content = "";
-        await foreach (var chatUpdate in response)
-        {
-            foreach (var update in chatUpdate.ContentUpdate)
-                content += update.Text;
+        // string content = "";
+        // await foreach (var chatUpdate in response)
+        // {
+        //     foreach (var update in chatUpdate.ContentUpdate)
+        //         content += update.Text;
 
-        }
+        // }
 
-        debug_text = content;
-        StateHasChanged();
+        // debug_text = content;
+        // StateHasChanged();
     }
 
     public async Task TestStorage()

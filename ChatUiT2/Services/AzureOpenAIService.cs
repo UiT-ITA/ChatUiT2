@@ -47,7 +47,6 @@ public static class AzureOpenAIService
 
         for (int i = chat.Messages.Count - 1; i >= 0; i--)
         {
-            Console.WriteLine("Processing message: " + chat.Messages[i].Role + ": " + chat.Messages[i].Content );
             var message = chat.Messages[i];
             if (message.Status == ChatMessageStatus.Error) continue;
             int messageTokens = GetTokens(model.DeploymentName, message.Content);
@@ -123,28 +122,18 @@ public static class AzureOpenAIService
                     );
                 messageContentParts.Add(messagePart);
             }
-            else if (file.FileType == FileType.Document)
+            else
             {
-                if (file.FileName.Split(".").Last() == "txt")
-                {
-                    // filename has the form 3749873294_file_name.txt I want to get the file_name.txt
-                    int underscoreIndex = file.FileName.IndexOf('_');
-                    string fileName = file.FileName.Substring(underscoreIndex + 1);
+                // filename has the form 3749873294_file_name.txt I want to get the file_name.txt
+                int underscoreIndex = file.FileName.IndexOf('_');
+                string fileName = file.FileName.Substring(underscoreIndex + 1);
 
 
-                    string fileText = ChatFile.GetText(file);
-                    string messageText = "This is a file named " + fileName + ":\n" + fileText + "\n\n";
+                string fileText = ChatFile.GetText(file);
+                string messageText = "This is a file named " + fileName + ":\n" + fileText + "\n\n";
 
-                    var messagePart = ChatMessageContentPart.CreateTextMessageContentPart(messageText);
-                    messageContentParts.Add(messagePart);
-                }
-                else
-                {
-                    throw new Exception("Unsupported document type: " + file.FileName.Split(".").Last());
-                }
-            }
-            else if (file.FileType == FileType.Data)
-            {
+                var messagePart = ChatMessageContentPart.CreateTextMessageContentPart(messageText);
+                messageContentParts.Add(messagePart);
             }
         }
 

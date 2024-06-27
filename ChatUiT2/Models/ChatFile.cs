@@ -61,7 +61,7 @@ public class ChatFile
 
     // TODO: add support for more files
     public static List<string> ImageFiles = new() { "png", "jpg", "jpeg" };
-    public static List<string> DataFiles = new() { /*"xlsx", "csv", "json" */};
+    public static List<string> DataFiles = new() { "csv", "json" /*, "xlsx"*/};
     public static List<string> DocumentFiles = new() { "txt", /*"pdf", "docx"*/};
     public static List<string> AllFiles = ImageFiles.Concat(DataFiles).Concat(DocumentFiles).ToList();
 
@@ -112,24 +112,41 @@ public class ChatFile
 
     public static string GetText(ChatFile file)
     {
-        if (file.FileType == FileType.Data)
+        if (file.Bytes == null)
         {
-            return "This is a data file.";
+            throw new Exception("File is empty");
         }
-        else if (file.FileType == FileType.Document)
+        if (file.FileType == FileType.Image)
         {
-            if (file.FileName.Split('.').Last() == "txt")
-            {
-                return System.Text.Encoding.UTF8.GetString(file.Bytes!);
-            }
-            else
-            {
-                throw new Exception("Unsupported document type: " + file.FileName.Split('.').Last());
-            }
+            throw new Exception("Imagefiles can not be converted to text");
         }
         else
         {
-            throw new Exception("Unsupported file type.");
+            string extension = file.FileName.Split('.').Last();
+            if (extension == "pdf")
+            {
+                throw new Exception("PDF files can not be converted to text");
+            }
+            else if (extension == "docx")
+            {
+                throw new Exception("DOCX files can not be converted to text");
+            }
+            else if (extension == "xlsx")
+            {
+                throw new Exception("XLSX files can not be converted to text");
+            }
+            else
+            {
+                try
+                {
+                    string text = System.Text.Encoding.UTF8.GetString(file.Bytes!);
+                    return text;
+                }
+                catch
+                {
+                    throw new Exception("Failed to convert file to text");
+                }
+            }
         }
     }
 }
