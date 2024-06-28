@@ -36,6 +36,8 @@ public class DatabaseService : IDatabaseService
         var connectionString = configuration.GetConnectionString("MongoDb");
 
         var client = new MongoClient(connectionString);
+
+        // Load database and collection names from configuration
         //var systemDatabase = client.GetDatabase(configuration["DBSettings:SystemDatabaseName"]);
         //var userDatabase = client.GetDatabase(configuration["DBSettings:UserDatabaseName"]);
 
@@ -54,7 +56,7 @@ public class DatabaseService : IDatabaseService
 
         _useEncryption = configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: true);
     
-        Console.WriteLine("DatabaseService created");
+        //Console.WriteLine("DatabaseService created");
     }
 
 
@@ -158,7 +160,8 @@ public class DatabaseService : IDatabaseService
             return null;
         }).ToList();
         var results = await Task.WhenAll(tasks);
-        workItems.AddRange(results.Where(item => item != null));
+
+        workItems.AddRange(results.Where(item => item != null).Select(item => item!));
         return workItems;
     }
 
@@ -197,8 +200,7 @@ public class DatabaseService : IDatabaseService
         }
         catch (Exception ex)
         {
-            // TODO: Better error handling on workitem load
-            //await DeleteWorkItem(user, new WorkItemChat { Id = workItem.Id });
+            await DeleteWorkItem(user, new WorkItemChat { Id = workItem.Id });
             Console.WriteLine("Error loading chat: " + ex.Message);
         }
         finally

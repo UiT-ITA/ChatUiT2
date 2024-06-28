@@ -6,16 +6,10 @@
 
         <MudStack Row Style=@($"{(isUserMessage ? "background-color: var(--mud-palette-background-grey);" : "")} border-top-left-radius: 16px; border-top-right-radius: 16px;")>
             <div style="width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
-                @* <MudAvatar Color="Color.Info"> *@
-                    <MudIcon Icon="@GetIcon()" Size="Size.Large" Style="opacity:0.6;"/>
-                @* </MudAvatar> *@
+                <MudIcon Icon="@GetIcon()" Size="Size.Large" Style="opacity:0.6;"/>
             </div>
             <MudSpacer />
             <MudText Class="mt-2" Style="opacity: 0.5;" Typo="Typo.subtitle2">@timeStampString</MudText>
-           @*  @foreach (ChatFile file in Message.Files)
-            {
-                <FileView File="@file" FileList="Message.Files"/>
-            } *@
             <MudSpacer />
 
             @if (!isEditing)
@@ -105,7 +99,6 @@
         }
     }
 
-    //private CodeBlockTheme CodeBlockTheme => UserService.IsDarkMode ? CodeBlockTheme.AtomOneDark : CodeBlockTheme.AtomOneLight;
     private CodeBlockTheme CodeBlockTheme => UserService.IsDarkMode ? CodeBlockTheme.Vs2015 : CodeBlockTheme.Vs;
 
 
@@ -159,11 +152,10 @@
         {
             Message.Content = newContent;
             Message.Created = DateTimeTools.GetTimestamp();
-            // Delete this and all following messages in UserService.CurrentWorkItem.Messages
+
             int index = UserService.CurrentChat.Messages.IndexOf(Message);
             await UserService.RegerateFromIndex(index);
         }
-
     }
 
     private void CancelEdit()

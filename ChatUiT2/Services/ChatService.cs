@@ -16,7 +16,7 @@ public class ChatService : IChatService
         _userService = userService;
         _configService = configService;
 
-        Console.WriteLine("ChatService created");
+        //Console.WriteLine("ChatService created");
     }
 
 
@@ -68,8 +68,6 @@ public class ChatService : IChatService
             try
             {
                 var response = AzureOpenAIService.GetStreamingResponse(chat, model, endpoint, allowFiles: true);
-                // TODO: NOT sure!
-
                 await foreach (var chatUpdates in response)
                 {
                     foreach (var update in chatUpdates.ContentUpdate)
@@ -83,17 +81,16 @@ public class ChatService : IChatService
                     }
                     _userService.StreamUpdated();
 
-                    // TODO: Handle finish reason
                     var finishReason = chatUpdates.FinishReason;
                     if (finishReason != null)
                     {
-                        //Console.WriteLine(finishReason.Value.ToString());
                         switch (finishReason.Value.ToString())
                         {
                             case "Stop":
                                 responseMessage.Status = ChatMessageStatus.Done;
                                 break;
                             case "Length":
+                                // TODO: Handle continue option
                                 responseMessage.Status = ChatMessageStatus.TokenLimit;
                                 break;
                             default:
@@ -194,6 +191,12 @@ public class ChatService : IChatService
         {
             name = name.Substring(0, 25);
         }
+
+        if (string.IsNullOrEmpty(name))
+        {
+            name = "New chat";
+        }
+
         return name;
     }
 }

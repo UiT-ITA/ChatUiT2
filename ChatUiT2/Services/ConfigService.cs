@@ -14,7 +14,7 @@ public class ConfigService : IConfigService
     public ConfigService(IConfiguration configuration)
     {
         ReadModelConfig(configuration);
-        Console.WriteLine("ConfigService created");
+        //Console.WriteLine("ConfigService created");
     }
 
 

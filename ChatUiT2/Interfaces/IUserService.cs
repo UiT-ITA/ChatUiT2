@@ -12,6 +12,7 @@ public interface IUserService
     bool Loading { get; set;  }
     string Name { get; set; }
     bool IsAdmin { get; set; }
+    bool IsTester { get; set; }
     bool EnableFileUpload { get; set; }
     IConfigService _configService { get; set; }
     WorkItemChat CurrentChat { get; }

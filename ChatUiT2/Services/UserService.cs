@@ -16,7 +16,6 @@ public class UserService : IUserService
         set
         {
             User.Preferences.DarkMode = value;
-            // TODO: Global needed?
             _updateService.Update(UpdateType.Global);
         }
     }
@@ -26,7 +25,6 @@ public class UserService : IUserService
         set
         {
             User.Preferences.UseMarkdown = value;
-            // TODO: Global needed?
             _updateService.Update(UpdateType.Global);
             _updateService.Update(UpdateType.ChatMessage);
         }
@@ -38,7 +36,6 @@ public class UserService : IUserService
         set
         {
             User.Preferences.SmoothOutput = value;
-            // TODO: Global needed?
             _updateService.Update(UpdateType.Global);
         }
     }
@@ -46,6 +43,7 @@ public class UserService : IUserService
     public bool Loading { get; set; } = true;
     public string Name { get; set; } = "Unauthorized";
     public bool IsAdmin { get; set; } = false;
+    public bool IsTester { get; set; } = false;
     public bool EnableFileUpload { get; set; } = true;
     private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
@@ -107,7 +105,7 @@ public class UserService : IUserService
         // Load user
         _ = LoadUser();
 
-        Console.WriteLine("UserService created");
+        //Console.WriteLine("UserService created");
     }
 
 
@@ -130,17 +128,8 @@ public class UserService : IUserService
 
         User.Username = username;
         Name = await _authUserService.GetName()??"Unauthorized";
-        Console.WriteLine("Testing admin");
         IsAdmin = await _authUserService.TestInRole(["Admin"]);
-
-        // TODO: Remove when done testing
-        Console.WriteLine("Testing TestUser");
-        //EnableFileUpload = await _authUserService.TestInRole(["TestUser"]);
-        //if (Name == "Øystein Tveito Test")
-        //{
-        //    EnableFileUpload = true;
-        //}
-
+        IsTester = await _authUserService.TestInRole(["TestUser"]);
 
         if (_configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: false))
         {
@@ -148,9 +137,9 @@ public class UserService : IUserService
         }
         
         User.Preferences = await _databaseService.GetUserPreferences(username);
-        // TODO: All needed?
-        _updateService.Update(UpdateType.Global);
-        //var workItems = await _databaseService.GetWorkItemList(User);
+
+        _updateService.Update(UpdateType.All);
+
         var workItems = await _databaseService.GetWorkItemListLazy(User, _updateService);
         User.Chats = workItems.OfType<WorkItemChat>().ToList();
         Loading = false;
@@ -250,6 +239,7 @@ public class UserService : IUserService
     public async Task LoadWorkItem(IWorkItem workItem)
     {
         // TODO: Implement!
+        await Task.Delay(1);
     }
 
     public async Task UpdateWorkItem()
@@ -276,14 +266,14 @@ public class UserService : IUserService
             NewChat();
         }
 
-        if (workItem.Persistant)
-        {
-            // TODO: Remove from database
-        }
-
         if (workItem.Type == WorkItemType.Chat)
         {
             User.Chats.Remove((WorkItemChat)workItem);
+        }
+
+        if (!workItem.Persistant)
+        {
+            return;
         }
 
         await _databaseService.DeleteWorkItem(User, workItem);

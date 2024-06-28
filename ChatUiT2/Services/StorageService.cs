@@ -18,7 +18,7 @@ public class StorageService : IStorageService
         }
         _blobServiceClient = new BlobServiceClient(connectionString);
 
-        Console.WriteLine("StorageService created");
+        //Console.WriteLine("StorageService created");
     }
 
     private async Task<byte[]?> GetFileBytes(string container, string filename)

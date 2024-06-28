@@ -15,9 +15,7 @@
         
         @* Upload files *@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
-            <MudTooltip Text="Comming soon!" Placement="Placement.Bottom">
-                @* <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Size="Size.Medium" Disabled="!UserService.EnableFileUpload" Style="width:54px; height: 54px;" OnClick="UploadFile"/> *@
-            </MudTooltip>
+            <MudTooltip Text="Upload files" Placement="Placement.Bottom">
                 <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles" Accept="@acceptedFiles"
                                Style="width:54px; height: 54px; background-color:transparent;" InputStyle="background-color:transparent;"
                                 Class="ma-0 pa-0">
@@ -28,6 +26,7 @@
                                 for="@context.Id" />
                     </ButtonTemplate>
                 </MudFileUpload>
+            </MudTooltip>
         </div>
 
         @* Input field *@
@@ -172,7 +171,6 @@
     private async void ClearPrompt()
     {
         await Task.Delay(100);
-        // await inputFieldRef.Clear();
         prompt = "";
         await inputFieldRef.Clear();
         chatFiles = new List<ChatFile>();
@@ -227,7 +225,6 @@
             return null;
         }
 
-        //await StorageService.UploadFile("testuser", chatFile);
         return chatFile;
     }
 

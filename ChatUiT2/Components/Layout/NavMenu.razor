@@ -77,9 +77,8 @@
             </MudButton>
         }
 
-        @if (UserService.Name == "Øystein Tveito Test" && !Nav.Uri.EndsWith("/test"))
+        @if (!Nav.Uri.EndsWith("/test") && UserService.IsTester)
         {
-            // TODO: Remove this if statement, only used for testing!
             <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/test"))" Color="Color.Tertiary">
                 <MudStack Row>
                     <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />

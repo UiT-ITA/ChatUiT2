@@ -69,7 +69,7 @@ public class ChatFile
         }
     }
 
-    // TODO: add support for more files
+    // TODO: Add support for more image formats, excel and word files
     public static List<string> ImageFiles = new() { "png", "jpg", "jpeg" };
     public static List<string> TextFiles = new() { "csv", "json", "txt", /*, "xlsx"*/};
     public static List<string> CompositeFiles = new() { "pdf",/* "docx"*/};
@@ -111,36 +111,23 @@ public class ChatFile
         else if (file.FileType == FileType.Text)
         {
             // Verify document
+            
+        }
+        else if (file.FileType == FileType.Composite)
+        {
+            // Verify composite
             if (file.FileName.Split('.').Last() == "pdf")
             {
                 try
                 {
-                    _ = GetPdfText(file);
+                    _ = ExtractContentFromPdf(file);
                 }
                 catch
                 {
+                    Console.WriteLine("Failed to extract content from pdf");
                     return false;
                 }
-
-                var result = ExtractContentFromPdf(file);
-
-                foreach (var item in result)
-                {
-                    if (item is PdfText pdfText)
-                    {
-                        Console.WriteLine(pdfText.Text);
-                    }
-                    else if (item is PdfImage pdfImage)
-                    {
-                        Console.WriteLine("Image: " + pdfImage.ImageData.Length + " bytes");
-                    }
-                }
-
             }
-        }
-        else if (file.FileType == FileType.Composite)
-        {
-            // Verify data
         }
 
         return true;
@@ -293,9 +280,7 @@ public class ChatFile
         }
 
         return new UserChatMessage(parts);
-        
     }
-
 }
 
 public enum FileType
@@ -310,13 +295,10 @@ public enum FileType
 
 public class CustomTextExtractionStrategy : ITextExtractionStrategy, IEventListener
 {
-    private Vector lastStart;
+    private Vector lastStart = null!;
 
-    private Vector lastEnd;
+    private Vector lastEnd = null!;
 
-    //
-    // Summary:
-    //     used to store the resulting String.
     private readonly StringBuilder result = new StringBuilder();
 
     public virtual void EventOccurred(IEventData data, EventType type)
@@ -373,9 +355,9 @@ public class CustomTextExtractionStrategy : ITextExtractionStrategy, IEventListe
 public abstract class PdfContent { }
 public class PdfText : PdfContent
 {
-    public string Text { get; set; }
+    public string Text { get; set; } = null!;
 }
 public class PdfImage : PdfContent
 {
-    public byte[] ImageData { get; set; }
+    public byte[] ImageData { get; set; } = null!;
 }

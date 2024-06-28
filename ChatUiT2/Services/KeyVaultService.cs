@@ -25,7 +25,7 @@ public class KeyVaultService : IKeyVaultService
         _secretClient = new SecretClient(vaultUri, new DefaultAzureCredential());
         _encryptionService = encryptionService;
 
-        Console.WriteLine("KeyVaultService created");
+        //Console.WriteLine("KeyVaultService created");
     }
 
     
