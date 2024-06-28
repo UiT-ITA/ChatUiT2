@@ -15,7 +15,7 @@
                 <MudIcon Icon="@Icons.Material.Filled.AttachFile" Style="width: 32px; height: 32px;" Class="mt-4 ml-2 mr-0" />
                 <MudStack Class="pt-2 pr-4" Spacing="0">
                     <MudText Typo="Typo.h6">@shortFilename</MudText>
-                    <MudText Typo="Typo.h6">@(File.FileType == FileType.Document ? "Document" :"Data file")</MudText>
+                    <MudText Typo="Typo.h6">@(File.FileType == FileType.Text ? "Text document" :"Composite document")</MudText>
                 </MudStack>
             </MudStack>
         </MudPaper>

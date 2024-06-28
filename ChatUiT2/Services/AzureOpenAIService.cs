@@ -64,7 +64,19 @@ public static class AzureOpenAIService
             OpenAI.Chat.ChatMessage requestMessage;
             if (allowFiles)
             {
-                requestMessage = ChatMessageWithFiles(message);
+                if (message.Files.Count > 0)
+                {
+                    messages.Insert(1, GetOpenAIMessage(message));
+                    foreach (var file in message.Files)
+                    {
+                        messages.Insert(1, ChatFile.GetOpenAIMessage(file));
+                    }
+                    requestMessage = new UserChatMessage("Here is a list of files:");
+                }
+                else
+                {
+                    requestMessage = GetOpenAIMessage(message);
+                }
             }
             else
             {
