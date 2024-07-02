@@ -122,9 +122,10 @@ public class ChatFile
                 {
                     _ = ExtractContentFromPdf(file);
                 }
-                catch
+                catch (Exception ex)
                 {
                     Console.WriteLine("Failed to extract content from pdf");
+                    Console.WriteLine(ex.Message);
                     return false;
                 }
             }
@@ -214,7 +215,6 @@ public class ChatFile
                 PdfResources resources = pdfDocument.GetPage(page).GetResources();
                 foreach (PdfName key in resources.GetResourceNames(PdfName.XObject))
                 {
-                    //PdfObject obj = resources.GetResource(PdfName.XObject, key);
                     PdfObject obj = resources.GetResourceObject(PdfName.XObject, key);
                     if (obj is PdfStream stream)
                     {
