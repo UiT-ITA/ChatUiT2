@@ -29,13 +29,13 @@ public class FileTools
     {
         if (!AllFiles.Contains(file.FileName.Split('.').Last()))
         {
-            Console.WriteLine("File type not supported.");
+            //Console.WriteLine("File type not supported.");
             return false;
         }
 
         if (file.Bytes == null)
         {
-            Console.WriteLine("File is empty.");
+            //Console.WriteLine("File is empty.");
             return false;
         }
 
@@ -54,7 +54,7 @@ public class FileTools
             catch
             {
                 // Handle the corrupted image case
-                Console.WriteLine("The image is corrupted.");
+                //Console.WriteLine("The image is corrupted.");
                 return false;
             }
         }
@@ -75,8 +75,8 @@ public class FileTools
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Failed to extract content from pdf");
-                    Console.WriteLine(ex.Message);
+                    //Console.WriteLine("Failed to extract content from pdf");
+                    //Console.WriteLine(ex.Message);
                     return false;
                 }
             }
@@ -88,8 +88,8 @@ public class FileTools
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Failed to extract content from docx");
-                    Console.WriteLine(ex.Message);
+                    //Console.WriteLine("Failed to extract content from docx");
+                    //Console.WriteLine(ex.Message);
                     return false;
                 }
             }
@@ -150,7 +150,6 @@ public class FileTools
                                 if (runElement is Text textElement)
                                 {
                                     text.Append(textElement.Text);
-                                    Console.WriteLine(textElement.Text);
                                 }
                                 else if (runElement is Break or LastRenderedPageBreak)
                                 {

@@ -117,12 +117,6 @@ public class KeyVaultService : IKeyVaultService
         return Convert.FromBase64String(aesKey);
     }
 
-    //public async Task<byte[]> GetKeyAsync(string username)
-    //{
-    //    Console.WriteLine("WARNING! Using dummy keyvault");
-    //    return Convert.FromBase64String("cJAmOFLkEg0u9xcL4dEKX5Ex3wiAieB1YqLu0 / wQIwI =");
-    //}
-
 
     /// <summary>
     /// Gets the key for an endpoint
