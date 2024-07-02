@@ -94,7 +94,7 @@
 
     private string acceptedFiles
     {
-        get => string.Join(",", ChatFile.AllFiles.Select(x => "." + x));
+        get => string.Join(",", FileTools.AllFiles.Select(x => "." + x));
     }
 
 
@@ -220,7 +220,7 @@
             return null;
         }
 
-        if (!ChatFile.VerifyFile(chatFile))
+        if (!FileTools.VerifyFile(chatFile))
         {
             return null;
         }

@@ -1,6 +1,7 @@
 ﻿using Azure.AI.OpenAI;
 using Azure.AI.OpenAI.Chat;
 using ChatUiT2.Models;
+using ChatUiT2.Tools;
 using MongoDB.Bson;
 using OpenAI.Chat;
 using System.ClientModel;
@@ -69,7 +70,7 @@ public static class AzureOpenAIService
                     messages.Insert(1, GetOpenAIMessage(message));
                     foreach (var file in message.Files)
                     {
-                        messages.Insert(1, ChatFile.GetOpenAIMessage(file));
+                        messages.Insert(1, FileTools.GetOpenAIMessage(file));
                     }
                     requestMessage = new UserChatMessage("Here is a list of files:");
                 }
@@ -130,7 +131,7 @@ public static class AzureOpenAIService
             {
                 var messagePart = ChatMessageContentPart.CreateImageMessageContentPart(
                     imageBytes: new BinaryData(file.Bytes!),
-                    imageBytesMediaType: ChatFile.GetMimeType(file)
+                    imageBytesMediaType: FileTools.GetMimeTypeFromFile(file)
                     );
                 messageContentParts.Add(messagePart);
             }
@@ -141,7 +142,7 @@ public static class AzureOpenAIService
                 string fileName = file.FileName.Substring(underscoreIndex + 1);
 
 
-                string fileText = ChatFile.GetText(file);
+                string fileText = FileTools.GetTextFromFile(file);
                 string messageText = "This is a file named " + fileName + ":\n" + fileText + "\n\n";
 
                 var messagePart = ChatMessageContentPart.CreateTextMessageContentPart(messageText);
