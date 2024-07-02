@@ -247,6 +247,7 @@
     protected override void OnInitialized()
     {
         UpdateService.OnGlobalUpdate += UpdateView;
+        UpdateService.OnWorkItemUpdate += UpdateView;
         GetUsername();
         // ShowMessage("Encryption is turned on. All previous chats has been deleted.");
     }
@@ -254,6 +255,7 @@
     public void Dispose()
     {
         UpdateService.OnGlobalUpdate -= UpdateView;
+        UpdateService.OnWorkItemUpdate -= UpdateView;
     }
 
     public void UpdateView()
