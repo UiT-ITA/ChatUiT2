@@ -71,8 +71,9 @@
             UserService.CurrentChat.Settings.MaxTokens = model.MaxTokens;
         }
 
-        
 
+        UpdateService.Update(UpdateType.WorkItem);
+        UpdateService.Update(UpdateType.Global);
 
     }
 }

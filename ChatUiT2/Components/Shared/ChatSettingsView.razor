@@ -127,11 +127,13 @@
     protected override void OnInitialized()
     {
         UpdateService.OnGlobalUpdate += StateHasChanged;
+        UpdateService.OnWorkItemUpdate += StateHasChanged;
     }
 
     public void Dispose()
     {
         UpdateService.OnGlobalUpdate -= StateHasChanged;
+        UpdateService.OnWorkItemUpdate -= StateHasChanged;
     }
 
     private int GetMaxTokens()
