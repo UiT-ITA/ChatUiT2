@@ -173,8 +173,6 @@ public class UserService : IUserService
             return;
         }
 
-        CurrentWorkItem = workItem;
-
         if (workItem.State == WorkItemState.Unloaded)
         {
             if (workItem.Type == WorkItemType.Chat)
@@ -183,6 +181,18 @@ public class UserService : IUserService
                 _ = _databaseService.LoadWorkItemComponentsAsync(User, (WorkItemChat)workItem, _updateService);
             }
         }
+
+        if (CurrentWorkItem.Persistant)
+        {
+            if (CurrentWorkItem.Type == WorkItemType.Chat)
+            {
+                CurrentChat.State = WorkItemState.Unloaded;
+                CurrentChat.Messages = new List<ChatMessage>();
+            }
+        }
+
+        CurrentWorkItem = workItem;
+
 
 
         if (_navigationManager.Uri != _navigationManager.BaseUri)

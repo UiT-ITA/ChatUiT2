@@ -194,6 +194,7 @@ public class DatabaseService : IDatabaseService
 
     public async Task LoadWorkItemComponentsAsync(User user, WorkItemChat workItem, IUpdateService updateService)
     {
+        Console.WriteLine("Loading chat: " + workItem.Name);
         try
         {
             workItem.Messages = await GetChatMessages(user, workItem.Id);
