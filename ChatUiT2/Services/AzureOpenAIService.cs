@@ -18,13 +18,11 @@ public static class AzureOpenAIService
         // Get the response from the OpenAI API
         var response = GetStreamingResponse(chat, model, endpoint);
 
-
-
         string content = "";
         await foreach (var chatUpdate in response)
         {
             foreach (var update in chatUpdate.ContentUpdate)
-            content += update.Text;
+                content += update.Text;
 
         }
 
@@ -42,7 +40,7 @@ public static class AzureOpenAIService
         };
 
         int availableTokens = model.MaxContext - (int)options.MaxTokens;
-        List<OpenAI.Chat.ChatMessage> messages = new ();
+        List<OpenAI.Chat.ChatMessage> messages = new();
 
         messages.Add(new SystemChatMessage(chat.Settings.Prompt));
 
@@ -84,21 +82,14 @@ public static class AzureOpenAIService
                 requestMessage = GetOpenAIMessage(message);
             }
 
-
             messages.Insert(1, requestMessage);
             availableTokens -= messageTokens;
         }
-
         return client.CompleteChatStreamingAsync(messages, options);
-
-
     }
 
     public static OpenAI.Chat.ChatMessage GetOpenAIMessage(Models.ChatMessage message)
     {
-
-
-
         if (message.Role == Models.ChatMessageRole.User)
         {
             return new UserChatMessage(message.Content);
@@ -115,7 +106,8 @@ public static class AzureOpenAIService
 
     public static OpenAI.Chat.ChatMessage ChatMessageWithFiles(Models.ChatMessage message)
     {
-        if (message.Role != Models.ChatMessageRole.User) {
+        if (message.Role != Models.ChatMessageRole.User)
+        {
             return new AssistantChatMessage(message.Content);
         }
 
@@ -167,9 +159,6 @@ public static class AzureOpenAIService
         {
             encoder = new Encoder(new Cl100KBase());
         }
-
         return encoder.CountTokens(content);
     }
-
-    
 }
