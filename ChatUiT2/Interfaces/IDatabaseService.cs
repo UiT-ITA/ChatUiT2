@@ -20,4 +20,8 @@ public interface IDatabaseService
     Task SaveChatMessages(User user, WorkItemChat chat);
     Task DeleteChatMessage(ChatMessage message, WorkItemChat chat);
     Task DeleteMissingMessages(User user, WorkItemChat chat);
+
+
+    // Admin functions
+    Task<List<User>> GetUsers();
 }

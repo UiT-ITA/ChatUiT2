@@ -73,7 +73,7 @@ public class FileTools
                 {
                     _ = ExtractContentFromPdf(file);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     //Console.WriteLine("Failed to extract content from pdf");
                     //Console.WriteLine(ex.Message);
@@ -86,7 +86,7 @@ public class FileTools
                 {
                     _ = ExtractContentFromDocx(file);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     //Console.WriteLine("Failed to extract content from docx");
                     //Console.WriteLine(ex.Message);

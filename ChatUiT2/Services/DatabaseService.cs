@@ -454,4 +454,23 @@ public class DatabaseService : IDatabaseService
         await _chatMessageCollection.DeleteManyAsync(filter);
 
     }
+
+
+    public async Task<List<User>> GetUsers()
+    {
+        List<User> users = new List<User>();
+
+        // Get all user objects in the user database
+        var documents = await _userCollection.Find(new BsonDocument()).ToListAsync();
+        foreach (var document in documents) {
+            var user = new User
+            {
+                Username = document["Username"].AsString,
+                Preferences = BsonSerializer.Deserialize<Preferences>(document["Preferences"].AsBsonDocument)
+
+            };
+            users.Add(user);
+        }
+        return users;
+    }
 }

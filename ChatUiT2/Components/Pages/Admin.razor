@@ -1,10 +1,9 @@
 ﻿@page "/admin"
+@using ChatUiT2.Services
 
 <div style="height:48px;">
-
+    <MudText Typo="Typo.h4" Class="pt-3 pl-3">No idea what this will be used for, but it's here.</MudText>
 </div>
-
-<h3>Admin area</h3>
 
 @if (!isAdmin)
 {
@@ -12,13 +11,31 @@
 }
 else
 {
-    <p>Welcome to the admin area.</p>
 
-    <MudButton OnClick="ToggleLoading">Loading: @UserService.Waiting</MudButton>
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" >
+        <MudTabPanel Text="Users">
+            @if (users.Count == 0)
+            {
+                <MudText>Loading...</MudText>
+            }
+            @foreach (var user in users)
+            {
+                <MudStack Row >
+                    <MudText>@user.Username</MudText>
+                </MudStack>
+            }
+        </MudTabPanel>
+        <MudTabPanel Text="Tab Two">
+            
+        </MudTabPanel>
+        <MudTabPanel Text="Tab Three">
+            <MudText>Content Three</MudText>
+        </MudTabPanel>
+        <MudTabPanel Text="Tab Disabled" Disabled="true">
+            <MudText>Content Disabled</MudText>
+        </MudTabPanel>
+    </MudTabs>
 
-    <MudButton OnClick="ToggleWaiting">Waiting: @UserService.Waiting</MudButton>
-
-    <MudButton OnClick="ToggleSmoothOutput">Smooth output: @UserService.SmoothOutput</MudButton>
 }
 
 @code {
@@ -26,8 +43,12 @@ else
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private AdminService AdminService { get; set; } = null!;
 
     private bool isAdmin;
+
+    List<User> users = new List<User>();
+    
 
 
 
@@ -41,24 +62,19 @@ else
                 Nav.NavigateTo("/");
             }
             StateHasChanged();
+            _ = LoadUsers();
         }
     }
 
-    private void ToggleLoading()
+
+    private async Task LoadUsers()
     {
-        UserService.Loading = !UserService.Loading;
-        UpdateService.Update(UpdateType.All);
+        users = await AdminService.GetUsers();
+        Console.WriteLine("Got users");
+        StateHasChanged();
     }
 
-    private void ToggleWaiting()
-    {
-        UserService.Waiting = !UserService.Waiting;
-        UpdateService.Update(UpdateType.All);
-    }
 
-    private void ToggleSmoothOutput()
-    {
-        UserService.SmoothOutput = !UserService.SmoothOutput;
-        UpdateService.Update(UpdateType.All);
-    }
+
+    
 }
