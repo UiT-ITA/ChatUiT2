@@ -173,7 +173,27 @@ public class UserService : IUserService
             return;
         }
 
+        if (workItem.State == WorkItemState.Unloaded)
+        {
+            if (workItem.Type == WorkItemType.Chat)
+            {
+                workItem.State = WorkItemState.Loading;
+                _ = _databaseService.LoadWorkItemComponentsAsync(User, (WorkItemChat)workItem, _updateService);
+            }
+        }
+
+        if (CurrentWorkItem.Persistant)
+        {
+            if (CurrentWorkItem.Type == WorkItemType.Chat)
+            {
+                CurrentChat.State = WorkItemState.Unloaded;
+                CurrentChat.Messages = new List<ChatMessage>();
+            }
+        }
+
         CurrentWorkItem = workItem;
+
+
 
         if (_navigationManager.Uri != _navigationManager.BaseUri)
         {

@@ -178,10 +178,10 @@ public class DatabaseService : IDatabaseService
                 var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
                 if (workItem != null)
                 {
-                    workItem.State = WorkItemState.Loading;
+                    workItem.State = WorkItemState.Unloaded;
                     workItems.Add(workItem);
                     // Start loading messages in the background
-                    _ = LoadWorkItemComponentsAsync(user, workItem, updateService);
+                    //_ = LoadWorkItemComponentsAsync(user, workItem, updateService);
                 }
             }
             else
@@ -192,8 +192,9 @@ public class DatabaseService : IDatabaseService
         return workItems;
     }
 
-    private async Task LoadWorkItemComponentsAsync(User user, WorkItemChat workItem, IUpdateService updateService)
+    public async Task LoadWorkItemComponentsAsync(User user, WorkItemChat workItem, IUpdateService updateService)
     {
+        Console.WriteLine("Loading chat: " + workItem.Name);
         try
         {
             workItem.Messages = await GetChatMessages(user, workItem.Id);
