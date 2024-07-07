@@ -175,6 +175,16 @@ public class UserService : IUserService
 
         CurrentWorkItem = workItem;
 
+        if (workItem.State == WorkItemState.Unloaded)
+        {
+            if (workItem.Type == WorkItemType.Chat)
+            {
+                workItem.State = WorkItemState.Loading;
+                _ = _databaseService.LoadWorkItemComponentsAsync(User, (WorkItemChat)workItem, _updateService);
+            }
+        }
+
+
         if (_navigationManager.Uri != _navigationManager.BaseUri)
         {
             _navigationManager.NavigateTo("/");
