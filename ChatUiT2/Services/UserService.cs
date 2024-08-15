@@ -109,10 +109,6 @@ public class UserService : IUserService
     }
 
 
-    /// <summary>
-    /// Loads the user data from the database
-    /// </summary>
-    /// <returns></returns>
     public async Task LoadUser()
     {
         if (User.Username != string.Empty)

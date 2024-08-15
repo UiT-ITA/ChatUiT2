@@ -9,6 +9,6 @@ public static class DateTimeTools
 
     public static DateTime GetTimestamp()
     {
-        return DateTime.Now.ToUniversalTime().ClearMilliseconds();
+        return DateTime.UtcNow.ClearMilliseconds();
     }
 }

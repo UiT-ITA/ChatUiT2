@@ -126,8 +126,10 @@
     {
         UpdateService.OnInputUpdate += StateHasChanged;
         UpdateService.OnWorkItemUpdate += StateHasChanged;
+
         base.OnInitialized();
     }
+
 
     public void Dispose()
     {

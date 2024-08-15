@@ -17,8 +17,6 @@ public class ConfigService : IConfigService
         //Console.WriteLine("ConfigService created");
     }
 
-
-
     //private void ReadConfig(IConfiguration configuration, KeyVaultService keyVaultService)
     private void ReadModelConfig(IConfiguration configuration)
     {

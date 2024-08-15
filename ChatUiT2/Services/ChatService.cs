@@ -16,6 +16,7 @@ public class ChatService : IChatService
         _userService = userService;
         _configService = configService;
 
+
         //Console.WriteLine("ChatService created");
     }
 
