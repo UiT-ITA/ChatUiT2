@@ -108,9 +108,13 @@
 
     [Parameter] public EventCallback OnClose { get; set; }
 
-    protected override void OnInitialized()
+
+    override protected void OnAfterRender(bool firstRender)
     {
-        UpdateService.OnWorkItemUpdate += StateHasChanged;
+        if (firstRender)
+        {
+            UpdateService.OnWorkItemUpdate += StateHasChanged;
+        }
     }
 
     public void Dispose()

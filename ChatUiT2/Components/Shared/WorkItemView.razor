@@ -72,9 +72,12 @@
 
     public bool isEditing { get; set; } = false;
 
-    override protected void OnInitialized()
+    override protected void OnAfterRender(bool firstRender)
     {
-        UpdateService.OnWorkItemUpdate += StateHasChanged;
+        if (firstRender)
+        {
+            UpdateService.OnWorkItemUpdate += StateHasChanged;
+        }
     }
 
     public void Dispose()

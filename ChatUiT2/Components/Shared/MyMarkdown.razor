@@ -39,11 +39,13 @@ else
         processedValue = ProcessMarkdown(Value);
     }
 
-    protected override void OnInitialized()
+    override protected void OnAfterRender(bool firstRender)
     {
-        UpdateService.OnChatMessageUpdate += StateHasChanged;
+        if (firstRender)
+        {
+            UpdateService.OnChatMessageUpdate += StateHasChanged;
+        }
     }
-
 
     public void Dispose()
     {

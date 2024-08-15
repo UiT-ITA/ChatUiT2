@@ -120,23 +120,19 @@
             CurrentChat = UserService.CurrentChat;
             ClearPrompt();
         }
+
+        if (firstRender)
+        {
+            UpdateService.OnInputUpdate += StateHasChanged;
+            UpdateService.OnWorkItemUpdate += StateHasChanged;
+        }
     }
-
-    protected override void OnInitialized()
-    {
-        UpdateService.OnInputUpdate += StateHasChanged;
-        UpdateService.OnWorkItemUpdate += StateHasChanged;
-
-        base.OnInitialized();
-    }
-
 
     public void Dispose()
     {
         UpdateService.OnInputUpdate -= StateHasChanged;
         UpdateService.OnWorkItemUpdate -= StateHasChanged;
     }
-
 
     private async void SendMessage()
     {

@@ -39,8 +39,19 @@
 
     override protected void OnInitialized()
     {
-        UpdateService.OnGlobalUpdate += StateHasChanged;
-        Models = ConfigService.GetModels();
+        if (Models.Count == 0)
+        {
+            Models = ConfigService.GetModels();
+            StateHasChanged();
+        }
+    }
+
+    override protected void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            UpdateService.OnGlobalUpdate += StateHasChanged;
+        }
     }
 
     public void Dispose()

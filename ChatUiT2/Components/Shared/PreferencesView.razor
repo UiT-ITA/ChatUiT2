@@ -127,9 +127,12 @@
         }
     }
 
-    protected override void OnInitialized()
+    override protected void OnAfterRender(bool firstRender)
     {
-        UpdateService.OnGlobalUpdate += StateHasChanged;
+        if (firstRender)
+        {
+            UpdateService.OnGlobalUpdate += StateHasChanged;
+        }
     }
 
     public void Dispose()
