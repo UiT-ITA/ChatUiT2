@@ -5,8 +5,8 @@ namespace ChatUiT2.Services;
 
 public class AdminService
 {
-    private IConfiguration _configuration;
-    private IDatabaseService _databaseService;
+    private readonly IConfiguration _configuration;
+    private readonly IDatabaseService _databaseService;
     public AdminService(IConfiguration configuration, IDatabaseService databaseService)
     {
         _configuration = configuration;
