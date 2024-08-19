@@ -20,7 +20,7 @@
             </MudStack>
         </MudPaper>
     }
-    @if (AllowRemove == true)
+    @if (RemoveFunc is not null)
     {
         <div class="tooltip-container">
             <MudTooltip Text="Remove File" Placement="Placement.Top" Arrow>
@@ -62,7 +62,7 @@
 @code {
     [Parameter] public ChatFile File { get; set; } = null!;
     [Parameter] public List<ChatFile>? FileList { get; set; }
-    [Parameter] public bool AllowRemove { get; set; } = false;
+    [Parameter] public Action<ChatFile>? RemoveFunc { get; set; }
     [Parameter] public bool RemoveTimestamp { get; set; } = true;
 
     [Inject] private IUserService UserService { get; set; } = null!;
@@ -101,9 +101,9 @@
 
     protected override void OnParametersSet()
     {
-        if (AllowRemove == true && FileList == null)
+        if (RemoveFunc is not null && FileList == null)
         {
-            throw new ArgumentException("FileList must be provided when AllowRemove is true.");
+            throw new ArgumentException("FileList must be provided when remove function is provided.");
         }
     }
 
@@ -163,8 +163,9 @@
 
     public void RemoveFile()
     {
-        FileList!.Remove(File);
-        UpdateService.Update(UpdateType.Input);
+        // FileList!.Remove(File);
+        // UpdateService.Update(UpdateType.Input);
+        RemoveFunc?.Invoke(File);
     }
 
 }
