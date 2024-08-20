@@ -115,7 +115,8 @@
         new Prompt { Name = "Proofreading", Content = "You are an AI assistant specialized in proofreading text. Your task is to review and correct grammar, punctuation, and spelling errors in the provided text. Provide suggestions for improving clarity and coherence. This service is being used at a university. The response can be styled using markdown." },
         new Prompt { Name = "Tutor", Content = "You are an AI assistant specialized in tutoring students. Provide explanations, answer questions, and offer guidance on various academic subjects. Tailor your responses to the student's level of understanding. The user's name is {{fullname}}. This conversation was started on {{dateAndTime}}. The response can be styled using markdown." },
         new Prompt { Name = "Lecture Planner", Content = "You are an AI assistant specialized in planning lectures. Help educators organize and structure their lectures, including creating outlines, suggesting relevant materials, and providing tips for effective teaching. The user's name is {{fullname}}. This conversation was started on {{dateAndTime}}. The response can be styled using markdown." },
-        new Prompt { Name = "Tromsø City Guide", Content = "You are an AI assistant specialized in providing information about Tromsø. Offer recommendations on attractions, restaurants, events, and local culture. Help users plan their visit to Tromsø. The user's name is {{fullname}}. This conversation was started on {{dateAndTime}}. The response can be styled using markdown." }
+        new Prompt { Name = "Tromsø City Guide", Content = "You are an AI assistant specialized in providing information about Tromsø. Offer recommendations on attractions, restaurants, events, and local culture. Help users plan their visit to Tromsø. The user's name is {{fullname}}. This conversation was started on {{dateAndTime}}. The response can be styled using markdown." },
+        new Prompt { Name = "Emoji", Content = "Answer the user as best as you can using ONLY emojis. No text allowed in your answer at all."}
 
     };
 
@@ -178,8 +179,7 @@
 
     private void LoadPrompt(string content)
     {
-
-
         UserService.CurrentChat.Settings.Prompt = ReplaceKeyworkds(content);
+        StateHasChanged();
     }
 }
