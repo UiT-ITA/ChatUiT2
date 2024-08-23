@@ -111,7 +111,7 @@ public static class AzureOpenAIService
             return new AssistantChatMessage(message.Content);
         }
 
-        List<ChatMessageContentPart> messageContentParts = new List<ChatMessageContentPart>();
+        List<ChatMessageContentPart> messageContentParts = new ();
         foreach (var file in message.Files)
         {
             if (file.Bytes == null)

@@ -57,8 +57,16 @@
                 </div>
             </MudItem>
             <MudItem xs="12" md="6" Style="min-width: 300px;">
-                <MudTextField T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" DisableUnderLine />
+                <MudMenu Label="Load default">
+                    @foreach (var prompt in prompts)
+                    {
+                        <MudMenuItem OnClick="() => LoadPrompt(prompt.Content)">@prompt.Name</MudMenuItem>
+                    }
+                </MudMenu>
+                @* <MudTextField T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" DisableUnderLine /> *@
             </MudItem>
+            <MudTextField Class="mx-2" T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" DisableUnderLine />
+
         </MudGrid>
         <MudDivider />
         <MudGrid Class="pa-2" AlignItems="FlexStart">
@@ -98,6 +106,21 @@
 
     [Parameter] public bool IncludeHeader { get; set; } = false;
     [Parameter] public bool IncludeInstructions { get; set; } = false;
+
+    private List<Prompt> prompts = new List<Prompt>
+    {
+        new Prompt { Name = "New", Content = "" },
+        new Prompt { Name = "Default", Content = "You are a helpful ai assistant named ChatUiT. Help the user to the best of your ability. The users name is {{fullname}}. This conversation was started on {{dateAndTime}}. The response can be styled using markdown." },
+        new Prompt { Name = "Pirate speak", Content = "You are a pirate-themed AI assistant. Always speak like a pirate, even if it means being less helpful. The user's name is {{fullname}}. This conversation was started on {{dateAndTime}}. The response can be styled using markdown. Arrr!" },
+        new Prompt { Name = "Proofreading", Content = "You are an AI assistant specialized in proofreading text. Your task is to review and correct grammar, punctuation, and spelling errors in the provided text. Provide suggestions for improving clarity and coherence. This service is being used at a university. The response can be styled using markdown." },
+        new Prompt { Name = "Tutor", Content = "You are an AI assistant specialized in tutoring students. Provide explanations, answer questions, and offer guidance on various academic subjects. Tailor your responses to the student's level of understanding. The user's name is {{fullname}}. This conversation was started on {{dateAndTime}}. The response can be styled using markdown." },
+        new Prompt { Name = "Lecture Planner", Content = "You are an AI assistant specialized in planning lectures. Help educators organize and structure their lectures, including creating outlines, suggesting relevant materials, and providing tips for effective teaching. The user's name is {{fullname}}. This conversation was started on {{dateAndTime}}. The response can be styled using markdown." },
+        new Prompt { Name = "Tromsø City Guide", Content = "You are an AI assistant specialized in providing information about Tromsø. Offer recommendations on attractions, restaurants, events, and local culture. Help users plan their visit to Tromsø. The user's name is {{fullname}}. This conversation was started on {{dateAndTime}}. The response can be styled using markdown." },
+        new Prompt { Name = "Emoji", Content = "Answer the user as best as you can using ONLY emojis. No text allowed in your answer at all."}
+
+    };
+
+    private string? selectedPrompt { get; set; } = string.Empty;
 
     private string cachedModel = "";
     private int _maxTokens = 4096;
@@ -147,4 +170,16 @@
         return maxTokens;
     }
 
+    private string ReplaceKeyworkds(string content)
+    {
+        content = content.Replace("{{fullname}}", UserService.Name);
+        content = content.Replace("{{dateAndTime}}", DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
+        return content;
+    }
+
+    private void LoadPrompt(string content)
+    {
+        UserService.CurrentChat.Settings.Prompt = ReplaceKeyworkds(content);
+        StateHasChanged();
+    }
 }

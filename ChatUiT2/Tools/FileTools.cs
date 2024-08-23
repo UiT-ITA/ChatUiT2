@@ -73,10 +73,10 @@ public class FileTools
                 {
                     _ = ExtractContentFromPdf(file);
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    //Console.WriteLine("Failed to extract content from pdf");
-                    //Console.WriteLine(ex.Message);
+                    Console.WriteLine("Failed to extract content from pdf");
+                    Console.WriteLine(ex.Message);
                     return false;
                 }
             }
@@ -194,36 +194,79 @@ public class FileTools
             throw new Exception("File is empty");
         }
         List<FileContent> contents = new List<FileContent>();
-        using (PdfReader pdfReader = new PdfReader(new MemoryStream(file.Bytes)))
-        using (PdfDocument pdfDocument = new PdfDocument(pdfReader))
+        try
         {
-            for (int page = 1; page <= pdfDocument.GetNumberOfPages(); page++)
+            using (PdfReader pdfReader = new PdfReader(new MemoryStream(file.Bytes)))
+            using (PdfDocument pdfDocument = new PdfDocument(pdfReader))
             {
-                var strategy = new CustomTextExtractionStrategy();
-                string text = PdfTextExtractor.GetTextFromPage(pdfDocument.GetPage(page), strategy);
-                if (!string.IsNullOrWhiteSpace(text))
+                int numberOfPages = pdfDocument.GetNumberOfPages();
+                for (int page = 1; page <= numberOfPages; page++)
                 {
-                    contents.Add(new FileText { Text = text });
-                }
-                PdfResources resources = pdfDocument.GetPage(page).GetResources();
-                foreach (PdfName key in resources.GetResourceNames(PdfName.XObject))
-                {
-                    PdfObject obj = resources.GetResourceObject(PdfName.XObject, key);
-                    if (obj is PdfStream stream)
+                    var strategy = new CustomTextExtractionStrategy();
+                    PdfPage pdfPage = pdfDocument.GetPage(page);
+                    if (pdfPage == null)
                     {
-                        PdfImageXObject image = new PdfImageXObject(stream);
-                        byte[] imageData = image.GetImageBytes(true);
-                        if (imageData.Length > 10_000)
+                        continue;
+                    }
+                    string text = PdfTextExtractor.GetTextFromPage(pdfPage, strategy);
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        contents.Add(new FileText { Text = text });
+                    }
+                    PdfResources resources = pdfPage.GetResources();
+                    if (resources == null)
+                    {
+                        continue;
+                    }
+                    var resourceNames = resources.GetResourceNames(PdfName.XObject);
+                    if (resourceNames == null)
+                    {
+                        continue;
+                    }
+                    foreach (PdfName key in resourceNames)
+                    {
+                        PdfObject obj = resources.GetResourceObject(PdfName.XObject, key);
+                        if (obj == null)
                         {
-                            contents.Add(new FileImage { ImageData = imageData });
+                            continue;
+                        }
+                        if (obj is PdfStream stream)
+                        {
+                            PdfImageXObject image = null;
+                            try
+                            {
+                                image = new PdfImageXObject(stream);
+                            }
+                            catch
+                            {
+                                continue;
+                            }
+                            byte[] imageData = null;
+                            try
+                            {
+                                imageData = image.GetImageBytes(true);
+                            }
+                            catch
+                            {
+                                continue;
+                            }
+                            if (imageData != null && imageData.Length > 10_000)
+                            {
+                                contents.Add(new FileImage { ImageData = imageData });
+                            }
                         }
                     }
                 }
             }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+            throw;
+        }
         return contents;
     }
-    
+
     public static List<FileContent> ExtractContentFromDocxOld(ChatFile file)
     {
         if (file.Bytes == null)

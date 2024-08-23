@@ -6,7 +6,7 @@
         <div class="px-2 pt-2" style="display: flex; flex-wrap: wrap; max-height: 160px; overflow-y: auto;"> 
             @foreach (var file in chatFiles)
             {
-                <FileView File="@file" FileList="chatFiles" AllowRemove="true" RemoveTimestamp="false"/>
+                <FileView File="@file" FileList="chatFiles" RemoveFunc="RemoveFile" RemoveTimestamp="false"/>
             }
         </div>
     }
@@ -220,6 +220,7 @@
 
         if (!FileTools.VerifyFile(chatFile))
         {
+            Console.WriteLine("Failed to verify file: " + chatFile.FileName);
             return null;
         }
 
@@ -233,15 +234,18 @@
         {
             foreach (var file in newFiles)
             {
+                //Console.WriteLine("Uploading file: " + file.Name);
                 if (chatFiles.Select(x => x.FileName).Contains(file.Name))
                 {
                     Snackbar.Add(file.Name + " is already uploaded", Severity.Info);
+                    //Console.WriteLine("File is already uploaded");
                     continue;
                 }
 
                 if (file.Size > 100 * 1024 * 1024)
                 {
                     Snackbar.Add(file.Name + " is " + file.Size / 1024 / 1024 + "MB. Maximum filesize is 20MB", Severity.Error);
+                    //Console.WriteLine("File is too big");
                     continue;
                 }
 
@@ -256,6 +260,10 @@
 
                     StateHasChanged();
                 }
+                else
+                {
+                    Snackbar.Add("Failed to upload " + file.Name, Severity.Error);
+                }
             }
         }
         catch (Exception e)
@@ -263,5 +271,15 @@
             Console.WriteLine("Error uploading files: " + e.Message);
             Console.WriteLine(e.StackTrace);
         }
+    }
+
+    private void RemoveFile(ChatFile file)
+    {
+        Console.WriteLine("Removing: " + file.FileName);
+        lock (chatFiles)
+        {
+            chatFiles.Remove(file);
+        }
+        StateHasChanged();
     }
 }
