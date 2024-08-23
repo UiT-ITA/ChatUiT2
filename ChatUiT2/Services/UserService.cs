@@ -140,7 +140,7 @@ public class UserService : IUserService
         User.Chats = workItems.OfType<WorkItemChat>().ToList();
         Loading = false;
         NewChat();
-        _updateService.Update(UpdateType.Global);
+        _updateService.Update(UpdateType.All);
     }
 
 
