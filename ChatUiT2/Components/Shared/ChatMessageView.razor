@@ -70,7 +70,7 @@
 
 <script>
     function playAudio(base64Audio) {
-        const audio = new Audio("data:audio/wav;base64," + base64Audio);
+        const audio = new Audio(base64Audio);
         audio.play();
     }
 </script>
@@ -100,6 +100,8 @@
     [Inject] private SpeechService SpeechService { get; set; } = null!;
 
     [Parameter] public ChatMessage Message { get; set; } = null!;
+
+    string audioBase64 = "";
 
     private bool isUserMessage => Message.Role == ChatMessageRole.User;
     private string timeStampString { get
@@ -201,12 +203,16 @@
 
     private async void ReadOutMessage()
     {
-        Console.WriteLine("Reading out message");
-        var audioBase64 = await SpeechService.GenerateSpeechAsync("Hello, this is a test message.");
+        if (string.IsNullOrEmpty(audioBase64))
+        {
+            audioBase64 = await SpeechService.GenerateSpeechAsync(Message.Content);
+        }
         if (!string.IsNullOrEmpty(audioBase64))
         {
-            Console.WriteLine($"Received Base64 Audio Data Length: {audioBase64.Length}"); // Log length for verification
+            Console.WriteLine("Playing audio");
             await JS.InvokeVoidAsync("playAudio", audioBase64);
+            Console.WriteLine("Audio played");
+            StateHasChanged();
         }
 
     }

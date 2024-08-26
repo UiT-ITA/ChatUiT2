@@ -7,13 +7,13 @@ namespace ChatUiT2.Services;
 public class SpeechService
 {
     private string _subscriptionKey;
-    private string _region;
+    private string _serviceRegion;
     public SpeechService(IConfiguration configuration)
     {
         _subscriptionKey = configuration["SpeechService:SubscriptionKey"] ?? "";
-        _region = configuration["SpeechService:Region"] ?? "";
+        _serviceRegion = configuration["SpeechService:Region"] ?? "";
 
-        if (string.IsNullOrEmpty(_subscriptionKey) || string.IsNullOrEmpty(_region))
+        if (string.IsNullOrEmpty(_subscriptionKey) || string.IsNullOrEmpty(_serviceRegion))
         {
             Console.WriteLine("SpeechService:SubscriptionKey and SpeechService:Region are required.");
             throw new InvalidOperationException("SpeechService:SubscriptionKey and SpeechService:Region are required.");
@@ -22,7 +22,7 @@ public class SpeechService
 
     public async Task<string> RecognizeSpeechAsync()
     {
-        var speechConfig = SpeechConfig.FromSubscription(_subscriptionKey, _region);
+        var speechConfig = SpeechConfig.FromSubscription(_subscriptionKey, _serviceRegion);
         using (var recognizer = new SpeechRecognizer(speechConfig))
         {
             var result = await recognizer.RecognizeOnceAsync();
@@ -56,58 +56,52 @@ public class SpeechService
 
     public async Task<string> GenerateSpeechAsync(string text)
     {
-        throw new NotImplementedException();
-        var config = SpeechConfig.FromSubscription(_subscriptionKey, _region);
+        var config = SpeechConfig.FromSubscription(_subscriptionKey, _serviceRegion);
         config.SpeechSynthesisVoiceName = "en-US-AndrewMultilingualNeural";
-        config.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm); // Set output format to WAV
-        var memoryStreamPushAudioOutputStream = new MemoryStreamPushAudioOutputStream();
-        var streamConfig = AudioConfig.FromStreamOutput(memoryStreamPushAudioOutputStream);
-        using (var synthesizer = new SpeechSynthesizer(config, streamConfig))
+        config.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3);
+        using var memoryStream = new MemoryStream();
+        using var audioOutputStream = AudioOutputStream.CreatePushStream(new CustomPushAudioOutputStream(memoryStream));
+        using var audioConfig = AudioConfig.FromStreamOutput(audioOutputStream);
+        using var synthesizer = new SpeechSynthesizer(config, audioConfig);
+
+        var result = await synthesizer.SpeakTextAsync(text);
+
+        if (result.Reason == ResultReason.SynthesizingAudioCompleted)
         {
-            using (var result = await synthesizer.SpeakTextAsync(text))
-            {
-                if (result.Reason == ResultReason.SynthesizingAudioCompleted)
-                {
-                    Console.WriteLine($"Speech synthesized for text [{text}]");
-                    // Get the audio data from the custom stream
-                    var audioData = memoryStreamPushAudioOutputStream.GetAudioData();
-                    var base64Audio = Convert.ToBase64String(audioData);
-                    Console.WriteLine($"Base64 Audio Data Length: {base64Audio.Length}"); // Log length for verification
-                    Console.WriteLine($"First 100 characters of Base64 Audio Data: {base64Audio.Substring(0, 100)}"); // Log first 100 characters for verification
-                    return base64Audio;
-                }
-                else if (result.Reason == ResultReason.Canceled)
-                {
-                    var cancellation = SpeechSynthesisCancellationDetails.FromResult(result);
-                    Console.WriteLine($"CANCELED: Reason={cancellation.Reason}");
-                    if (cancellation.Reason == CancellationReason.Error)
-                    {
-                        Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
-                        Console.WriteLine($"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
-                        Console.WriteLine($"CANCELED: Did you update the subscription info?");
-                    }
-                }
-            }
+            var audioBytes = memoryStream.ToArray();
+            var base64 =  Convert.ToBase64String(audioBytes);
+            return $"data:audio/mp3;base64,{base64}";
         }
-        return null;
+        else if (result.Reason == ResultReason.Canceled)
+        {
+            var cancellation = SpeechSynthesisCancellationDetails.FromResult(result);
+            throw new Exception($"Speech synthesis canceled: {cancellation.Reason}, {cancellation.ErrorDetails}");
+        }
+
+        throw new Exception("Speech synthesis failed.");
     }
 }
 
-public class MemoryStreamPushAudioOutputStream : PushAudioOutputStreamCallback
+
+public class CustomPushAudioOutputStream : PushAudioOutputStreamCallback
 {
-    private readonly MemoryStream _memoryStream = new MemoryStream();
+    private readonly MemoryStream _stream;
+
+    public CustomPushAudioOutputStream(MemoryStream stream)
+    {
+        _stream = stream;
+    }
+
     public override uint Write(byte[] dataBuffer)
     {
-        _memoryStream.Write(dataBuffer, 0, dataBuffer.Length);
+        _stream.Write(dataBuffer, 0, dataBuffer.Length);
         return (uint)dataBuffer.Length;
     }
+
     public override void Close()
     {
-        _memoryStream.Close();
-    }
-    public byte[] GetAudioData()
-    {
-        return _memoryStream.ToArray();
+        _stream.Close();
+        base.Close();
     }
 }
 
