@@ -26,12 +26,14 @@
     {
         if (firstRender)
         {
+            UpdateService.OnChatUpdate += StateHasChanged;
             UpdateService.OnGlobalUpdate += StateHasChanged;
         }
     }
 
     public void Dispose()
     {
+        UpdateService.OnChatUpdate -= StateHasChanged;
         UpdateService.OnGlobalUpdate -= StateHasChanged;
     }
 
