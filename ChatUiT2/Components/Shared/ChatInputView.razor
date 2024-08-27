@@ -123,15 +123,15 @@
 
         if (firstRender)
         {
-            UpdateService.OnInputUpdate += StateHasChanged;
-            UpdateService.OnWorkItemUpdate += StateHasChanged;
+            UpdateService.OnChatUpdate += StateHasChanged;
+            UpdateService.OnGlobalUpdate += StateHasChanged;
         }
     }
 
     public void Dispose()
     {
-        UpdateService.OnInputUpdate -= StateHasChanged;
-        UpdateService.OnWorkItemUpdate -= StateHasChanged;
+        UpdateService.OnChatUpdate -= StateHasChanged;
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
     }
 
     private async void SendMessage()

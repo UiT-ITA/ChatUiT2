@@ -76,13 +76,13 @@
     {
         if (firstRender)
         {
-            UpdateService.OnWorkItemUpdate += StateHasChanged;
+            UpdateService.OnGlobalUpdate += StateHasChanged;
         }
     }
 
     public void Dispose()
     {
-        UpdateService.OnWorkItemUpdate -= StateHasChanged;
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
     }
 
     private bool IsSelected()
@@ -159,7 +159,7 @@
             workItem.Name = newName;
             await UserService.UpdateWorkItem(workItem);
         }
-        UpdateService.Update(UpdateType.WorkItem);
+        UpdateService.Update(UpdateType.Global);
     }
     
     private async Task OnKeyDown(KeyboardEventArgs e)
@@ -179,7 +179,7 @@
         }
         
         await UserService.UpdateWorkItem(workItem);
-        UpdateService.Update(UpdateType.WorkItem);
+        UpdateService.Update(UpdateType.Global);
     }
 
 }

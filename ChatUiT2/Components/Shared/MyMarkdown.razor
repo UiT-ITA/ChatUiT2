@@ -43,13 +43,13 @@ else
     {
         if (firstRender)
         {
-            UpdateService.OnChatMessageUpdate += StateHasChanged;
+            UpdateService.OnChatUpdate += StateHasChanged;
         }
     }
 
     public void Dispose()
     {
-        UpdateService.OnChatMessageUpdate -= StateHasChanged;
+        UpdateService.OnChatUpdate -= StateHasChanged;
     }
 
     // Not needed anymore?

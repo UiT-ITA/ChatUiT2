@@ -109,7 +109,7 @@
     {
         if (firstRender)
         {
-            UpdateService.OnChatMessageUpdate += StateHasChanged;
+            UpdateService.OnChatUpdate += StateHasChanged;
         }
         await JS.InvokeVoidAsync("updateScroll", "chatContainer");
     }
@@ -117,7 +117,7 @@
 
     public void Dispose()
     {
-        UpdateService.OnChatMessageUpdate -= StateHasChanged;
+        UpdateService.OnChatUpdate -= StateHasChanged;
     }
 
 

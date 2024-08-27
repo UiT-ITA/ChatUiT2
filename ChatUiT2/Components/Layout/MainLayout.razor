@@ -255,7 +255,6 @@
         if (firstRender)
         {
             UpdateService.OnGlobalUpdate += UpdateView;
-            UpdateService.OnWorkItemUpdate += UpdateView;
         }
     }
 
@@ -263,7 +262,6 @@
     public void Dispose()
     {
         UpdateService.OnGlobalUpdate -= UpdateView;
-        UpdateService.OnWorkItemUpdate -= UpdateView;
     }
 
     public void UpdateView()

@@ -69,7 +69,6 @@ public class UserService : IUserService
             User.Preferences.ChatWidth = value;
             _databaseService.SaveUserPreferences(User.Username, User.Preferences);
             _updateService.Update(UpdateType.Global);
-            _updateService.Update(UpdateType.WorkItem);
         }
     }
 
@@ -195,7 +194,7 @@ public class UserService : IUserService
         {
             _navigationManager.NavigateTo("/");
         }
-        _updateService.Update(UpdateType.WorkItem);
+        _updateService.Update(UpdateType.Global);
     }
 
     public bool GetSaveHistory()
@@ -293,7 +292,7 @@ public class UserService : IUserService
         }
 
         await _databaseService.DeleteWorkItem(User, workItem);
-        _updateService.Update(UpdateType.WorkItem);
+        _updateService.Update(UpdateType.Global);
     }
 
     public async Task DeleteUser()
@@ -316,7 +315,7 @@ public class UserService : IUserService
         if (!User.Chats.Contains(CurrentChat))
         {
             User.Chats.Add(CurrentChat);
-            _updateService.Update(UpdateType.WorkItem);
+            _updateService.Update(UpdateType.Global);
         }
 
         foreach (var file in files)
@@ -351,7 +350,7 @@ public class UserService : IUserService
         await _chatService.GetChatResponse(CurrentChat);
         Waiting = false;
         _updateService.Update(UpdateType.ChatMessage);
-        _updateService.Update(UpdateType.Input);
+        _updateService.Update(UpdateType.Global);
     }
 
     public async Task RegerateFromIndex(int index)
@@ -373,7 +372,7 @@ public class UserService : IUserService
     public void StreamUpdated()
     {
         _updateService.Update(UpdateType.ChatMessage);
-        _updateService.Update(UpdateType.WorkItem);
+        //_updateService.Update(UpdateType.Global);
         _jsRuntime.InvokeVoidAsync("forceScroll", "chatContainer");
         ScrollDelayed();
     }

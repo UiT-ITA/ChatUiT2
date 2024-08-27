@@ -113,13 +113,13 @@
     {
         if (firstRender)
         {
-            UpdateService.OnWorkItemUpdate += StateHasChanged;
+            UpdateService.OnGlobalUpdate += StateHasChanged;
         }
     }
 
     public void Dispose()
     {
-        UpdateService.OnWorkItemUpdate -= StateHasChanged;
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
     }
 
 
