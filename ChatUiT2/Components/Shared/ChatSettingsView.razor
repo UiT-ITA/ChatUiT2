@@ -101,6 +101,7 @@
 
 
 @code {
+
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
@@ -153,6 +154,8 @@
         if (firstRender)
         {
             UpdateService.OnGlobalUpdate += StateHasChanged;
+
+            StateHasChanged();
         }
     }
 

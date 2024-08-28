@@ -100,6 +100,7 @@
 
 
 @code {
+
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
@@ -114,6 +115,8 @@
         if (firstRender)
         {
             UpdateService.OnGlobalUpdate += StateHasChanged;
+
+            StateHasChanged();
         }
     }
 
