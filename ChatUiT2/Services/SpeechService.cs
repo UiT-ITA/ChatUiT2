@@ -10,13 +10,13 @@ public class SpeechService
     private string _serviceRegion;
     public SpeechService(IConfiguration configuration)
     {
-        _subscriptionKey = configuration["SpeechService:SubscriptionKey"] ?? "";
-        _serviceRegion = configuration["SpeechService:Region"] ?? "";
+        _subscriptionKey = configuration["SpeechServiceKey"] ?? "";
+        _serviceRegion = configuration["SpeechServiceRegion"] ?? "";
 
         if (string.IsNullOrEmpty(_subscriptionKey) || string.IsNullOrEmpty(_serviceRegion))
         {
-            Console.WriteLine("SpeechService:SubscriptionKey and SpeechService:Region are required.");
-            throw new InvalidOperationException("SpeechService:SubscriptionKey and SpeechService:Region are required.");
+            Console.WriteLine("SpeechServiceKey and SpeechServiceRegion are required.");
+            throw new InvalidOperationException("SpeechServiceKey and SpeechServiceRegion are required.");
         }
     }
 
