@@ -29,13 +29,39 @@
             </MudTooltip>
         </div>
 
+        @* Alternative allowing more buttons*@
+        @* <div class="upload-container">
+            <MudTooltip Text="Upload files" Placement="Placement.Bottom">
+                <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles" Accept="@acceptedFiles"
+                               Style="width:54px; height: 54px; background-color:transparent;" InputStyle="background-color:transparent;"
+                               Class="ma-0 pa-0">
+                    <ButtonTemplate>
+                        <MudFab HtmlTag="label" DisableElevation Disabled="!UserService.EnableFileUpload"
+                                StartIcon="@Icons.Material.Filled.AttachFile"
+                                Style="width:54px; height: 54px; background-color:transparent;"
+                                for="@context.Id" />
+                    </ButtonTemplate>
+                </MudFileUpload>
+            </MudTooltip>
+            <div class="additional-button-container">
+                <MudIconButton Icon="@Icons.Material.Filled.Mic" Class="additional-button" OnClick="RecordFromMicrophone"/>
+            </div>
+        </div> *@
+
+        @if(recording)
+        {
+            <div style="width: 28px; height: 54px; display: flex; justify-content: center; align-items: center;">
+                <MudIcon Icon="@Icons.Material.Filled.Mic" Color="Color.Error" Size="Size.Small" Style="height: 28px; width: 28px;" />
+            </div>
+        }
+
         @* Input field *@
         <MudTextField id="inputField" @bind-Value="prompt" Variant="Variant.Text" @onkeydown="HandleKeyPress"
                       AutoFocus AutoGrow Placeholder="Ask anything!" Lines="1" MaxLines="10"
                        Style="position: relative; top: -12px;" Class="ml-0 pl-0" ReadOnly="generating"
                        DisableUnderLine @ref="inputFieldRef" TextUpdateSuppression="false"/>
 
-
+        
         @* Send message *@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             @if (!UserService.Waiting)
@@ -61,6 +87,52 @@
 </div>
 
 
+@* Used for alternative attatch function *@
+@* <style>
+    .upload-container {
+        display: flex;
+        align-items: center;
+        position: relative;
+        transition: width 0.3s ease;
+    }
+
+        .upload-container:hover {
+            width: 108px; /* Adjust the width as needed */
+        }
+
+            .upload-container:hover .input-field {
+                margin-left: 54px; /* Adjust the margin as needed */
+            }
+
+    .additional-button-container {
+        display: none;
+        position: absolute;
+        right: 0; /* Adjust the position as needed */
+        top: 0;
+        height: 54px;
+        width: 54px;
+    }
+
+    .upload-container:hover .additional-button-container {
+        display: block;
+    }
+
+    .additional-button {
+        height: 54px;
+        width: 54px;
+        background-color: transparent; /* Adjust the background color as needed */
+        border: none;
+        cursor: pointer;
+        transition: opacity 0.3s ease;
+        opacity: 0;
+    }
+
+    .upload-container:hover .additional-button {
+        opacity: 1;
+    }
+</style> *@
+
+
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
@@ -69,8 +141,12 @@
 
     [Inject] private IStorageService StorageService { get; set; } = null!;
 
+    [Inject] private SpeechService SpeechService { get; set; } = null!;
+
     private MudTextField<string> inputFieldRef = null!;
     private MudIconButton buttonRef = null!;
+
+    private bool recording = false;
 
     private bool generating = false;
 
@@ -282,4 +358,18 @@
         }
         StateHasChanged();
     }
+
+    // private async void RecordFromMicrophone()
+    // {
+    //     Console.WriteLine("Recording from microphone");
+    //     recording = true;
+    //     StateHasChanged();
+
+    //     var result = await SpeechService.RecognizeSpeechAsync();
+
+
+    //     recording = false;
+    //     StateHasChanged();
+
+    // }
 }

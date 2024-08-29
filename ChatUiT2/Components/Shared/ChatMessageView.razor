@@ -1,4 +1,5 @@
-﻿
+﻿@using ChatUiT2.Services
+
 @* Render message here *@
 
 <MudPaper Class="pa-0 ma-2 mb-6 hover-container" Elevation="0" Style=@($"max-width: 100%; min-width: 300px; border-radius: 16px; {(!isUserMessage ? "background-color: transparent;" : "")}")>
@@ -14,6 +15,10 @@
 
             @if (!isEditing)
             {
+
+                <div class="fade-in-button" style="width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
+                    <MudIconButton Style="width: 40px; height: 40px;" Icon="@Icons.Material.Filled.Hearing" Size="Size.Medium" OnClick="ReadOutMessage" />
+                </div>
                 @if (isUserMessage)
                 {
                     <div class="fade-in-button" style="width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
@@ -63,6 +68,13 @@
     </MudStack>
 </MudPaper>
 
+<script>
+    function playAudio(base64Audio) {
+        const audio = new Audio(base64Audio);
+        audio.play();
+    }
+</script>
+
 
 <style>
     .hover-container {
@@ -85,8 +97,11 @@
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
+    [Inject] private SpeechService SpeechService { get; set; } = null!;
 
     [Parameter] public ChatMessage Message { get; set; } = null!;
+
+    string audioBase64 = "";
 
     private bool isUserMessage => Message.Role == ChatMessageRole.User;
     private string timeStampString { get
@@ -184,6 +199,22 @@
         DateTime norwegianTime = TimeZoneInfo.ConvertTime(Message.Created, norwegianTimeZone);
 
         return norwegianTime.ToString("dd.mm.yy HH:mm");
+    }
+
+    private async void ReadOutMessage()
+    {
+        if (string.IsNullOrEmpty(audioBase64))
+        {
+            audioBase64 = await SpeechService.GenerateSpeechAsync(Message.Content);
+        }
+        if (!string.IsNullOrEmpty(audioBase64))
+        {
+            Console.WriteLine("Playing audio");
+            await JS.InvokeVoidAsync("playAudio", audioBase64);
+            Console.WriteLine("Audio played");
+            StateHasChanged();
+        }
+
     }
 
 }

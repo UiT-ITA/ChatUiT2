@@ -55,6 +55,7 @@ builder.Services.AddScoped<IUpdateService, UpdateService>();
 // Transient services
 
 builder.Services.AddTransient<TestService>();
+builder.Services.AddTransient<SpeechService>();
 
 var app = builder.Build();
 
