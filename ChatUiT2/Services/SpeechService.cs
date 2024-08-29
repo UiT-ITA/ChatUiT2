@@ -1,17 +1,26 @@
-﻿using Microsoft.Azure.Cosmos.Serialization.HybridRow;
+﻿using ChatUiT2.Interfaces;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using Microsoft.CognitiveServices.Speech;
 using Microsoft.CognitiveServices.Speech.Audio;
+using Microsoft.JSInterop;
 
 namespace ChatUiT2.Services;
 
 public class SpeechService
 {
+    private Action? audioCallback;
+
     private string _subscriptionKey;
     private string _serviceRegion;
-    public SpeechService(IConfiguration configuration)
+    private IJSRuntime JS;
+    private IUpdateService _updateService;
+
+    public SpeechService(IConfiguration configuration, IJSRuntime jSRuntime, IUpdateService updateService)
     {
         _subscriptionKey = configuration["SpeechServiceKey"] ?? "";
         _serviceRegion = configuration["SpeechServiceRegion"] ?? "";
+        JS = jSRuntime;
+        _updateService = updateService;
 
         if (string.IsNullOrEmpty(_subscriptionKey) || string.IsNullOrEmpty(_serviceRegion))
         {
@@ -79,6 +88,50 @@ public class SpeechService
         }
 
         throw new Exception("Speech synthesis failed.");
+    }
+
+    public async void PlayAudio(string base64, Action callback)
+    {
+        Console.WriteLine("Playing audio");
+        if (audioCallback != null)
+        {
+            audioCallback();
+        }
+        audioCallback  = callback;
+
+        var objRef = DotNetObjectReference.Create(this);
+
+        await JS.InvokeVoidAsync("playAudio", base64, objRef);
+        _updateService.Update(UpdateType.Global);
+
+    }
+
+    // Input: base64 audio string
+    public void PauseAudio()
+    {
+        JS.InvokeVoidAsync("pauseAudio");
+        if (audioCallback != null)
+        {
+            audioCallback();
+            audioCallback = null;
+        }
+        _updateService.Update(UpdateType.Global);
+    }
+
+    public void RestartAudio()
+    {
+        JS.InvokeVoidAsync("restartAudio");
+    }
+
+    [JSInvokable]
+    public void OnAudioEnded()
+    {
+        if (audioCallback != null)
+        {
+            audioCallback();
+            audioCallback = null;
+        }
+        _updateService.Update(UpdateType.Global);
     }
 }
 

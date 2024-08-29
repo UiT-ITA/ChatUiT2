@@ -51,11 +51,11 @@ builder.Services.AddSingleton<AdminService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthUserService, AuthUserService>();
 builder.Services.AddScoped<IUpdateService, UpdateService>();
+builder.Services.AddScoped<SpeechService>();
 
 // Transient services
 
 builder.Services.AddTransient<TestService>();
-builder.Services.AddTransient<SpeechService>();
 
 var app = builder.Build();
 

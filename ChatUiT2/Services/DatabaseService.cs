@@ -202,7 +202,7 @@ public class DatabaseService : IDatabaseService
         catch (Exception ex)
         {
             await DeleteWorkItem(user, new WorkItemChat { Id = workItem.Id });
-            //Console.WriteLine("Error loading chat: " + ex.Message);
+            Console.WriteLine("Error loading chat: " + ex.Message);
         }
         finally
         {

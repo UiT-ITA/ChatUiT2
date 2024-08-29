@@ -15,10 +15,24 @@
 
             @if (!isEditing)
             {
-
                 <div class="fade-in-button" style="width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
-                    <MudIconButton Style="width: 40px; height: 40px;" Icon="@Icons.Material.Filled.Hearing" Size="Size.Medium" OnClick="ReadOutMessage" />
+                    @if (audioState == AudioState.Idle)
+                    {
+                        <MudIconButton Style="width: 40px; height: 40px;" Icon="@Icons.Material.Filled.Hearing" Size="Size.Medium" OnClick="PlayMessage" />
+                    }
+                    else if (audioState == AudioState.Loading)
+                    {
+                        // Show spinner
+                        <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+                    }
+                    else if (audioState == AudioState.Playing)
+                    {
+                        <MudIconButton Style="width: 40px; height: 40px;" Icon="@Icons.Material.Filled.Pause" Size="Size.Medium" OnClick="PauseMessage" />
+                    }
+                
+                
                 </div>
+
                 @if (isUserMessage)
                 {
                     <div class="fade-in-button" style="width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
@@ -68,13 +82,6 @@
     </MudStack>
 </MudPaper>
 
-<script>
-    function playAudio(base64Audio) {
-        const audio = new Audio(base64Audio);
-        audio.play();
-    }
-</script>
-
 
 <style>
     .hover-container {
@@ -102,6 +109,17 @@
     [Parameter] public ChatMessage Message { get; set; } = null!;
 
     string audioBase64 = "";
+
+    enum AudioState
+    {
+        Idle,
+        Loading,
+        Playing
+    }
+
+    AudioState audioState = AudioState.Idle;
+    string audioId = Guid.NewGuid().ToString();
+
 
     private bool isUserMessage => Message.Role == ChatMessageRole.User;
     private string timeStampString { get
@@ -201,18 +219,34 @@
         return norwegianTime.ToString("dd.mm.yy HH:mm");
     }
 
-    private async void ReadOutMessage()
+    private async void PlayMessage()
     {
         if (string.IsNullOrEmpty(audioBase64))
         {
+            audioState = AudioState.Loading;
+            StateHasChanged();
             audioBase64 = await SpeechService.GenerateSpeechAsync(Message.Content);
         }
         if (!string.IsNullOrEmpty(audioBase64))
         {
-            await JS.InvokeVoidAsync("playAudio", audioBase64);
+            audioState = AudioState.Playing;
+            SpeechService.PlayAudio(audioBase64, OnAudioEnded);
+
+            //await JS.InvokeVoidAsync("playAudio", audioBase64);
             StateHasChanged();
         }
-
     }
 
+    private async void PauseMessage()
+    {
+        SpeechService.PauseAudio();
+        audioState = AudioState.Idle;
+        StateHasChanged();
+    }
+
+    private void OnAudioEnded()
+    {
+        audioState = AudioState.Idle;
+        StateHasChanged();
+    }
 }
