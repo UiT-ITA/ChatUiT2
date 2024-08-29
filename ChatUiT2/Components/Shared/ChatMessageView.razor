@@ -209,9 +209,7 @@
         }
         if (!string.IsNullOrEmpty(audioBase64))
         {
-            Console.WriteLine("Playing audio");
             await JS.InvokeVoidAsync("playAudio", audioBase64);
-            Console.WriteLine("Audio played");
             StateHasChanged();
         }
 
