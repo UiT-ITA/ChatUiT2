@@ -30,8 +30,9 @@
     <PackageReference Include="MudBlazor" Version="6.20.0" />
     <PackageReference Include="MudBlazor.Markdown" Version="1.0.2" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
+    <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.6.0" />
-    <PackageReference Include="Tiktoken" Version="2.0.2" />
+    <PackageReference Include="Tiktoken" Version="2.0.3" />
   </ItemGroup>
 
   <Import Project="$(MSBuildExtensionsPath64)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets" Condition="false" />
