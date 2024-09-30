@@ -41,6 +41,7 @@ public class UserService : IUserService
     }
     public bool Waiting { get; set; } = false;
     public bool Loading { get; set; } = true;
+    public string UserName { get => User.Username; }
     public string Name { get; set; } = "Unauthorized";
     public bool IsAdmin { get; set; } = false;
     public bool IsTester { get; set; } = false;
@@ -55,6 +56,7 @@ public class UserService : IUserService
     private IUpdateService _updateService { get; set; }
     private IStorageService _storageService { get; set; }
     private IJSRuntime _jsRuntime { get; set; }
+    private ILogger<UserService> _logger { get; set; }
     private NavigationManager _navigationManager { get; set; }
     public WorkItemChat CurrentChat 
     { 
@@ -83,6 +85,7 @@ public class UserService : IUserService
                         IStorageService storageService,
                         IUpdateService updateService,
                         IJSRuntime jSRuntime,
+                        ILogger<UserService> logger,
                         NavigationManager navigationManager)
     {
         _configuration = configuration;
@@ -94,10 +97,11 @@ public class UserService : IUserService
         _navigationManager = navigationManager;
         _storageService = storageService;
         _updateService = updateService;
+        _logger = logger;
 
 
 
-        _chatService = new ChatService(this, configService);
+        _chatService = new ChatService(this, configService, logger);
 
         CurrentWorkItem = new WorkItemChat();
 
@@ -141,7 +145,6 @@ public class UserService : IUserService
         NewChat();
         _updateService.Update(UpdateType.Global);
     }
-
 
     public void NewChat()
     {

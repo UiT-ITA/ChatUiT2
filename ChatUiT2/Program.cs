@@ -6,6 +6,8 @@ using Microsoft.Identity.Web;
 using MudBlazor;
 using MudBlazor.Services;
 using Microsoft.Identity.Web.UI;
+using ChatUiT2.Services.Template;
+using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents()
     .AddMicrosoftIdentityConsentHandler();
+
+// Add logging
+//builder.Services.AddLogging();
+builder.Services.AddSingleton<ITelemetryInitializer, MyTelemetryInitializer>();
+builder.Services.AddApplicationInsightsTelemetry();
+
+//builder.Services.AddApplicationInsightsTelemetry(builder.Configuration["ApplicationInsights:ConnectionString"]);
 
 
 // Add authentication

@@ -10,38 +10,16 @@ public class ChatService : IChatService
 {
     private IUserService _userService { get; set; }
     private IConfigService _configService { get; set; }
+    private ILogger _logger { get; set; }
 
-    public ChatService(IUserService userService, IConfigService configService)
+    public ChatService(IUserService userService, IConfigService configService, ILogger logger)
     {
         _userService = userService;
         _configService = configService;
+        _logger = logger;
 
 
         //Console.WriteLine("ChatService created");
-    }
-
-
-    // Not in use
-    public async Task GetChatResponse(WorkItemChat chat, string message)
-    {
-        var chatMessage = new ChatMessage
-        {
-            Role = ChatMessageRole.User,
-            Content = message,
-            Status = ChatMessageStatus.Done
-        };
-        
-        
-        await GetChatResponse(chat, chatMessage);
-    }
-
-    // Not in use
-    public async Task GetChatResponse(WorkItemChat chat, ChatMessage message)
-    {
-        chat.Messages.Add(message);
-        _userService.StreamUpdated();
-        await _userService.UpdateWorkItem(chat);
-        await GetChatResponse(chat);
     }
 
     public async Task GetChatResponse(WorkItemChat chat)
@@ -82,9 +60,14 @@ public class ChatService : IChatService
                     }
                     _userService.StreamUpdated();
 
+
                     var finishReason = chatUpdates.FinishReason;
                     if (finishReason != null)
                     {
+                        Console.WriteLine(finishReason);
+                        Console.WriteLine(chatUpdates.Usage);
+                        //_logger.LogInformation("Type: {LogType} User: {User} Output {Output} Input: {Input}", "ChatRequest", _userService.UserName, chatUpdates.Usage.InputTokens, chatUpdates.Usage.OutputTokens);
+
                         switch (finishReason.Value.ToString())
                         {
                             case "Stop":
@@ -100,6 +83,7 @@ public class ChatService : IChatService
                         }
                     }
                 }
+
             }
             catch (Exception ex)
             {

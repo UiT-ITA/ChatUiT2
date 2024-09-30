@@ -5,6 +5,7 @@ using ChatUiT2.Tools;
 using MongoDB.Bson;
 using OpenAI.Chat;
 using System.ClientModel;
+using System.Reflection.PortableExecutable;
 using Tiktoken;
 using Tiktoken.Encodings;
 
@@ -36,8 +37,11 @@ public static class AzureOpenAIService
         var options = new ChatCompletionOptions()
         {
             MaxTokens = Math.Min(model.MaxTokens, chat.Settings.MaxTokens),
-            Temperature = chat.Settings.Temperature
+            Temperature = chat.Settings.Temperature,
+             
+
         };
+
 
         int availableTokens = model.MaxContext - (int)options.MaxTokens;
         List<OpenAI.Chat.ChatMessage> messages = new();

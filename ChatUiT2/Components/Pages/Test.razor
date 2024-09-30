@@ -13,12 +13,15 @@
 <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="TestStorage">Test storage</MudButton>
 <MudButton StartIcon="@Icons.Material.Filled.Science" FullWidth OnClick="ToggleFileUpload">@("Turn file upload " + (userService.EnableFileUpload ? "off" : "on"))</MudButton>
 
+
+
 <span>@debug_text</span>
 
 @code {
     [Inject] private TestService testService { get; set; } = null!;
     [Inject] private IStorageService storageService { get; set; } = null!;
     [Inject] private IUserService userService { get; set; } = null!;
+    [Inject] private ILogger<Test> logger { get; set; } = null!;
     // [Inject] private AuthenticationStateProvider Auth { get; set; } = null!;
 
     string? debug_text = "Debug text";
@@ -101,6 +104,12 @@
     public void ToggleFileUpload()
     {
         userService.EnableFileUpload = !userService.EnableFileUpload;
+    }
+
+    public void LogSomething()
+    {
+        // testService.LogSomething();
+
     }
 
 }

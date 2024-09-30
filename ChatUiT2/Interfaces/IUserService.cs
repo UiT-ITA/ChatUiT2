@@ -10,6 +10,7 @@ public interface IUserService
     bool SmoothOutput { get; set; }
     bool Waiting { get; set; }
     bool Loading { get; set;  }
+    string UserName { get; }
     string Name { get; set; }
     bool IsAdmin { get; set; }
     bool IsTester { get; set; }
