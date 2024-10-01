@@ -30,20 +30,18 @@ public static class AzureOpenAIService
         return content;
     }
 
-    public static AsyncResultCollection<StreamingChatCompletionUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint, bool allowFiles = false)
+    public static AsyncCollectionResult<StreamingChatCompletionUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint, bool allowFiles = false)
     {
-        var client = new AzureOpenAIClient(new Uri(endpoint.Url), new Azure.AzureKeyCredential(endpoint.Key)).GetChatClient(model.DeploymentName);
+        var client = new AzureOpenAIClient(new Uri(endpoint.Url), new ApiKeyCredential(endpoint.Key)).GetChatClient(model.DeploymentName);
 
         var options = new ChatCompletionOptions()
         {
-            MaxTokens = Math.Min(model.MaxTokens, chat.Settings.MaxTokens),
+            MaxOutputTokenCount = Math.Min(model.MaxTokens, chat.Settings.MaxTokens),
             Temperature = chat.Settings.Temperature,
              
-
         };
 
-
-        int availableTokens = model.MaxContext - (int)options.MaxTokens;
+        int availableTokens = model.MaxContext - (int)options.MaxOutputTokenCount;
         List<OpenAI.Chat.ChatMessage> messages = new();
 
         messages.Add(new SystemChatMessage(chat.Settings.Prompt));
@@ -124,8 +122,8 @@ public static class AzureOpenAIService
             }
 
             if (file.FileType == FileType.Image)
-            {
-                var messagePart = ChatMessageContentPart.CreateImageMessageContentPart(
+            {   
+                var messagePart = ChatMessageContentPart.CreateImagePart(
                     imageBytes: new BinaryData(file.Bytes!),
                     imageBytesMediaType: FileTools.GetMimeTypeFromFile(file)
                     );
@@ -141,12 +139,12 @@ public static class AzureOpenAIService
                 string fileText = FileTools.GetTextFromFile(file);
                 string messageText = "This is a file named " + fileName + ":\n" + fileText + "\n\n";
 
-                var messagePart = ChatMessageContentPart.CreateTextMessageContentPart(messageText);
+                var messagePart = ChatMessageContentPart.CreateTextPart(messageText);
                 messageContentParts.Add(messagePart);
             }
         }
 
-        messageContentParts.Add(ChatMessageContentPart.CreateTextMessageContentPart(message.Content));
+        messageContentParts.Add(ChatMessageContentPart.CreateTextPart(message.Content));
 
         return new UserChatMessage(messageContentParts);
     }

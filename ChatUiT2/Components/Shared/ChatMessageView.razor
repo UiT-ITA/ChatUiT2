@@ -239,6 +239,7 @@
 
     private async void PauseMessage()
     {
+        await Task.Delay(1);
         SpeechService.PauseAudio();
         audioState = AudioState.Idle;
         StateHasChanged();

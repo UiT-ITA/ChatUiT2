@@ -65,7 +65,15 @@ public class ChatService : IChatService
                     if (finishReason != null)
                     {
                         Console.WriteLine(finishReason);
-                        Console.WriteLine(chatUpdates.Usage);
+                        if (chatUpdates.Usage is not null)
+                        {
+                            Console.WriteLine($"Usage: {chatUpdates.Usage}");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Usage is not included");
+                        }
+                        //Console.WriteLine(chatUpdates.Usage);
                         //_logger.LogInformation("Type: {LogType} User: {User} Output {Output} Input: {Input}", "ChatRequest", _userService.UserName, chatUpdates.Usage.InputTokens, chatUpdates.Usage.OutputTokens);
 
                         switch (finishReason.Value.ToString())

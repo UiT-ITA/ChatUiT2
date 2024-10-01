@@ -232,7 +232,7 @@ public class FileTools
                         }
                         if (obj is PdfStream stream)
                         {
-                            PdfImageXObject image = null;
+                            PdfImageXObject? image = null;
                             try
                             {
                                 image = new PdfImageXObject(stream);
@@ -241,7 +241,7 @@ public class FileTools
                             {
                                 continue;
                             }
-                            byte[] imageData = null;
+                            byte[]? imageData = null;
                             try
                             {
                                 imageData = image.GetImageBytes(true);
@@ -535,11 +535,11 @@ public class FileTools
     public static OpenAI.Chat.ChatMessage GetOpenAIMessage(ChatFile file)
     {
         List<ChatMessageContentPart> parts = new List<ChatMessageContentPart>();
-        parts.Add(ChatMessageContentPart.CreateTextMessageContentPart("File: " + file.FileName + "\n"));
+        parts.Add(ChatMessageContentPart.CreateTextPart("File: " + file.FileName + "\n"));
 
         if (file.FileType == FileType.Image)
         {
-            var imagePart = ChatMessageContentPart.CreateImageMessageContentPart(
+            var imagePart = ChatMessageContentPart.CreateImagePart(
                 imageBytes: new BinaryData(file.Bytes!),
                 imageBytesMediaType: GetMimeTypeFromFile(file)
                 );
@@ -547,7 +547,7 @@ public class FileTools
         }
         else if (file.FileType == FileType.Text)
         {
-            var textPart = ChatMessageContentPart.CreateTextMessageContentPart(GetTextFromFile(file));
+            var textPart = ChatMessageContentPart.CreateTextPart(GetTextFromFile(file));
             parts.Add(textPart);
         }
         else
@@ -562,12 +562,12 @@ public class FileTools
                 {
                     if (item is FileText pdfText)
                     {
-                        var textPart = ChatMessageContentPart.CreateTextMessageContentPart(pdfText.Text);
+                        var textPart = ChatMessageContentPart.CreateTextPart(pdfText.Text);
                         parts.Add(textPart);
                     }
                     else if (item is FileImage pdfImage)
                     {
-                        var imagePart = ChatMessageContentPart.CreateImageMessageContentPart(
+                        var imagePart = ChatMessageContentPart.CreateImagePart(
                             imageBytes: new BinaryData(pdfImage.ImageData),
                             imageBytesMediaType: "image/jpeg"
                             );
@@ -584,14 +584,14 @@ public class FileTools
                 {
                     if (item is FileText docxText)
                     {
-                        var textPart = ChatMessageContentPart.CreateTextMessageContentPart(docxText.Text);
+                        var textPart = ChatMessageContentPart.CreateTextPart(docxText.Text);
                         parts.Add(textPart);
                     }
                     else if (item is FileImage docxImage)
                     {
                         if (docxImage.ImageType == "image/jpeg" || docxImage.ImageType == "image/png")
                         {
-                            var imagePart = ChatMessageContentPart.CreateImageMessageContentPart(
+                            var imagePart = ChatMessageContentPart.CreateImagePart(
                                 imageBytes: new BinaryData(docxImage.ImageData),
                                 imageBytesMediaType: docxImage.ImageType
                                 );
@@ -599,7 +599,7 @@ public class FileTools
                         }
                         else
                         {
-                            var textPart = ChatMessageContentPart.CreateTextMessageContentPart("[Unsupported image type " + docxImage.ImageType + "]\n");
+                            var textPart = ChatMessageContentPart.CreateTextPart("[Unsupported image type " + docxImage.ImageType + "]\n");
                         }
 
                     }
