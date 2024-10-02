@@ -2,6 +2,9 @@
 using ChatUiT2.Interfaces;
 using ChatUiT2.Tools;
 using System.Text.RegularExpressions;
+using MongoDB.Bson;
+using System.Text.Json;
+using Azure.AI.OpenAI.Chat;
 //using OpenAI.Chat;
 
 namespace ChatUiT2.Services;
@@ -49,6 +52,11 @@ public class ChatService : IChatService
                 var response = AzureOpenAIService.GetStreamingResponse(chat, model, endpoint, allowFiles: true);
                 await foreach (var chatUpdates in response)
                 {
+                    // Serialize json the chatUpdates:
+                    var jsonText = JsonSerializer.Serialize(chatUpdates, new JsonSerializerOptions { WriteIndented = true });
+                    //Console.WriteLine(jsonText);
+
+
                     foreach (var update in chatUpdates.ContentUpdate)
                     {
                         responseMessage.Content += update.Text;
@@ -64,6 +72,7 @@ public class ChatService : IChatService
                     var finishReason = chatUpdates.FinishReason;
                     if (finishReason != null)
                     {
+                        Console.WriteLine(jsonText);
                         Console.WriteLine(finishReason);
                         if (chatUpdates.Usage is not null)
                         {
@@ -91,7 +100,6 @@ public class ChatService : IChatService
                         }
                     }
                 }
-
             }
             catch (Exception ex)
             {
