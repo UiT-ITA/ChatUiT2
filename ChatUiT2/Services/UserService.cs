@@ -324,6 +324,12 @@ public class UserService : IUserService
         foreach (var file in files)
         {
             file.FileName = ((DateTimeOffset)DateTimeTools.GetTimestamp()).ToUnixTimeSeconds().ToString() + "_" + file.FileName;
+
+            _logger.LogInformation("Type: {LogType} User: {User} WorkItem {WorkItemId} FileName: {FileName}",
+                "FileUpload",
+                UserName,
+                CurrentChat.Id,
+                file.FileName);
         }
 
         var chatMessage = new ChatMessage

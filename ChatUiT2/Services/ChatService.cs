@@ -44,7 +44,14 @@ public class ChatService : IChatService
         Model model = _configService.GetModel(chat.Settings.Model);
         ModelEndpoint endpoint = _configService.GetEndpoint(model.Deployment);
 
-        
+
+        _logger.LogInformation("Type: {LogType} User: {User} WorkItem {WorkItemId} Model: {ChatModel}",
+            "ChatRequest",
+            _userService.UserName,
+            chat.Id,
+            model.Name);
+
+
         if (model.DeploymentType == "AzureOpenAI")
         {
             try
@@ -52,11 +59,6 @@ public class ChatService : IChatService
                 var response = AzureOpenAIService.GetStreamingResponse(chat, model, endpoint, allowFiles: true);
                 await foreach (var chatUpdates in response)
                 {
-                    // Serialize json the chatUpdates:
-                    var jsonText = JsonSerializer.Serialize(chatUpdates, new JsonSerializerOptions { WriteIndented = true });
-                    //Console.WriteLine(jsonText);
-
-
                     foreach (var update in chatUpdates.ContentUpdate)
                     {
                         responseMessage.Content += update.Text;
@@ -72,16 +74,6 @@ public class ChatService : IChatService
                     var finishReason = chatUpdates.FinishReason;
                     if (finishReason != null)
                     {
-                        Console.WriteLine(jsonText);
-                        Console.WriteLine(finishReason);
-                        if (chatUpdates.Usage is not null)
-                        {
-                            Console.WriteLine($"Usage: {chatUpdates.Usage}");
-                        }
-                        else
-                        {
-                            Console.WriteLine("Usage is not included");
-                        }
                         //Console.WriteLine(chatUpdates.Usage);
                         //_logger.LogInformation("Type: {LogType} User: {User} Output {Output} Input: {Input}", "ChatRequest", _userService.UserName, chatUpdates.Usage.InputTokens, chatUpdates.Usage.OutputTokens);
 
