@@ -128,7 +128,7 @@
             TimeZoneInfo norwegianTimeZone = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
             DateTime norwegianTime = TimeZoneInfo.ConvertTime(Message.Created, norwegianTimeZone);
 
-            return norwegianTime.ToString("dd.mm.yy HH:mm");
+            return norwegianTime.ToString("dd.MM.yy HH:mm");
         }
     }
 
