@@ -35,7 +35,7 @@ jobs:
           path: ${{env.DOTNET_ROOT}}/myapp
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, azure]
     needs: build
     environment:
       name: 'PreProduction'
