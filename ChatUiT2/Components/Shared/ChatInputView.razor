@@ -134,6 +134,13 @@
 
 
 @code {
+
+
+
+
+
+
+
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
@@ -170,7 +177,7 @@
 
     private string acceptedFiles
     {
-        get => string.Join(",", FileTools.AllFiles.Select(x => "." + x));
+        get => FileTools.GetAcceptedFilesString();
     }
 
 
@@ -261,20 +268,15 @@
 
     private async Task<ChatFile?> UploadFile(IBrowserFile file)
     {
-        ChatFile chatFile = new ChatFile
-        {
-            FileName = file.Name,
-            Bytes = new byte[file.Size]
-        };
-
         try
         {
+            byte[] bytes = new byte[file.Size];
             using (var stream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024))
             {
                 int totalBytesRead = 0;
                 while (totalBytesRead < file.Size)
                 {
-                    int bytesRead = await stream.ReadAsync(chatFile.Bytes, totalBytesRead, (int)file.Size - totalBytesRead);
+                    int bytesRead = await stream.ReadAsync(bytes, totalBytesRead, (int)file.Size - totalBytesRead);
                     if (bytesRead == 0)
                     {
                         break; // end of the stream
@@ -287,20 +289,17 @@
                     throw new Exception("Failed to read the entire file.");
                 }
             }
+
+            ChatFile chatFile = new ChatFile(file.Name, bytes);
+
+            return chatFile;
         }
         catch (Exception e)
         {
             Console.WriteLine("Error reading file: " + e.Message);
+            Snackbar.Add("Failed to upload " + file.Name, Severity.Error);
             return null;
         }
-
-        if (!FileTools.VerifyFile(chatFile))
-        {
-            Console.WriteLine("Failed to verify file: " + chatFile.FileName);
-            return null;
-        }
-
-        return chatFile;
     }
 
 
@@ -347,6 +346,8 @@
             Console.WriteLine("Error uploading files: " + e.Message);
             Console.WriteLine(e.StackTrace);
         }
+        await Task.Delay(100);
+        UpdateService.Update(UpdateType.ChatMessage);
     }
 
     private void RemoveFile(ChatFile file)

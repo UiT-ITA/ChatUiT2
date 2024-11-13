@@ -125,7 +125,7 @@ public static class AzureOpenAIService
                 throw new Exception("File is empty");
             }
 
-            if (file.FileType == FileType.Image)
+            if (file.FileType == FileTypeOld.Image)
             {   
                 var messagePart = ChatMessageContentPart.CreateImagePart(
                     imageBytes: new BinaryData(file.Bytes!),
