@@ -285,41 +285,129 @@ public static class FileTools
         return content;
     }
 
-    public static string ImageToBase64(byte[] imageBytes, bool resize = true)
+
+    public static byte[] ResizeImage(byte[] imageBytes, int width, int height, bool innerDimentions = true)
     {
         using (var inputStream = new MemoryStream(imageBytes))
         using (var skBitmap = SKBitmap.Decode(inputStream))
         {
-            SKBitmap bitmapToEncode = skBitmap;
-            if (resize)
+            int newWidth, newHeight;
+            float aspectRatio = (float)skBitmap.Width / skBitmap.Height;
+            if (innerDimentions)
             {
-                // Calculate new dimensions while maintaining aspect ratio
-                int width = skBitmap.Width;
-                int height = skBitmap.Height;
-                if (width > 512 || height > 512)
+                // Inner: Crop the image to fit the new aspect ratio
+                if (aspectRatio > (float)width / height)
                 {
-                    float aspectRatio = (float)width / height;
-                    if (aspectRatio > 1) // Width is the longer side
-                    {
-                        width = 512;
-                        height = (int)(512 / aspectRatio);
-                    }
-                    else // Height is the longer side
-                    {
-                        height = 512;
-                        width = (int)(512 * aspectRatio);
-                    }
+                    newWidth = width;
+                    newHeight = (int)(width / aspectRatio);
                 }
-                bitmapToEncode = skBitmap.Resize(new SKImageInfo(width, height), SKFilterQuality.High);
+                else
+                {
+                    newHeight = height;
+                    newWidth = (int)(height * aspectRatio);
+                }
             }
-            using (var image = SKImage.FromBitmap(bitmapToEncode))
+            else
+            {
+                // Outer: Fit the entire image within the dimensions
+                if (aspectRatio > (float)width / height)
+                {
+                    newHeight = height;
+                    newWidth = (int)(height * aspectRatio);
+                }
+                else
+                {
+                    newWidth = width;
+                    newHeight = (int)(width / aspectRatio);
+                }
+            }
+            using (var resizedBitmap = skBitmap.Resize(new SKImageInfo(newWidth, newHeight), SKFilterQuality.High))
             using (var outputStream = new MemoryStream())
             {
-                image.Encode(SKEncodedImageFormat.Png, 100).SaveTo(outputStream);
-                // Return base64 string with included mime type
-                var base64 = Convert.ToBase64String(outputStream.ToArray());
-                return $"data:image/png;base64,{base64}";
+                using (var image = SKImage.FromBitmap(resizedBitmap))
+                {
+                    image.Encode(SKEncodedImageFormat.Png, 100).SaveTo(outputStream);
+                    return outputStream.ToArray();
+                }
             }
+        }
+    }
+
+    public static string ImageToBase64(byte[] imageBytes, bool resize = true)
+    {
+        byte[] imageToEncode = imageBytes;
+        if (resize)
+        {
+            var (width, height) = GetImageDimensions(imageBytes);
+            // Resize only if the image is larger than 1024x1024
+            if (width > 1024 || height > 1024)
+            {
+                // Use the ResizeImage function to resize the image
+                imageToEncode = ResizeImage(imageBytes, 1024, 1024, innerDimentions: false);
+            }
+        }
+        using (var inputStream = new MemoryStream(imageToEncode))
+        using (var skBitmap = SKBitmap.Decode(inputStream))
+        using (var image = SKImage.FromBitmap(skBitmap))
+        using (var outputStream = new MemoryStream())
+        {
+            image.Encode(SKEncodedImageFormat.Png, 100).SaveTo(outputStream);
+            // Return base64 string with included mime type
+            var base64 = Convert.ToBase64String(outputStream.ToArray());
+            return $"data:image/png;base64,{base64}";
+        }
+    }
+
+    public static (int, int) GetImageDimensions(byte[] imageBytes)
+    {
+        using (var inputStream = new MemoryStream(imageBytes))
+        using (var skBitmap = SKBitmap.Decode(inputStream))
+        {
+            return (skBitmap.Width, skBitmap.Height);
+        }
+    }
+
+    public static (int, int) GetImageDimensions(string base64)
+    {
+        string base64Data = base64.Split(',')[1];
+        byte[] imageBytes = Convert.FromBase64String(base64Data);
+        return GetImageDimensions(imageBytes);
+    }
+
+    public static string GetResizedImage(string base64, int width, int height, bool innerDimentions = true)
+    {
+        string base64Data = base64.Split(',')[1];
+        byte[] imageBytes = Convert.FromBase64String(base64Data);
+        byte[] resizedImageBytes = ResizeImage(imageBytes, width, height, innerDimentions);
+        var base64Resized = Convert.ToBase64String(resizedImageBytes);
+        return $"data:image/png;base64,{base64Resized}";
+    }
+
+    public static OpenAI.Chat.ChatMessage GetOpenAIMessage(this ChatFile file, bool userMessage = true)
+    {
+        List<ChatMessageContentPart> parts = new List<ChatMessageContentPart>();
+        parts.Add(ChatMessageContentPart.CreateTextPart("File: " + file.FileName + "\n"));
+
+        foreach (var part in file.Parts)
+        {
+            if (part is TextFilePart textPart)
+            {
+                var messagePart = ChatMessageContentPart.CreateTextPart(textPart.Data);
+                parts.Add(messagePart);
+            }
+            else if (part is ImageFilePart imagePart)
+            {
+                var messagePart = ChatMessageContentPart.CreateImagePart(imageUri: new Uri(imagePart.Data));
+                parts.Add(messagePart);
+            }
+        }
+        if (userMessage)
+        {
+            return new UserChatMessage(parts);
+        }
+        else
+        {
+            return new AssistantChatMessage(parts);
         }
     }
 }

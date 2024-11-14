@@ -53,7 +53,6 @@ builder.Services.AddSingleton<IConfigService, ConfigService>();
 builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IKeyVaultService, KeyVaultService>();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
-builder.Services.AddSingleton<IStorageService, StorageService>();
 builder.Services.AddSingleton<AdminService>();
 
 // Scoped services

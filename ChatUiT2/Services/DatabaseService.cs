@@ -4,6 +4,7 @@ using ChatUiT2.Tools;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using System.Text;
 using System.Text.Json;
 
 namespace ChatUiT2.Services;
@@ -13,25 +14,25 @@ public class DatabaseService : IDatabaseService
     // Services
     private readonly IKeyVaultService _keyVaultService;
     private readonly IEncryptionService _encryptionService;
-    private IStorageService _storageService;
+    //private IStorageService _storageService;
 
     // Collections
     private readonly IMongoCollection<BsonDocument> _configCollection;
     private readonly IMongoCollection<BsonDocument> _userCollection;
     private readonly IMongoCollection<BsonDocument> _workItemCollection;
     private readonly IMongoCollection<BsonDocument> _chatMessageCollection;
+    private readonly IMongoCollection<BsonDocument> _fileCollection;
 
     // Settings
     private readonly bool _useEncryption;
 
     public DatabaseService(IConfiguration configuration, 
                            IEncryptionService encryptionService, 
-                           IKeyVaultService keyVaultService,
-                           IStorageService storageService)
+                           IKeyVaultService keyVaultService)
     {
         _keyVaultService = keyVaultService;
         _encryptionService = encryptionService;
-        _storageService = storageService;
+        //_storageService = storageService;
 
         var connectionString = configuration.GetConnectionString("MongoDb");
 
@@ -53,8 +54,9 @@ public class DatabaseService : IDatabaseService
         _userCollection = userDatabase.GetCollection<BsonDocument>("Users");
         _workItemCollection = userDatabase.GetCollection<BsonDocument>("WorkItems");
         _chatMessageCollection = userDatabase.GetCollection<BsonDocument>("ChatMessages");
+        _fileCollection = userDatabase.GetCollection<BsonDocument>("ChatFiles");
 
-        _useEncryption = configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: true);
+        _useEncryption = configuration.GetValue<bool>("UseEncryption", defaultValue: true);
     
         //Console.WriteLine("DatabaseService created");
     }
@@ -379,7 +381,11 @@ public class DatabaseService : IDatabaseService
         List<Task> tasks = new List<Task>();
         foreach (ChatFile file in message.Files)
         {
-            tasks.Add(_storageService.UploadFile(chat, file));
+            //tasks.Add(_storageService.UploadFile(chat, file));
+
+
+            tasks.Add(SaveChatFile(file, message, user);
+
         }
         await Task.WhenAll(tasks);
 
@@ -401,6 +407,35 @@ public class DatabaseService : IDatabaseService
         await _chatMessageCollection.ReplaceOneAsync(fileter, document, options);
 
 
+    }
+
+    private async Task SaveChatFile(ChatFile file, ChatMessage message, User user)
+    {
+        var filePartArray = new BsonArray();
+        foreach (var part in file.Parts)
+        {
+            var encryptedData = _useEncryption ? _encryptionService.Encrypt(part.Data, user.AesKey!) : Encoding.UTF8.GetBytes(part.Data);
+            var partDocument = new BsonDocument
+                {
+                    {"Type", (int)part.Type},
+                    {"Data", _useEncryption ? _encryptionService.Encrypt(part.Data, user.AesKey!) : part.Data},
+                };
+            if (part is ImageFilePart imgPart)
+            {
+                partDocument.Add("Width", imgPart.Width);
+                partDocument.Add("Height", imgPart.Height);
+            }
+            filePartArray.Add(partDocument);
+        }
+        var fileDocument = new BsonDocument
+            {
+                {"_id", file.Id},
+                {"MessageId", message.Id},
+                {"FileName", file.FileName},
+                {"FileType", (int)file.FileType},
+                {"Parts", filePartArray}
+            };
+        await _fileCollection.InsertOneAsync(fileDocument);
     }
 
     /// <summary>

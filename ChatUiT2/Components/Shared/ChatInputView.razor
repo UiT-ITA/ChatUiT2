@@ -134,19 +134,12 @@
 
 
 @code {
-
-
-
-
-
-
-
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
-    [Inject] private IStorageService StorageService { get; set; } = null!;
+    //[Inject] private IStorageService StorageService { get; set; } = null!;
 
     [Inject] private SpeechService SpeechService { get; set; } = null!;
 
@@ -268,6 +261,8 @@
 
     private async Task<ChatFile?> UploadFile(IBrowserFile file)
     {
+        UserService.Waiting = true;
+        UpdateService.Update(UpdateType.ChatMessage);
         try
         {
             byte[] bytes = new byte[file.Size];
@@ -300,6 +295,11 @@
             Snackbar.Add("Failed to upload " + file.Name, Severity.Error);
             return null;
         }
+        finally
+        {
+            UserService.Waiting = false;
+            UpdateService.Update(UpdateType.ChatMessage);
+        }
     }
 
 
@@ -309,18 +309,15 @@
         {
             foreach (var file in newFiles)
             {
-                //Console.WriteLine("Uploading file: " + file.Name);
                 if (chatFiles.Select(x => x.FileName).Contains(file.Name))
                 {
                     Snackbar.Add(file.Name + " is already uploaded", Severity.Info);
-                    //Console.WriteLine("File is already uploaded");
                     continue;
                 }
 
                 if (file.Size > 100 * 1024 * 1024)
                 {
-                    Snackbar.Add(file.Name + " is " + file.Size / 1024 / 1024 + "MB. Maximum filesize is 20MB", Severity.Error);
-                    //Console.WriteLine("File is too big");
+                    Snackbar.Add(file.Name + " is " + file.Size / 1024 / 1024 + "MB. Maximum filesize is 100MB", Severity.Error);
                     continue;
                 }
 

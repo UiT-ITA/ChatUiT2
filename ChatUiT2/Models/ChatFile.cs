@@ -18,6 +18,7 @@ namespace ChatUiT2.Models;
 
 public class ChatFile
 {
+    public string Id { get; init; } = Guid.NewGuid().ToString();
     public string FileName { get; set; }
     public FileType FileType { get; set; }
     public List<ChatFilePart> Parts { get; set; }
@@ -35,7 +36,7 @@ public class ChatFile
 public class ChatFilePart
 {
     public FilePartType Type { get; set; }
-    public string? Data { get; set; }
+    public string Data { get; set; } = null!;
 }
 
 public class TextFilePart : ChatFilePart
@@ -49,16 +50,28 @@ public class TextFilePart : ChatFilePart
 
 public class ImageFilePart : ChatFilePart
 {
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public ImageFilePart(string data, int width, int height)
+    {
+        Type = FilePartType.Image;
+        Data = data;
+        Width = width;
+        Height = height;
+    }
+
     public ImageFilePart(string data)
     {
         Type = FilePartType.Image;
         Data = data;
+        (Width, Height) = FileTools.GetImageDimensions(data);
     }
 
     public ImageFilePart(byte[] data)
     {
         Type = FilePartType.Image;
         Data = FileTools.ImageToBase64(data);
+        (Width, Height) = FileTools.GetImageDimensions(data);
     }
 }
 
