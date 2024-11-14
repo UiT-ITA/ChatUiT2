@@ -6,6 +6,7 @@ using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using System.Text;
 using System.Text.Json;
+using static ChatUiT2.Models.ChatFile;
 
 namespace ChatUiT2.Services;
 
@@ -319,9 +320,9 @@ public class DatabaseService : IDatabaseService
             var files = new List<ChatFile>();
             if (doc.Contains("Files"))
             {
-                foreach (var file in doc["Files"].AsBsonArray)
+                foreach (var fileId in doc["Files"].AsBsonArray)
                 {
-                    files.Add(await _storageService.GetFile(chatId, file.AsString));
+                    files.Add(await GetChatFile(fileId.AsString, doc["_id"].AsString, user));
                 }
             }
 
@@ -338,6 +339,49 @@ public class DatabaseService : IDatabaseService
         }
 
         return messages.OrderBy(i => i.Created).ToList();
+    }
+
+    private async Task<ChatFile> GetChatFile(string id, string messageId, User user)
+    {
+        var filter = Builders<BsonDocument>.Filter.And(
+            Builders<BsonDocument>.Filter.Eq("_id", id),
+            Builders<BsonDocument>.Filter.Eq("MessageId", messageId)
+        );
+        var fileDocument = await _fileCollection.Find(filter).FirstOrDefaultAsync();
+        if (fileDocument == null)
+        {
+            throw new Exception("File not found");
+        }
+        // Extract file details
+        string fileName = fileDocument["FileName"].AsString;
+        var partsArray = fileDocument["Parts"].AsBsonArray;
+        // Reconstruct the file parts
+        var parts = new List<ChatFilePart>();
+        foreach (var partDoc in partsArray)
+        {
+            var type = (FilePartType)partDoc["Type"].AsInt32;
+            byte[] data = partDoc["Data"].AsByteArray;
+            string dataString = Encoding.UTF8.GetString(data);
+            // Decrypt data if necessary
+            if (_useEncryption)
+            {
+                dataString = _encryptionService.Decrypt(data, user.AesKey!);
+            }
+            ChatFilePart part;
+            if (type == FilePartType.Image)
+            {
+                var width = partDoc["Width"].AsInt32;
+                var height = partDoc["Height"].AsInt32;
+                part = new ImageFilePart(dataString, width, height);
+            }
+            else
+            {
+                part = new TextFilePart(dataString);
+            }
+            parts.Add(part);
+        }
+        // Create and return the ChatFile object
+        return new ChatFile(id, fileName, parts);
     }
 
     /// <summary>
@@ -381,11 +425,7 @@ public class DatabaseService : IDatabaseService
         List<Task> tasks = new List<Task>();
         foreach (ChatFile file in message.Files)
         {
-            //tasks.Add(_storageService.UploadFile(chat, file));
-
-
-            tasks.Add(SaveChatFile(file, message, user);
-
+            tasks.Add(SaveChatFile(file, message, user));
         }
         await Task.WhenAll(tasks);
 
@@ -398,7 +438,7 @@ public class DatabaseService : IDatabaseService
             {"Role", (int)message.Role},
             {"Status", (int)message.Status},
             {"Created", message.Created},
-            {"Files", new BsonArray(message.Files.Select(f => f.FileName)) }
+            {"Files", new BsonArray(message.Files.Select(f => f.Id)) }
         };
 
         var fileter = Builders<BsonDocument>.Filter.Eq("_id", message.Id);
@@ -409,12 +449,23 @@ public class DatabaseService : IDatabaseService
 
     }
 
+    /// <summary>
+    /// Save a single chat file to the database
+    /// <param name="file"></param>
+    /// <param name="message"></param>
+    /// <param name="user"></param>
+    /// <returns></returns>
     private async Task SaveChatFile(ChatFile file, ChatMessage message, User user)
     {
+        var existingFile = await _fileCollection.Find(Builders<BsonDocument>.Filter.Eq("_id", file.Id)).FirstOrDefaultAsync();
+        if (existingFile != null)
+        {
+            Console.WriteLine($"File with ID {file.Id} already exists. Skipping insert.");
+            return;
+        }
         var filePartArray = new BsonArray();
         foreach (var part in file.Parts)
         {
-            var encryptedData = _useEncryption ? _encryptionService.Encrypt(part.Data, user.AesKey!) : Encoding.UTF8.GetBytes(part.Data);
             var partDocument = new BsonDocument
                 {
                     {"Type", (int)part.Type},
@@ -432,7 +483,6 @@ public class DatabaseService : IDatabaseService
                 {"_id", file.Id},
                 {"MessageId", message.Id},
                 {"FileName", file.FileName},
-                {"FileType", (int)file.FileType},
                 {"Parts", filePartArray}
             };
         await _fileCollection.InsertOneAsync(fileDocument);
@@ -468,12 +518,19 @@ public class DatabaseService : IDatabaseService
         List<Task> tasks = new List<Task>();
         foreach (ChatFile file in message.Files)
         {
-            tasks.Add(_storageService.DeleteFile(chat, file.FileName));
+            //tasks.Add(_storageService.DeleteFile(chat, file.FileName));
+            tasks.Add(DeleteChatFile(file));
         }
         await Task.WhenAll(tasks);
 
         var filter = Builders<BsonDocument>.Filter.Eq("_id", message.Id);
         await _chatMessageCollection.DeleteOneAsync(filter);
+    }
+
+    public async Task DeleteChatFile(ChatFile file)
+    {
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", file.Id);
+        await _fileCollection.DeleteOneAsync(filter);
     }
 
     /// <summary>
@@ -483,7 +540,7 @@ public class DatabaseService : IDatabaseService
     /// <returns></returns>
     private async Task DeleteChat(WorkItemChat chat)
     {
-        await _storageService.DeleteContainer(chat);
+        //await _storageService.DeleteContainer(chat);
 
         var filter = Builders<BsonDocument>.Filter.Eq("_id", chat.Id);
         await _chatMessageCollection.DeleteManyAsync(filter);

@@ -269,9 +269,11 @@
             using (var stream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024))
             {
                 int totalBytesRead = 0;
+                Console.WriteLine("Starting to read..");
                 while (totalBytesRead < file.Size)
                 {
-                    int bytesRead = await stream.ReadAsync(bytes, totalBytesRead, (int)file.Size - totalBytesRead);
+                    int bytesToRead = Math.Min((int)file.Size - totalBytesRead, 81920); // Read in chunks of 81920 bytes
+                    int bytesRead = await stream.ReadAsync(bytes, totalBytesRead, bytesToRead);
                     if (bytesRead == 0)
                     {
                         break; // end of the stream
@@ -285,7 +287,9 @@
                 }
             }
 
+            Console.WriteLine("Createing chatfile");
             ChatFile chatFile = new ChatFile(file.Name, bytes);
+            Console.WriteLine("Done");
 
             return chatFile;
         }

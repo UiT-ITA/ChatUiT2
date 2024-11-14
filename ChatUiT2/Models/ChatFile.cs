@@ -18,7 +18,7 @@ namespace ChatUiT2.Models;
 
 public class ChatFile
 {
-    public string Id { get; init; } = Guid.NewGuid().ToString();
+    public string Id { get; set; } = Guid.NewGuid().ToString();
     public string FileName { get; set; }
     public FileType FileType { get; set; }
     public List<ChatFilePart> Parts { get; set; }
@@ -30,9 +30,15 @@ public class ChatFile
         FileType = FileTools.GetFileTypeFromName(fileName);
         Parts = FileTools.ProcessFile(FileType, data);
     }
+    public ChatFile(string id, string fileName, List<ChatFilePart> parts)
+    {
+        Id = id;
+        FileName = fileName;
+        FileType = FileTools.GetFileTypeFromName(fileName);
+        Parts = parts;
+    }
 
 }
-
 public class ChatFilePart
 {
     public FilePartType Type { get; set; }

@@ -49,8 +49,9 @@ public static class AzureOpenAIService
 
         messages.Add(new SystemChatMessage(chat.Settings.Prompt));
 
-        foreach (var message in chat.Messages)
+        for (int i = chat.Messages.Count - 1; i >= 0; i--)
         {
+            var message = chat.Messages[i];
             if (message.Status == ChatMessageStatus.Error) continue;
             int messageTokens = GetTokens(model.DeploymentName, message.Content);
             int fileTokens = 0;
@@ -81,6 +82,7 @@ public static class AzureOpenAIService
                 if (message.Files.Count > 0)
                 {
                     messages.Insert(1, GetOpenAIMessage(message));
+                    //Console.WriteLine(message.Content);
                     foreach (var file in message.Files)
                     {
 
@@ -143,6 +145,7 @@ public static class AzureOpenAIService
             messages.Insert(1, requestMessage);
             availableTokens -= messageTokens;
         }*/
+
 
         return client.CompleteChatStreamingAsync(messages, options);
     }

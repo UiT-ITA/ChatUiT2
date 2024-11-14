@@ -88,7 +88,7 @@ public static class FileTools
 
     private static List<ChatFilePart> HandleImageFile(byte[] data)
     {
-        string base64 = Convert.ToBase64String(data);
+        string base64 = ImageToBase64(data);
         return new List<ChatFilePart> { new ImageFilePart(base64) };
     }
 
@@ -374,7 +374,7 @@ public static class FileTools
         return GetImageDimensions(imageBytes);
     }
 
-    public static string GetResizedImage(string base64, int width, int height, bool innerDimentions = true)
+    public static string GetResizedImageOld(string base64, int width, int height, bool innerDimentions = true)
     {
         string base64Data = base64.Split(',')[1];
         byte[] imageBytes = Convert.FromBase64String(base64Data);
