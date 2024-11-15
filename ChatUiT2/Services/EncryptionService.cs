@@ -21,9 +21,13 @@ public class EncryptionService : IEncryptionService
     /// <exception cref="Exception"></exception>
     public byte[] Encrypt(string data, byte[] key)
     {
+        return Encrypt(Encoding.UTF8.GetBytes(data), key);
+    }
+
+    public byte[] Encrypt(byte[] data, byte[] key)
+    {
         if (key.Length == 0) throw new Exception("aesKey is empty");
 
-        byte[] byteData = Encoding.UTF8.GetBytes(data);
         using var aes = Aes.Create();
         aes.Key = key;
         aes.GenerateIV(); // Generate a new IV
@@ -34,9 +38,15 @@ public class EncryptionService : IEncryptionService
         ms.Write(iv, 0, iv.Length); // Prepend the IV to the data
         using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
         {
-            cs.Write(byteData, 0, byteData.Length);
+            cs.Write(data, 0, data.Length);
         }
         return ms.ToArray();
+    }
+
+    public string DecryptString(byte[] encryptedData, byte[] key)
+    {
+        //return Decrypt(Encoding.UTF8.GetBytes(encryptedData), key);
+        return Encoding.UTF8.GetString(Decrypt(encryptedData, key));
     }
 
     /// <summary>
@@ -46,7 +56,7 @@ public class EncryptionService : IEncryptionService
     /// <param name="key">The key to use</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    public string Decrypt(byte[] encryptedData, byte[] key)
+    public byte[] Decrypt(byte[] encryptedData, byte[] key)
     {
         if (key.Length == 0) throw new Exception("aesKey is empty");
         byte[] data;
@@ -66,7 +76,7 @@ public class EncryptionService : IEncryptionService
             ms.Seek(iv.Length, SeekOrigin.Begin); // Skip past the IV
             data = reader.ReadBytes(encryptedData.Length - iv.Length);
         }
-        return Encoding.UTF8.GetString(data);
+        return data;
     }
 
     /// <summary>
