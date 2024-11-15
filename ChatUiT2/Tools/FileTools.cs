@@ -14,14 +14,409 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using ChatUiT2.Models;
 using DocumentFormat.OpenXml.Vml;
 using OpenAI.Chat;
+using SharpCompress.Common;
+using System.Drawing;
+using SkiaSharp;
+using static iText.IO.Codec.TiffWriter;
 
 namespace ChatUiT2.Tools;
 
-public class FileTools
+public static class FileTools
+{
+    public static string GetAcceptedFilesString()
+    {
+        // Dynamically create a string with all filetypes that are accepted in the form ".txt,.pdf,...." based on filetypes in the FileType enum, excluding "other"
+        StringBuilder sb = new();
+        foreach (var type in Enum.GetValues<FileType>())
+        {
+            if (type != FileType.other)
+            {
+                sb.Append($".{type},");
+            }
+        }
+
+        return sb.ToString().TrimEnd(',');
+    }
+
+    public static bool IsImage(FileType type)
+    {
+        return type switch
+        {
+            FileType.bmp => true,
+            FileType.jpg => true,
+            FileType.jpeg => true,
+            FileType.png => true,
+            _ => false,
+        };
+    }
+
+    private static readonly Dictionary<FileType, Func<byte[], List<ChatFilePart>>> _fileHnadlers = new()
+    {
+        { FileType.json, HandleTextFile },
+        { FileType.txt, HandleTextFile },
+        { FileType.csv, HandleTextFile },
+        { FileType.html, HandleTextFile },
+
+        { FileType.bmp, HandleImageFile },
+        { FileType.jpg, HandleImageFile },
+        { FileType.jpeg, HandleImageFile },
+        { FileType.png, HandleImageFile },
+
+        { FileType.docx, HandleDocxFile },
+        { FileType.pdf, HandlePdfFile },
+
+        { FileType.other, HandleTextFile }
+    };
+
+    public static List<ChatFilePart> ProcessFile(FileType type, byte[] data)
+    {
+        if (_fileHnadlers.TryGetValue(type, out var handler))
+        {
+            return handler(data);
+        }
+        else
+        {
+            throw new NotImplementedException("File type not supported");
+        }
+    }
+
+    private static List<ChatFilePart> HandleTextFile(byte[] data)
+    {
+        string text = Encoding.UTF8.GetString(data);
+        return new List<ChatFilePart> { new TextFilePart(text) };
+    }
+
+    private static List<ChatFilePart> HandleImageFile(byte[] data)
+    {
+        return new List<ChatFilePart> { new ImageFilePart(data) };
+    }
+
+    private static List<ChatFilePart> HandleDocxFile(byte[] data)
+    {
+        throw new NotImplementedException();
+    }
+
+    private static List<ChatFilePart> HandlePdfFile(byte[] data)
+    {
+        throw new NotImplementedException();
+    }
+
+    public static FileType GetFileTypeFromName(string name)
+    {
+        string extention = name.Split('.').Last();
+        if (Enum.TryParse<FileType>(extention, true, out var type))
+        {
+            return type;
+        }
+        else
+        {
+            return FileType.other;
+        }
+    }
+
+
+    private static List<ChatFilePart> ExtractContentFromPdf(byte[] data, int imageSizeCutof = 10_000)
+    {
+        List<ChatFilePart> content = new ();
+
+        if (data == null)
+        {
+            throw new Exception("File is empty");
+        }
+
+        try
+        {
+            using (PdfReader pdfReader = new PdfReader(new MemoryStream(data)))
+            using (PdfDocument pdfDocument = new PdfDocument(pdfReader))
+            {
+                int numberOfPages = pdfDocument.GetNumberOfPages();
+                for (int page = 1; page <= numberOfPages; page++)
+                {
+                    var strategy = new CustomTextExtractionStrategy();
+                    PdfPage pdfPage = pdfDocument.GetPage(page);
+                    if (pdfPage == null)
+                    {
+                        continue;
+                    }
+                    string text = PdfTextExtractor.GetTextFromPage(pdfPage, strategy);
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        content.Add(new TextFilePart(text));
+                    }
+                    PdfResources resources = pdfPage.GetResources();
+                    if (resources == null)
+                    {
+                        continue;
+                    }
+                    var resourceNames = resources.GetResourceNames(PdfName.XObject);
+                    if (resourceNames == null)
+                    {
+                        continue;
+                    }
+                    foreach (PdfName key in resourceNames)
+                    {
+                        PdfObject obj = resources.GetResourceObject(PdfName.XObject, key);
+                        if (obj == null)
+                        {
+                            continue;
+                        }
+                        if (obj is PdfStream stream)
+                        {
+                            PdfImageXObject? image = null;
+                            try
+                            {
+                                image = new PdfImageXObject(stream);
+                            }
+                            catch
+                            {
+                                continue;
+                            }
+                            byte[]? imageData = null;
+                            try
+                            {
+                                imageData = image.GetImageBytes(true);
+                            }
+                            catch
+                            {
+                                continue;
+                            }
+                            if (imageData != null && imageData.Length > imageSizeCutof)
+                            {
+                                content.Add(new ImageFilePart(imageData));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+            throw;
+        }
+        return content;
+    }
+
+
+    private static List<ChatFilePart> ExtractContentFromDocx(byte[] data, int imageSizeCutof = 10_000)
+    {
+        List<ChatFilePart> content = new();
+
+        if (data == null)
+        {
+            throw new Exception("File is empty");
+        }
+
+        using (MemoryStream memoryStream = new MemoryStream(data))
+        using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(memoryStream, false))
+        {
+            if (wordDoc.MainDocumentPart == null || wordDoc.MainDocumentPart.Document.Body == null)
+            {
+                return content;
+            }
+            Body body = wordDoc.MainDocumentPart.Document.Body;
+            foreach (var element in body.Elements())
+            {
+                if (element is Paragraph paragraph)
+                {
+                    foreach (var paragraphElement in paragraph.Elements())
+                    {
+                        if (paragraphElement is Run run)
+                        {
+                            foreach (var runElement in run.Elements())
+                            {
+                                if (runElement is Text textElement)
+                                {
+                                    content.Add(new TextFilePart(textElement.Text));
+                                }
+                                else if (runElement is Break or LastRenderedPageBreak)
+                                {
+                                    content.Add(new TextFilePart("\n"));
+                                }
+                                else if (runElement is Drawing drawing)
+                                {
+                                    var blip = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().FirstOrDefault();
+                                    if (blip != null && blip.Embed?.Value != null)
+                                    {
+                                        string embed = blip.Embed.Value;
+                                        var imagePart = (ImagePart)wordDoc.MainDocumentPart.GetPartById(embed);
+                                        using (var stream = imagePart.GetStream())
+                                        using (var memoryStreamImage = new MemoryStream())
+                                        {
+                                            stream.CopyTo(memoryStreamImage);
+                                            byte[] imageData = memoryStreamImage.ToArray();
+                                            if (imageData.Length > 10_000) // Used to filter out logos etc
+                                            {
+                                                content.Add(new ImageFilePart(imageData));
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    //Console.WriteLine("Unknown element: " + runElement.GetType().Name);
+                                }
+                            }
+                        }
+                        else if (paragraphElement is Hyperlink hyperlink)
+                        {
+                            var hyperlinkRel = wordDoc.MainDocumentPart.HyperlinkRelationships.FirstOrDefault(h => h.Id == hyperlink.Id);
+                            var url = hyperlinkRel?.Uri.ToString() ?? string.Empty;
+                            string displayText = hyperlink.InnerText;
+                            content.Add(new TextFilePart($"[{displayText}]({url})"));
+                        }
+                        else if (paragraphElement is ParagraphProperties paragraphProperties)
+                        {
+                            if (paragraphProperties.NumberingProperties != null)
+                            {
+                                content.Add(new TextFilePart("* "));
+                            }
+                        }
+                        else
+                        {
+                            //Console.WriteLine("Unknown element: " + paragraphElement.GetType().Name);
+                        }
+                    }
+                    content.Add(new TextFilePart("\n\n"));
+                }
+            }
+        }
+        return content;
+    }
+
+
+    public static byte[] ResizeImage(byte[] imageBytes, int width, int height, bool innerDimentions = true)
+    {
+        using (var inputStream = new MemoryStream(imageBytes))
+        using (var skBitmap = SKBitmap.Decode(inputStream))
+        {
+            int newWidth, newHeight;
+            float aspectRatio = (float)skBitmap.Width / skBitmap.Height;
+            if (innerDimentions)
+            {
+                // Inner: Crop the image to fit the new aspect ratio
+                if (aspectRatio > (float)width / height)
+                {
+                    newWidth = width;
+                    newHeight = (int)(width / aspectRatio);
+                }
+                else
+                {
+                    newHeight = height;
+                    newWidth = (int)(height * aspectRatio);
+                }
+            }
+            else
+            {
+                // Outer: Fit the entire image within the dimensions
+                if (aspectRatio > (float)width / height)
+                {
+                    newHeight = height;
+                    newWidth = (int)(height * aspectRatio);
+                }
+                else
+                {
+                    newWidth = width;
+                    newHeight = (int)(width / aspectRatio);
+                }
+            }
+            using (var resizedBitmap = skBitmap.Resize(new SKImageInfo(newWidth, newHeight), SKFilterQuality.High))
+            using (var outputStream = new MemoryStream())
+            {
+                using (var image = SKImage.FromBitmap(resizedBitmap))
+                {
+                    image.Encode(SKEncodedImageFormat.Png, 100).SaveTo(outputStream);
+                    return outputStream.ToArray();
+                }
+            }
+        }
+    }
+
+    public static string ImageToBase64(byte[] imageBytes, bool resize = true)
+    {
+        byte[] imageToEncode = imageBytes;
+        if (resize)
+        {
+            var (width, height) = GetImageDimensions(imageBytes);
+            // Resize only if the image is larger than 1024x1024
+            if (width > 1024 || height > 1024)
+            {
+                // Use the ResizeImage function to resize the image
+                imageToEncode = ResizeImage(imageBytes, 1024, 1024, innerDimentions: false);
+            }
+        }
+        using (var inputStream = new MemoryStream(imageToEncode))
+        using (var skBitmap = SKBitmap.Decode(inputStream))
+        using (var image = SKImage.FromBitmap(skBitmap))
+        using (var outputStream = new MemoryStream())
+        {
+            image.Encode(SKEncodedImageFormat.Png, 100).SaveTo(outputStream);
+            // Return base64 string with included mime type
+            var base64 = Convert.ToBase64String(outputStream.ToArray());
+            return $"data:image/png;base64,{base64}";
+        }
+    }
+
+    public static (int, int) GetImageDimensions(byte[] imageBytes)
+    {
+        using (var inputStream = new MemoryStream(imageBytes))
+        using (var skBitmap = SKBitmap.Decode(inputStream))
+        {
+            return (skBitmap.Width, skBitmap.Height);
+        }
+    }
+
+    public static (int, int) GetImageDimensions(string base64)
+    {
+        string base64Data = base64.Split(',')[1];
+        byte[] imageBytes = Convert.FromBase64String(base64Data);
+        return GetImageDimensions(imageBytes);
+    }
+
+    public static string GetResizedImageOld(string base64, int width, int height, bool innerDimentions = true)
+    {
+        string base64Data = base64.Split(',')[1];
+        byte[] imageBytes = Convert.FromBase64String(base64Data);
+        byte[] resizedImageBytes = ResizeImage(imageBytes, width, height, innerDimentions);
+        var base64Resized = Convert.ToBase64String(resizedImageBytes);
+        return $"data:image/png;base64,{base64Resized}";
+    }
+
+    public static OpenAI.Chat.ChatMessage GetOpenAIMessage(this ChatFile file, bool userMessage = true)
+    {
+        List<ChatMessageContentPart> parts = new List<ChatMessageContentPart>();
+        parts.Add(ChatMessageContentPart.CreateTextPart("File: " + file.FileName + "\n"));
+
+        foreach (var part in file.Parts)
+        {
+            if (part is TextFilePart textPart)
+            {
+                var messagePart = ChatMessageContentPart.CreateTextPart(textPart.Data);
+                parts.Add(messagePart);
+            }
+            else if (part is ImageFilePart imagePart)
+            {
+                var messagePart = ChatMessageContentPart.CreateImagePart(imageBytes: new BinaryData(imagePart.Data), imageBytesMediaType: "image/png");
+                parts.Add(messagePart);
+            }
+        }
+        if (userMessage)
+        {
+            return new UserChatMessage(parts);
+        }
+        else
+        {
+            return new AssistantChatMessage(parts);
+        }
+    }
+}
+
+/*
+public class FileToolsOld
 {
     // TODO: Add support for more image formats, excel and word files
     public static List<string> ImageFiles = new() { "png", "jpg", "jpeg" };
-    public static List<string> TextFiles = new() { "csv", "json", "txt", /*, "xlsx"*/};
+    public static List<string> TextFiles = new() { "csv", "json", "txt"};
     public static List<string> CompositeFiles = new() { "pdf", "docx" };
     public static List<string> AllFiles = ImageFiles.Concat(TextFiles).Concat(CompositeFiles).ToList();
 
@@ -39,7 +434,7 @@ public class FileTools
             return false;
         }
 
-        if (file.FileType == FileType.Image)
+        if (file.FileType == FileTypeOld.Image)
         {
             try
             {
@@ -58,12 +453,12 @@ public class FileTools
                 return false;
             }
         }
-        else if (file.FileType == FileType.Text)
+        else if (file.FileType == FileTypeOld.Text)
         {
             // Verify document
 
         }
-        else if (file.FileType == FileType.Composite)
+        else if (file.FileType == FileTypeOld.Composite)
         {
             string extention = file.FileName.Split('.').Last();
             // Verify composite
@@ -267,75 +662,6 @@ public class FileTools
         return contents;
     }
 
-    public static List<FileContent> ExtractContentFromDocxOld(ChatFile file)
-    {
-        if (file.Bytes == null)
-        {
-            throw new Exception("File is empty");
-        }
-        List<FileContent> contents = new List<FileContent>();
-
-        using (MemoryStream memoryStream = new MemoryStream(file.Bytes))
-        using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(memoryStream, false))
-        {
-            if (wordDoc.MainDocumentPart == null || wordDoc.MainDocumentPart.Document.Body == null)
-            {
-                return contents;
-            }
-            Body body = wordDoc.MainDocumentPart.Document.Body;
-            foreach (var element in body.Elements())
-            {
-                if (element is Paragraph paragraph)
-                {
-                    StringBuilder paragraphText = new StringBuilder();
-                    foreach (var run in paragraph.Elements<Run>())
-                    {
-                        foreach (var runElement in run.Elements())
-                        {
-                            if (runElement is Text textElement)
-                            {
-                                paragraphText.Append(textElement.Text);
-                            }
-                            else if (runElement is Drawing drawing)
-                            {
-                                var blip = drawing.Descendants<DocumentFormat.OpenXml.Drawing.Blip>().FirstOrDefault();
-                                if (blip != null && blip.Embed?.Value != null)
-                                {
-                                    string embed = blip.Embed.Value;
-                                    var imagePart = (ImagePart)wordDoc.MainDocumentPart.GetPartById(embed);
-                                    using (var stream = imagePart.GetStream())
-                                    using (var memoryStreamImage = new MemoryStream())
-                                    {
-                                        stream.CopyTo(memoryStreamImage);
-                                        byte[] imageData = memoryStreamImage.ToArray();
-                                        if (imageData.Length > 10_000)
-                                        {
-                                            contents.Add(new FileImage
-                                            {
-                                                ImageData = imageData,
-                                                ImageType = imagePart.ContentType
-                                            });
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (paragraphText.Length > 0)
-                    {
-                        contents.Add(new FileText { Text = paragraphText.ToString() });
-                    }
-                }
-                else
-                {
-                    //Console.WriteLine("Unknown element: " + element.GetType().Name);
-                }
-            }
-        }
-        return contents;
-
-    }
-
     public static List<FileContent> ExtractContentFromDocx(ChatFile file)
     {
 
@@ -428,7 +754,7 @@ public class FileTools
 
     public static string GetMimeTypeFromFile(ChatFile file)
     {
-        if (file.FileType == FileType.Image)
+        if (file.FileType == FileTypeOld.Image)
         {
             string extention = file.FileName.Split('.').Last();
             if (extention == "png")
@@ -444,11 +770,11 @@ public class FileTools
                 throw new Exception("Unsupported image type: " + extention);
             }
         }
-        else if (file.FileType == FileType.Text)
+        else if (file.FileType == FileTypeOld.Text)
         {
             return "text/plain";
         }
-        else if (file.FileType == FileType.Composite)
+        else if (file.FileType == FileTypeOld.Composite)
         {
             string extention = file.FileName.Split('.').Last();
             if (extention == "pdf")
@@ -470,24 +796,24 @@ public class FileTools
         }
     }
 
-    public static FileType GetFileTypeFromName(string name)
+    public static FileTypeOld GetFileTypeFromName(string name)
     {
         string extention = name.Split('.').Last();
         if (ImageFiles.Contains(extention))
         {
-            return FileType.Image;
+            return FileTypeOld.Image;
         }
         else if (TextFiles.Contains(extention))
         {
-            return FileType.Text;
+            return FileTypeOld.Text;
         }
         else if (CompositeFiles.Contains(extention))
         {
-            return FileType.Composite;
+            return FileTypeOld.Composite;
         }
         else
         {
-            return FileType.Text;
+            return FileTypeOld.Text;
         }
     }
 
@@ -497,7 +823,7 @@ public class FileTools
         {
             throw new Exception("File is empty");
         }
-        if (file.FileType == FileType.Image)
+        if (file.FileType == FileTypeOld.Image)
         {
             throw new Exception("Imagefiles can not be converted to text");
         }
@@ -537,7 +863,7 @@ public class FileTools
         List<ChatMessageContentPart> parts = new List<ChatMessageContentPart>();
         parts.Add(ChatMessageContentPart.CreateTextPart("File: " + file.FileName + "\n"));
 
-        if (file.FileType == FileType.Image)
+        if (file.FileType == FileTypeOld.Image)
         {
             var imagePart = ChatMessageContentPart.CreateImagePart(
                 imageBytes: new BinaryData(file.Bytes!),
@@ -545,7 +871,7 @@ public class FileTools
                 );
             parts.Add(imagePart);
         }
-        else if (file.FileType == FileType.Text)
+        else if (file.FileType == FileTypeOld.Text)
         {
             var textPart = ChatMessageContentPart.CreateTextPart(GetTextFromFile(file));
             parts.Add(textPart);
@@ -616,7 +942,7 @@ public class FileTools
 
 
 }
-
+*/
 
 public class CustomTextExtractionStrategy : ITextExtractionStrategy, IEventListener
 {
@@ -678,7 +1004,7 @@ public class CustomTextExtractionStrategy : ITextExtractionStrategy, IEventListe
 }
 
 
-
+/*
 public abstract class FileContent { }
 public class FileText : FileContent
 {
@@ -688,4 +1014,21 @@ public class FileImage : FileContent
 {
     public byte[] ImageData { get; set; } = null!;
     public string ImageType { get; set; } = null!;
+}
+*/
+
+
+public enum FileType
+{
+    txt,
+    csv,
+    json,
+    html,
+    pdf,
+    docx,
+    png,
+    jpg,
+    jpeg,
+    bmp,
+    other
 }

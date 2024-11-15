@@ -4,7 +4,7 @@
 @using SixLabors.ImageSharp.Processing
 
 <div class="file-container ma-1">
-    @if (File.FileType == FileType.Image)
+    @if (FileTools.IsImage(File.FileType))
     {
         <MudImage Src="@GetImageSrc()" Alt="@File.FileName" Style="height: 64px; width: 64px; border-radius:16px;" />
     }
@@ -15,7 +15,18 @@
                 <MudIcon Icon="@Icons.Material.Filled.AttachFile" Style="width: 32px; height: 32px;" Class="mt-4 ml-2 mr-0" />
                 <MudStack Class="pt-2 pr-4" Spacing="0">
                     <MudText Typo="Typo.h6">@shortFilename</MudText>
-                    <MudText Typo="Typo.h6">@(File.FileType == FileType.Text ? "Text document" :"Composite document")</MudText>
+                    @if (File.FileType == FileType.pdf)
+                    {
+                        <MudText Typo="Typo.h6">PDF document</MudText>
+                    }
+                    else if (File.FileType == FileType.docx)
+                    {
+                        <MudText Typo="Typo.h6">Word document</MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.h6">@($"{File.FileType.ToString().ToUpper()} file")</MudText>
+                    }
                 </MudStack>
             </MudStack>
         </MudPaper>
@@ -124,21 +135,29 @@
 
     public static string GenerateThumbnailBase64(ChatFile chatFile)
     {
-        if (chatFile.Bytes == null)
+        if (FileTools.IsImage(chatFile.FileType))
         {
-            throw new ArgumentException("Invalid image file.");
-        }
-
-        using (var ms = new MemoryStream(chatFile.Bytes))
-        using (var originalImage = Image.Load<Rgba32>(ms))
-        {
-            var (cropX, cropY, cropSize) = GetCropParameters(originalImage);
-
-            using (var croppedImage = originalImage.Clone(ctx => ctx.Crop(new Rectangle(cropX, cropY, cropSize, cropSize))
-                                                                    .Resize(new ResizeOptions { Size = new SixLabors.ImageSharp.Size(64, 64), Mode = SixLabors.ImageSharp.Processing.ResizeMode.Max })))
+            byte[] imageBytes = ((ImageFilePart)chatFile.Parts[0]).Data;
+            if (imageBytes == null)
             {
-                return ConvertImageToBase64(croppedImage);
+                throw new ArgumentException("Invalid image file.");
             }
+
+            using (var ms = new MemoryStream(imageBytes))
+            using (var originalImage = Image.Load<Rgba32>(ms))
+            {
+                var (cropX, cropY, cropSize) = GetCropParameters(originalImage);
+
+                using (var croppedImage = originalImage.Clone(ctx => ctx.Crop(new Rectangle(cropX, cropY, cropSize, cropSize))
+                                                                        .Resize(new ResizeOptions { Size = new SixLabors.ImageSharp.Size(64, 64), Mode = SixLabors.ImageSharp.Processing.ResizeMode.Max })))
+                {
+                    return ConvertImageToBase64(croppedImage);
+                }
+            }
+        }
+        else
+        {
+            throw new ArgumentException("File is not an image.");
         }
     }
 

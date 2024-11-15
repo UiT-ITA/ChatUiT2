@@ -54,6 +54,61 @@ public static class AzureOpenAIService
             var message = chat.Messages[i];
             if (message.Status == ChatMessageStatus.Error) continue;
             int messageTokens = GetTokens(model.DeploymentName, message.Content);
+            int fileTokens = 0;
+            if (allowFiles)
+            {
+                foreach (var file in message.Files)
+                {
+                    fileTokens += GetFileTokens(model.DeploymentName, file);
+                }
+            }
+
+            if (messageTokens + fileTokens > availableTokens)
+            {
+                break;
+            }
+
+            if (message.Content == string.Empty)
+            {
+                if (!allowFiles || message.Files.Count == 0)
+                {
+                    continue;
+                }
+            }
+
+            OpenAI.Chat.ChatMessage requestMessage;
+            if (allowFiles)
+            {
+                if (message.Files.Count > 0)
+                {
+                    messages.Insert(1, GetOpenAIMessage(message));
+                    //Console.WriteLine(message.Content);
+                    foreach (var file in message.Files)
+                    {
+
+                        messages.Insert(1, FileTools.GetOpenAIMessage(file));
+                    }
+                    requestMessage = new UserChatMessage("Here is a list of files:\n");
+                }
+                else
+                {
+                    requestMessage = GetOpenAIMessage(message);
+                }
+            }
+            else
+            {
+                requestMessage = GetOpenAIMessage(message);
+            }
+
+            messages.Insert(1, requestMessage);
+            availableTokens -= messageTokens;
+        }
+
+        /*for (int i = chat.Messages.Count - 1; i >= 0; i--)
+        {
+            var message = chat.Messages[i];
+            if (message.Status == ChatMessageStatus.Error) continue;
+            int messageTokens = GetTokens(model.DeploymentName, message.Content);
 
             if (messageTokens > availableTokens)
             {
@@ -75,7 +130,7 @@ public static class AzureOpenAIService
                     {
                         messages.Insert(1, FileTools.GetOpenAIMessage(file));
                     }
-                    requestMessage = new UserChatMessage("Here is a list of files:");
+                    requestMessage = new UserChatMessage("Here is a list of files:\n");
                 }
                 else
                 {
@@ -89,8 +144,9 @@ public static class AzureOpenAIService
 
             messages.Insert(1, requestMessage);
             availableTokens -= messageTokens;
-        }
-        
+        }*/
+
+
         return client.CompleteChatStreamingAsync(messages, options);
     }
 
@@ -110,46 +166,46 @@ public static class AzureOpenAIService
         }
     }
 
-    public static OpenAI.Chat.ChatMessage ChatMessageWithFiles(Models.ChatMessage message)
-    {
-        if (message.Role != Models.ChatMessageRole.User)
-        {
-            return new AssistantChatMessage(message.Content);
-        }
+    //public static OpenAI.Chat.ChatMessage ChatMessageWithFiles(Models.ChatMessage message)
+    //{
+    //    if (message.Role != Models.ChatMessageRole.User)
+    //    {
+    //        return new AssistantChatMessage(message.Content);
+    //    }
 
-        List<ChatMessageContentPart> messageContentParts = new ();
-        foreach (var file in message.Files)
-        {
-            if (file.Bytes == null)
-            {
-                throw new Exception("File is empty");
-            }
+    //    List<ChatMessageContentPart> messageContentParts = new ();
+    //    foreach (var file in message.Files)
+    //    {
+    //        if (file.Bytes == null)
+    //        {
+    //            throw new Exception("File is empty");
+    //        }
 
-            if (file.FileType == FileType.Image)
-            {   
-                var messagePart = ChatMessageContentPart.CreateImagePart(
-                    imageBytes: new BinaryData(file.Bytes!),
-                    imageBytesMediaType: FileTools.GetMimeTypeFromFile(file)
-                    );
-                messageContentParts.Add(messagePart);
-            }
-            else
-            {
-                // filename has the form 3749873294_file_name.txt I want to get the file_name.txt
-                int underscoreIndex = file.FileName.IndexOf('_');
-                string fileName = file.FileName.Substring(underscoreIndex + 1);
+    //        if (file.FileType == FileTypeOld.Image)
+    //        {   
+    //            var messagePart = ChatMessageContentPart.CreateImagePart(
+    //                imageBytes: new BinaryData(file.Bytes!),
+    //                imageBytesMediaType: FileTools.GetMimeTypeFromFile(file)
+    //                );
+    //            messageContentParts.Add(messagePart);
+    //        }
+    //        else
+    //        {
+    //            // filename has the form 3749873294_file_name.txt I want to get the file_name.txt
+    //            int underscoreIndex = file.FileName.IndexOf('_');
+    //            string fileName = file.FileName.Substring(underscoreIndex + 1);
 
 
-                string fileText = FileTools.GetTextFromFile(file);
-                string messageText = "This is a file named " + fileName + ":\n" + fileText + "\n\n";
+    //            string fileText = FileTools.GetTextFromFile(file);
+    //            string messageText = "This is a file named " + fileName + ":\n" + fileText + "\n\n";
 
-                var messagePart = ChatMessageContentPart.CreateTextPart(messageText);
-                messageContentParts.Add(messagePart);
-            }
-        }
-        messageContentParts.Add(ChatMessageContentPart.CreateTextPart(message.Content));
-        return new UserChatMessage(messageContentParts);
-    }
+    //            var messagePart = ChatMessageContentPart.CreateTextPart(messageText);
+    //            messageContentParts.Add(messagePart);
+    //        }
+    //    }
+    //    messageContentParts.Add(ChatMessageContentPart.CreateTextPart(message.Content));
+    //    return new UserChatMessage(messageContentParts);
+    //}
 
     public static int GetTokens(string model, string content)
     {
@@ -164,6 +220,66 @@ public static class AzureOpenAIService
             encoder = new Encoder(new Cl100KBase());
         }
         return encoder.CountTokens(content);
+    }
+
+    public static int GetFileTokens(string model, ChatFile file)
+    {
+
+        // Use tiktoken to calculate tokens
+        Encoder encoder;
+        if (model == "gpt-4o" || model == "gpt-4o-mini")
+        {
+            encoder = new Encoder(new O200KBase());
+        }
+        else
+        {
+            encoder = new Encoder(new Cl100KBase());
+        }
+
+        int tokens = 0;
+
+        foreach (ChatFilePart part in file.Parts)
+        {
+            if (part.Type == FilePartType.Text)
+            {
+                tokens += encoder.CountTokens(((TextFilePart)part).Data);
+            }
+            else
+            {
+                int imageTokens;
+                ImageFilePart imgPart = (ImageFilePart)part;
+                if (model == "gpt-4o")
+                {
+                    imageTokens = 85 + 170 * (int)Math.Ceiling(imgPart.Width / 512.0) * (int)Math.Ceiling(imgPart.Height / 512.0);
+                }
+                else if (model == "gpt-4o-mini")
+                {
+                    imageTokens = 2833 + 5667 * (int)Math.Ceiling(imgPart.Width / 512.0) * (int)Math.Ceiling(imgPart.Height / 512.0);
+                }
+                else
+                {
+                    imageTokens = 0;
+                }
+
+                tokens += imageTokens;
+            }
+        }
+
+        return tokens;
+    }
+
+    public static int GetChatTokens(WorkItemChat chat, Model model)
+    {
+        int tokens = 0;
+        foreach (var message in chat.Messages)
+        {
+            tokens += GetTokens(model.DeploymentName, message.Content);
+            foreach (var file in message.Files)
+            {
+                tokens += GetFileTokens(model.DeploymentName, file);
+            }
+        }
+        return tokens;
     }
 
 }

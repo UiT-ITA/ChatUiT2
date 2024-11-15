@@ -2,9 +2,7 @@
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
-using System.Configuration;
 
 namespace ChatUiT2.Services;
 
@@ -54,7 +52,7 @@ public class UserService : IUserService
     private IDatabaseService _databaseService { get; set; }
     private IKeyVaultService _keyVaultService { get; set; }
     private IUpdateService _updateService { get; set; }
-    private IStorageService _storageService { get; set; }
+    //private IStorageService _storageService { get; set; }
     private IJSRuntime _jsRuntime { get; set; }
     private ILogger<UserService> _logger { get; set; }
     private NavigationManager _navigationManager { get; set; }
@@ -82,7 +80,7 @@ public class UserService : IUserService
                         IAuthUserService authUserService, 
                         IDatabaseService databaseService,
                         IKeyVaultService keyVaultService,
-                        IStorageService storageService,
+                        //IStorageService storageService,
                         IUpdateService updateService,
                         IJSRuntime jSRuntime,
                         ILogger<UserService> logger,
@@ -95,7 +93,7 @@ public class UserService : IUserService
         _keyVaultService = keyVaultService;
         _jsRuntime = jSRuntime;
         _navigationManager = navigationManager;
-        _storageService = storageService;
+        //_storageService = storageService;
         _updateService = updateService;
         _logger = logger;
 
