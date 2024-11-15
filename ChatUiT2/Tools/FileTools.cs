@@ -89,12 +89,12 @@ public static class FileTools
 
     private static List<ChatFilePart> HandleDocxFile(byte[] data)
     {
-        throw new NotImplementedException();
+        return ExtractContentFromDocx(data);
     }
 
     private static List<ChatFilePart> HandlePdfFile(byte[] data)
     {
-        throw new NotImplementedException();
+        return ExtractContentFromPdf(data);
     }
 
     public static FileType GetFileTypeFromName(string name)
