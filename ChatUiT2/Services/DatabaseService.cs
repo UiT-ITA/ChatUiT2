@@ -309,7 +309,7 @@ public class DatabaseService : IDatabaseService
                 {
                     user.AesKey = await _keyVaultService.GetKeyAsync(user.Username);
                 }
-                content = _encryptionService.Decrypt(doc["Content"].AsByteArray, user.AesKey);
+                content = _encryptionService.DecryptString(doc["Content"].AsByteArray, user.AesKey);
             }
             else
             {
@@ -359,24 +359,37 @@ public class DatabaseService : IDatabaseService
         var parts = new List<ChatFilePart>();
         foreach (var partDoc in partsArray)
         {
-            var type = (FilePartType)partDoc["Type"].AsInt32;
-            byte[] data = partDoc["Data"].AsByteArray;
-            string dataString = Encoding.UTF8.GetString(data);
-            // Decrypt data if necessary
-            if (_useEncryption)
-            {
-                dataString = _encryptionService.Decrypt(data, user.AesKey!);
-            }
+            FilePartType type = (FilePartType)partDoc["Type"].AsInt32;
             ChatFilePart part;
-            if (type == FilePartType.Image)
+            if (type == FilePartType.Text)
             {
-                var width = partDoc["Width"].AsInt32;
-                var height = partDoc["Height"].AsInt32;
-                part = new ImageFilePart(dataString, width, height);
+                string text;
+                if (_useEncryption)
+                {
+                    text = _encryptionService.DecryptString(partDoc["Data"].AsByteArray, user.AesKey!);
+                }
+                else
+                {
+                    text = partDoc["Data"].AsString;
+                }
+                part = new TextFilePart(text);
+            }
+            else if (type == FilePartType.Image)
+            {
+                byte[] imagebytes;
+                if (_useEncryption)
+                {
+                    imagebytes = _encryptionService.Decrypt(partDoc["Data"].AsByteArray, user.AesKey!);
+                }
+                else
+                {
+                    imagebytes = partDoc["Data"].AsByteArray;
+                }
+                part = new ImageFilePart(imagebytes);
             }
             else
             {
-                part = new TextFilePart(dataString);
+                throw new Exception("Unknown file part type");
             }
             parts.Add(part);
         }
@@ -466,15 +479,26 @@ public class DatabaseService : IDatabaseService
         var filePartArray = new BsonArray();
         foreach (var part in file.Parts)
         {
-            var partDocument = new BsonDocument
-                {
-                    {"Type", (int)part.Type},
-                    {"Data", _useEncryption ? _encryptionService.Encrypt(part.Data, user.AesKey!) : part.Data},
-                };
+            BsonDocument partDocument;
             if (part is ImageFilePart imgPart)
             {
-                partDocument.Add("Width", imgPart.Width);
-                partDocument.Add("Height", imgPart.Height);
+                partDocument = new BsonDocument
+                {
+                    {"Type", (int)part.Type},
+                    {"Data", _useEncryption ? _encryptionService.Encrypt(imgPart.Data, user.AesKey!) : imgPart.Data}
+                };
+            }
+            else if (part is TextFilePart txtPart)
+            {
+                partDocument = new BsonDocument
+                {
+                    {"Type", (int)part.Type},
+                    {"Data", _useEncryption ? _encryptionService.Encrypt(txtPart.Data, user.AesKey!) : txtPart.Data},
+                };
+            }
+            else
+            {
+                throw new Exception("Unknown file part type");
             }
             filePartArray.Add(partDocument);
         }

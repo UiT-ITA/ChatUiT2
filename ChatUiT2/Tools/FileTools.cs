@@ -88,8 +88,7 @@ public static class FileTools
 
     private static List<ChatFilePart> HandleImageFile(byte[] data)
     {
-        string base64 = ImageToBase64(data);
-        return new List<ChatFilePart> { new ImageFilePart(base64) };
+        return new List<ChatFilePart> { new ImageFilePart(data) };
     }
 
     private static List<ChatFilePart> HandleDocxFile(byte[] data)
@@ -397,7 +396,7 @@ public static class FileTools
             }
             else if (part is ImageFilePart imagePart)
             {
-                var messagePart = ChatMessageContentPart.CreateImagePart(imageUri: new Uri(imagePart.Data));
+                var messagePart = ChatMessageContentPart.CreateImagePart(imageBytes: new BinaryData(imagePart.Data), imageBytesMediaType: "image/png");
                 parts.Add(messagePart);
             }
         }

@@ -242,7 +242,7 @@ public static class AzureOpenAIService
         {
             if (part.Type == FilePartType.Text)
             {
-                tokens += encoder.CountTokens(part.Data);
+                tokens += encoder.CountTokens(((TextFilePart)part).Data);
             }
             else
             {
@@ -265,7 +265,7 @@ public static class AzureOpenAIService
             }
         }
 
-        return encoder.CountTokens(file.Parts[0].Data);
+        return tokens;
     }
 
     public static int GetChatTokens(WorkItemChat chat, Model model)
