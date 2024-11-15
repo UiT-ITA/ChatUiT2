@@ -6,8 +6,7 @@
 <div class="file-container ma-1">
     @if (FileTools.IsImage(File.FileType))
     {
-        //<MudImage Src="@GetImageSrc()" Alt="@File.FileName" Style="height: 64px; width: 64px; border-radius:16px;" />
-        <p>bilde</p>
+        <MudImage Src="@GetImageSrc()" Alt="@File.FileName" Style="height: 64px; width: 64px; border-radius:16px;" />
     }
     else
     {
@@ -136,23 +135,30 @@
 
     public static string GenerateThumbnailBase64(ChatFile chatFile)
     {
-        // if (chatFile.Bytes == null)
-        // {
-        //     throw new ArgumentException("Invalid image file.");
-        // }
+        if (FileTools.IsImage(chatFile.FileType))
+        {
+            byte[] imageBytes = ((ImageFilePart)chatFile.Parts[0]).Data;
+            if (imageBytes == null)
+            {
+                throw new ArgumentException("Invalid image file.");
+            }
 
-        // using (var ms = new MemoryStream(chatFile.Bytes))
-        // using (var originalImage = Image.Load<Rgba32>(ms))
-        // {
-        //     var (cropX, cropY, cropSize) = GetCropParameters(originalImage);
+            using (var ms = new MemoryStream(imageBytes))
+            using (var originalImage = Image.Load<Rgba32>(ms))
+            {
+                var (cropX, cropY, cropSize) = GetCropParameters(originalImage);
 
-        //     using (var croppedImage = originalImage.Clone(ctx => ctx.Crop(new Rectangle(cropX, cropY, cropSize, cropSize))
-        //                                                             .Resize(new ResizeOptions { Size = new SixLabors.ImageSharp.Size(64, 64), Mode = SixLabors.ImageSharp.Processing.ResizeMode.Max })))
-        //     {
-        //         return ConvertImageToBase64(croppedImage);
-        //     }
-        // }
-        throw new NotImplementedException();
+                using (var croppedImage = originalImage.Clone(ctx => ctx.Crop(new Rectangle(cropX, cropY, cropSize, cropSize))
+                                                                        .Resize(new ResizeOptions { Size = new SixLabors.ImageSharp.Size(64, 64), Mode = SixLabors.ImageSharp.Processing.ResizeMode.Max })))
+                {
+                    return ConvertImageToBase64(croppedImage);
+                }
+            }
+        }
+        else
+        {
+            throw new ArgumentException("File is not an image.");
+        }
     }
 
     private static (int cropX, int cropY, int cropSize) GetCropParameters(Image<Rgba32> image)
