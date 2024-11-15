@@ -42,11 +42,11 @@ public class ChatFile
 public class ChatFilePart
 {
     public FilePartType Type { get; set; }
-    public string Data { get; set; } = null!;
 }
 
 public class TextFilePart : ChatFilePart
 {
+    public string Data { get; set; }
     public TextFilePart(string text)
     {
         Type = FilePartType.Text;
@@ -56,27 +56,15 @@ public class TextFilePart : ChatFilePart
 
 public class ImageFilePart : ChatFilePart
 {
+    public byte[] Data { get; set; }
     public int Width { get; set; }
     public int Height { get; set; }
-    public ImageFilePart(string data, int width, int height)
-    {
-        Type = FilePartType.Image;
-        Data = data;
-        Width = width;
-        Height = height;
-    }
 
-    public ImageFilePart(string data)
-    {
-        Type = FilePartType.Image;
-        Data = data;
-        (Width, Height) = FileTools.GetImageDimensions(data);
-    }
 
     public ImageFilePart(byte[] data)
     {
         Type = FilePartType.Image;
-        Data = FileTools.ImageToBase64(data);
+        Data = data;
         (Width, Height) = FileTools.GetImageDimensions(data);
     }
 }
