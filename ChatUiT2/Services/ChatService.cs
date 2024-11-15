@@ -45,7 +45,7 @@ public class ChatService : IChatService
         ModelEndpoint endpoint = _configService.GetEndpoint(model.Deployment);
 
 
-        _logger.LogInformation("Type: {LogType} User: {User} WorkItem {WorkItemId} Model: {ChatModel}",
+        _logger.LogInformation("Type: {LogType} User: {User} WorkItem {ChatId} Model: {Model}",
             "ChatRequest",
             _userService.UserName,
             chat.Id,
