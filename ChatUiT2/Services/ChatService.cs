@@ -56,6 +56,7 @@ public class ChatService : IChatService
         {
             try
             {
+                int inputTokens = AzureOpenAIService.GetChatTokens(chat, model);
                 var response = AzureOpenAIService.GetStreamingResponse(chat, model, endpoint, allowFiles: true);
                 await foreach (var chatUpdates in response)
                 {
@@ -75,7 +76,11 @@ public class ChatService : IChatService
                     if (finishReason != null)
                     {
                         //Console.WriteLine(chatUpdates.Usage);
-                        //_logger.LogInformation("Type: {LogType} User: {User} Output {Output} Input: {Input}", "ChatRequest", _userService.UserName, chatUpdates.Usage.InputTokens, chatUpdates.Usage.OutputTokens);
+
+                        int outputTokens = AzureOpenAIService.GetTokens(model.DeploymentName, responseMessage.Content);
+
+                        _logger.LogInformation("Type: {LogType}, User: {User}, Model: {Model} Input: {Input}, Output: {Output}", 
+                            "ChatRequest", _userService.UserName, model.DeploymentName, inputTokens, outputTokens);
 
                         switch (finishReason.Value.ToString())
                         {
