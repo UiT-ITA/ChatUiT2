@@ -321,8 +321,6 @@ public class UserService : IUserService
 
         foreach (var file in files)
         {
-            file.FileName = ((DateTimeOffset)DateTimeTools.GetTimestamp()).ToUnixTimeSeconds().ToString() + "_" + file.FileName;
-
             _logger.LogInformation("Type: {LogType} User: {User} WorkItem {WorkItemId} FileName: {FileName}",
                 "FileUpload",
                 UserName,
@@ -368,7 +366,7 @@ public class UserService : IUserService
         for (int i = chat.Messages.Count -1; i > index; i--)
         {
             var message = chat.Messages[i];
-            tasks.Add(_databaseService.DeleteChatMessage(message, chat));
+            tasks.Add(_databaseService.DeleteChatMessage(message, chat, User));
             chat.Messages.Remove(message);
         }
         await Task.WhenAll(tasks);

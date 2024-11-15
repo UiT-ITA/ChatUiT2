@@ -18,7 +18,7 @@ public interface IDatabaseService
 
     // ChatMessages
     Task SaveChatMessages(User user, WorkItemChat chat);
-    Task DeleteChatMessage(ChatMessage message, WorkItemChat chat);
+    Task DeleteChatMessage(ChatMessage message, WorkItemChat chat, User user);
     Task DeleteMissingMessages(User user, WorkItemChat chat);
 
 
