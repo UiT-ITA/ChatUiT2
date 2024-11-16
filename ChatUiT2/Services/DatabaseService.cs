@@ -18,7 +18,6 @@ public class DatabaseService : IDatabaseService
     //private IStorageService _storageService;
 
     // Collections
-    private readonly IMongoCollection<BsonDocument> _configCollection;
     private readonly IMongoCollection<BsonDocument> _userCollection;
     private readonly IMongoCollection<BsonDocument> _chatCollection;
     private readonly IMongoCollection<BsonDocument> _chatMessageCollection;

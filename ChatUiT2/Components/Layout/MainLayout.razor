@@ -18,52 +18,49 @@
                 <MudIconButton Class="appbar-item" Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" Color="Color.Tertiary" />
             </MudTooltip>
             <MudTooltip Text="Start new chat" Arrow>
-                <MudIconButton Class="appbar-item" Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
+                <MudIconButton Class="appbar-hidden-item" Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
             </MudTooltip>
 
         } else
         {
             <div/>
         }
-        @if (UserService.CurrentChat.Messages.Count > 0)
-        {
-            @* Model config *@
-            <MudTooltip Text="Configuration of thee model" Arrow>
-                <div class="d-flex appbar-item">
-                    <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenChatSettings" Color="Color.Tertiary" />
-                </div>
-            </MudTooltip>
+        @* Model config *@
+        <MudTooltip Text="Configuration of thee model" Arrow>
+                <div class="d-flex appbar-hidden-item">
+                <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenChatSettings" Color="Color.Tertiary" />
+            </div>
+        </MudTooltip>
 
-            @* Save work item*@
-            @if (!UserService.CurrentWorkItem.IsFavorite)
-            {            
-                <MudHidden Breakpoint="Breakpoint.Xs">
-                    <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")">
-                        <MudToggleIconButton @bind-Toggled="CurrentWorkItemPersistant" Icon="@Icons.Material.Filled.CloudOff" ToggledIcon="@Icons.Material.Filled.CloudDone" Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-item" />
-                    </MudTooltip>
-                </MudHidden>
-            }
-
-            @* Model selection *@
+        @* Save work item*@
+        @if (!UserService.CurrentWorkItem.IsFavorite)
+        {            
             <MudHidden Breakpoint="Breakpoint.Xs">
-                <MudTooltip Text="Select model" Arrow>
-                    <ModelSelect Class="appbar-item ma-0 pa-0 pl-2" />
+                <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")">
+                        <MudToggleIconButton @bind-Toggled="CurrentWorkItemPersistant" Icon="@Icons.Material.Filled.CloudOff" ToggledIcon="@Icons.Material.Filled.CloudDone" Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-hidden-item" />
                 </MudTooltip>
             </MudHidden>
         }
+
+        @* Model selection *@
+        <MudHidden Breakpoint="Breakpoint.Xs">
+            <MudTooltip Text="Select model" Arrow>
+                <ModelSelect Class="appbar-hidden-item ma-0 pa-0 pl-3" />
+            </MudTooltip>
+        </MudHidden>
         <MudSpacer />
         @* Branding? *@
         <MudSpacer />
 
         @* Render using markdown *@
         <MudTooltip Text="Select rendering mode" Arrow>
-            <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-item" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
+                <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-hidden-item" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
         </MudTooltip>
 
         @* Allow user to select how wide the chat area should be*@
         <MudHidden Breakpoint="Breakpoint.SmAndDown">
             <MudTooltip Text="Selct maximum width of the chat" Arrow>
-                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="appbar-item">
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="appbar-hidden-item">
                     <ActivatorContent>
                         <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" Color="Color.Tertiary" />
                     </ActivatorContent>
@@ -127,12 +124,12 @@
 
         @* Dark mode *@
         <MudTooltip Text="@(UserService.IsDarkMode ? "Switch to light mode" : "Switch to dark mode")" Arrow>
-            <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-item mx-0" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" @bind-Toggled="UserService.IsDarkMode" />    
+            <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-hidden-item mx-0" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" @bind-Toggled="UserService.IsDarkMode" />
         </MudTooltip>
 
         @* User menu *@
         <MudTooltip Text="User menu" Arrow Placement="Placement.Start">
-            <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pr-2 appbar-item">
+                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pr-2 appbar-hidden-item">
                 <ActivatorContent>
                     <MudButton Color="Color.Tertiary" Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
                         <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large"/>
@@ -195,6 +192,15 @@
     }
 
     .appbar-hover:hover .appbar-item {
+        opacity: 1;
+    }
+
+    .appbar-hidden-item {
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+    }
+
+    .appbar-hover:hover .appbar-hidden-item {
         opacity: 1;
     }
 

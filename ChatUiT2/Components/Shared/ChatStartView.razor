@@ -1,0 +1,54 @@
+
+<div style="display: flex; align-items: flex-start; justify-content: center; min-height: 100%; height: auto;" class="flex-grow-1">
+    <MudCard Class="pa-4" Outlined Style="background-color: transparent; border-radius: 20px;">
+        <MudStack >
+            <div style="display: flex; justify-content: center;">
+                <MudText Typo="Typo.h1">ChatUiT</MudText>
+
+            </div>
+            <MudDivider />
+            <MudText Typo="Typo.body1">Remember to verify any information given by an AI model. </MudText>
+            <MudStack Row>
+                <MudText Typo="Typo.body1">
+                    To read more about AI and how to use it, click <a href="https://uit.no/ki" target="_blank">here.</a>
+                </MudText>
+                <a href="https://uit.no/ki" target="_blank" style="text-decoration: none;">
+                    <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" />
+                </a>
+            </MudStack>
+            <MudDivider />
+            <MudStack Row>
+                <MudSpacer />
+                <MudText Typo="Typo.h4" Class="pt-3">Model:</MudText>
+                <MudSpacer />
+                <ModelSelect AnchorRight />
+                <MudSpacer />
+            </MudStack>
+        </MudStack>
+    </MudCard>
+</div>
+
+
+
+@code {
+    [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
+
+
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            UpdateService.OnChatUpdate += StateHasChanged;
+            UpdateService.OnGlobalUpdate += StateHasChanged;
+        }
+    }
+
+    public void Dispose()
+    {
+        UpdateService.OnChatUpdate -= StateHasChanged;
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
+    }
+}

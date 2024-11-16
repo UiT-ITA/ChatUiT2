@@ -1,5 +1,5 @@
 ﻿
-<MudMenu AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Dense >
+<MudMenu AnchorOrigin="AnchorOrigin" TransformOrigin="TransformOrigin" Dense >
     <ActivatorContent>
         <MudButton Class="@Class" Style="height:48px;">
             <MudText Typo="Typo.h4" Color="Color">@(UserService.CurrentChat.Settings.Model)</MudText>
@@ -34,9 +34,13 @@
 
     [Parameter] public Color Color { get; set; } = Color.Tertiary;
     [Parameter] public string Class { get; set; } = "";
+    [Parameter] public bool AnchorRight { get; set; } = false;
 
 
     private List<Model> Models { get; set; } = new List<Model>();
+
+    private Origin AnchorOrigin => AnchorRight ? Origin.BottomRight : Origin.BottomLeft;
+    private Origin TransformOrigin => AnchorRight ? Origin.TopRight : Origin.TopLeft;
 
     override protected void OnInitialized()
     {
