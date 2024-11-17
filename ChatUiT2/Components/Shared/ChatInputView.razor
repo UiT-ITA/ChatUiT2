@@ -15,7 +15,7 @@
 
         @* Upload files *@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
-            <MudTooltip Text="Upload files" Placement="Placement.Bottom">
+            <MudTooltip Text="Upload files" Color="Color.Primary" Arrow>
                 <MudFileUpload 
                 T="IReadOnlyList<IBrowserFile>" 
                 FilesChanged="UploadFiles" 
@@ -73,7 +73,7 @@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             @if (!UserService.Waiting)
             {
-                <MudTooltip Text="Send message" Placement="Placement.Bottom">
+                <MudTooltip Text="Send message" Color="Color.Primary" Arrow>
                     <MudIconButton Icon="@Icons.Material.Filled.Send" Size="Size.Medium" OnClick="SendMessage" Style="width: 54px; height: 54px;" @ref="buttonRef" />
                 </MudTooltip>
             }

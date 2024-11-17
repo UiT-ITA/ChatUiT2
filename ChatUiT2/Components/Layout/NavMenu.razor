@@ -2,12 +2,12 @@
     <div>
 
         <div style="display: flex; align-items: center; justify-content:space-between;" class="pt-0">
-            <MudTooltip Text="Hide sidebar" Arrow Placement="Placement.End">
+            <MudTooltip Text="Hide sidebar" Color="Color.Primary" Arrow="true" Placement="Placement.Bottom">
                 <MudIconButton Icon="@Icons.Material.Filled.KeyboardArrowLeft" OnClick="CloseDrawer" Color="Color.Tertiary"/>
             </MudTooltip>
             @if (UserService.CurrentWorkItem == null || UserService.CurrentWorkItem.Type == WorkItemType.Chat)
             {
-                <MudTooltip Text="Create new chat" Arrow>
+                <MudTooltip Text="Create new chat" Color="Color.Primary" Arrow="true" Placement="Placement.Bottom">
                     <MudButton Icon="@Icons.Material.Filled.Add" Variant="Variant.Text" Class="ml-2 mr-1" OnClick="UserService.NewChat" FullWidth Style="justify-content:flex-end; width: 180px"  Color="Color.Tertiary">
                         <MudText Typo="Typo.h5">New chat</MudText>
                         <MudIcon Icon="@Icons.Material.Filled.Add" Class="ml-1"/>
