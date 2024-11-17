@@ -16,7 +16,7 @@
                 </div>
             </MudItem>
             <MudItem xs="12" md="6" Style="min-width: 300px;">
-                <MudSelect Label="Language" @bind-Value="selectedLanguage" Variant="Variant.Outlined" DisableUnderLine>
+                <MudSelect Label="Language" @bind-Value="selectedLanguage" Variant="Variant.Outlined" Underline="false">
                     <MudSelectItem Value="@("en-us")">
                         <img src="https://upload.wikimedia.org/wikipedia/en/thumb/a/a4/Flag_of_the_United_States.svg/800px-Flag_of_the_United_States.svg.png?20151118161041" height="14" class="mr-1" />
                         English
@@ -31,7 +31,7 @@
 
         <MudDivider />
 
-        <MudGrid Class="pa-2" AlignItems="FlexStart">
+        <MudGrid Class="pa-2">
             <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
                 <MudIcon Icon="@Icons.Material.Filled.ListAlt" Size="Size.Large" Class="me-2" />
                 <div>
@@ -46,7 +46,7 @@
 
         <MudDivider />
 
-        <MudGrid Class="pa-2" AlignItems="FlexStart">
+        <MudGrid Class="pa-2">
             <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
                 <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Class="me-2" />
                 <div>
@@ -55,13 +55,13 @@
                 </div>
             </MudItem>
             <MudItem xs="12" md="6" Style="min-width: 300px;">
-                <MudTextField T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" DisableUnderLine />
+                <MudTextField T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" Underline="false" />
             </MudItem>
         </MudGrid>
 
         <MudDivider />
 
-        <MudGrid Class="pa-2" AlignItems="FlexStart">
+        <MudGrid Class="pa-2">
             <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
                 <MudIcon Icon="@Icons.Material.Filled.Cloud" Size="Size.Large" Class="me-2" />
                 <div>
