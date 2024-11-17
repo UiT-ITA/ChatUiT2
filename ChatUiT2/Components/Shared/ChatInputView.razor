@@ -1,6 +1,6 @@
 @using ChatUiT2.Services
-<div class="ma-2 pa-0 mb-3" style="position: relative; background-color: var(--mud-palette-background-grey); border-radius:27px;">
-    
+<div class="ma-2 pa-0 mb-3" style="position: relative; background-color: var(--mud-palette-background-gray); border-radius:27px;">
+
     @if (chatFiles.Count > 0)
     {
         <div class="px-2 pt-2" style="display: flex; flex-wrap: wrap; max-height: 160px; overflow-y: auto;"> 
@@ -12,19 +12,26 @@
     }
 
     <div style="display: flex; align-items: flex-end; justify-content: space-between;">
-        
+
         @* Upload files *@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             <MudTooltip Text="Upload files" Placement="Placement.Bottom">
-                <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles" Accept="@acceptedFiles"
-                               Style="width:54px; height: 54px; background-color:transparent;" InputStyle="background-color:transparent;"
-                                Class="ma-0 pa-0">
-                    <ButtonTemplate>
-                        <MudFab HtmlTag="label" DisableElevation Disabled="!UserService.EnableFileUpload"
-                                StartIcon="@Icons.Material.Filled.AttachFile"
-                                Style="width:54px; height: 54px; background-color:transparent;"
-                                for="@context.Id" />
-                    </ButtonTemplate>
+                <MudFileUpload 
+                T="IReadOnlyList<IBrowserFile>" 
+                FilesChanged="UploadFiles" 
+                Accept="@acceptedFiles"
+                Style="width:54px; height: 54px; background-color:transparent;" 
+                InputStyle="background-color:transparent;"
+                Class="ma-0 pa-0">
+                    <ActivatorContent>
+                        @* <MudFab HtmlTag="label" Disabled="!UserService.EnableFileUpload"
+                        StartIcon="@Icons.Material.Filled.AttachFile"
+                        Style="width:54px; height: 54px; background-color:transparent;"
+                        DropShadow="false" Ripple 
+
+                        /> *@
+                        <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Style="width: 54px; height: 54px;"/>
+                    </ActivatorContent>
                 </MudFileUpload>
             </MudTooltip>
         </div>
@@ -57,11 +64,11 @@
 
         @* Input field *@
         <MudTextField id="inputField" @bind-Value="prompt" Variant="Variant.Text" @onkeydown="HandleKeyPress"
-                      AutoFocus AutoGrow Placeholder="Ask anything!" Lines="1" MaxLines="10"
-                       Style="position: relative; top: -12px;" Class="ml-0 pl-0" ReadOnly="generating"
-                       DisableUnderLine @ref="inputFieldRef" TextUpdateSuppression="false"/>
+        AutoFocus AutoGrow Placeholder="Ask anything!" Lines="1" MaxLines="10"
+        Style="position: relative; top: -12px;" Class="ml-0 pl-0" ReadOnly="generating"
+        Underline="false" @ref="inputFieldRef" TextUpdateSuppression="false"/>
 
-        
+
         @* Send message *@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
             @if (!UserService.Waiting)
@@ -76,9 +83,9 @@
                     <div style="position: relative; width: 28px; height: 28px;">
                         <MudProgressCircular Indeterminate="true" Style="height:28px; width: 28px;" />
                         <MudIconButton Icon="@Icons.Material.Filled.Stop"
-                            Style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.3s ease;"
-                            onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'" 
-                            OnClick="StopGeneration"/>
+                        Style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.3s ease;"
+                        onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0'" 
+                        OnClick="StopGeneration"/>
                     </div>
                 </MudTooltip>
             }
@@ -131,7 +138,6 @@
         opacity: 1;
     }
 </style> *@
-
 
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
@@ -359,6 +365,13 @@
             chatFiles.Remove(file);
         }
         StateHasChanged();
+    }
+
+    private void UploadFiles2(IBrowserFile file)
+    {
+        //files.Add(file);
+        //TODO upload the files to the server
+        Console.WriteLine(file.Name);
     }
 
     // private async void RecordFromMicrophone()

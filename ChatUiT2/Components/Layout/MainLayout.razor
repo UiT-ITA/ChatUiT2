@@ -1,163 +1,165 @@
 ﻿@inherits LayoutComponentBase
 <MudThemeProvider @bind-IsDarkMode="UserService.IsDarkMode" Theme="CustomMudTheme"/>
 <MudDialogProvider />
+<MudPopoverProvider />
 <MudSnackbarProvider />
 
 <MudLayout>
 
     <PageTitle>ChatUiT</PageTitle>
     
-    <MudAppBar Class="appbar-hover" Elevation="0" Dense Color="Color.Transparent" DisableGutters>
+    <MudAppBar Class="appbar-hover" Elevation="0" Dense Color="Color.Transparent" Gutters="false">
 
         <MudStack Row Style="width: 100%; height: 48px;" Class="appbar-background" Spacing="0">
 
 
-        @if (!drawerOpen)
-        {
-            <MudTooltip Text="Open sidebar" Placement="Placement.End" Arrow>
-                <MudIconButton Class="appbar-item" Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" Color="Color.Tertiary" />
-            </MudTooltip>
-            <MudTooltip Text="Start new chat" Arrow>
-                <MudIconButton Class="appbar-hidden-item" Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
+            @if (!drawerOpen)
+            {
+                <MudTooltip Text="Open sidebar" Color="Color.Inherit" Arrow="true" Placement="Placement.Bottom">
+                    <MudIconButton Class="appbar-item" Icon="@Icons.Material.Filled.KeyboardArrowRight" OnClick="() => drawerOpen = true" Color="Color.Tertiary" />
+                </MudTooltip>
+                    <MudTooltip Text="Start new chat" Color="Color.Inherit" Arrow="true" Placement="Placement.Bottom">
+                    <MudIconButton Class="appbar-hidden-item" Icon="@Icons.Material.Filled.Add" OnClick="UserService.NewChat" Color="Color.Tertiary" />
+                </MudTooltip>
+
+            } else
+            {
+                <div/>
+            }
+            @* Model config *@
+                <MudTooltip Text="Configuration" Color="Color.Inherit" Arrow="true" Placement="Placement.Bottom">
+                    <div class="d-flex appbar-hidden-item">
+                    <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenChatSettings" Color="Color.Tertiary" />
+                </div>
             </MudTooltip>
 
-        } else
-        {
-            <div/>
-        }
-        @* Model config *@
-        <MudTooltip Text="Configuration of thee model" Arrow>
-                <div class="d-flex appbar-hidden-item">
-                <MudIconButton Icon="@Icons.Material.Filled.Settings" OnClick="OpenChatSettings" Color="Color.Tertiary" />
-            </div>
-        </MudTooltip>
+            @* Save work item*@
+            @if (!UserService.CurrentWorkItem.IsFavorite)
+            {            
+                <MudHidden Breakpoint="Breakpoint.Xs">
+                        <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")" Color="Color.Inherit" Arrow="true" Placement="Placement.Bottom">
+                            <MudToggleIconButton @bind-Toggled="CurrentWorkItemPersistant" Icon="@Icons.Material.Filled.CloudOff" ToggledIcon="@Icons.Material.Filled.CloudDone" Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-hidden-item" />
+                    </MudTooltip>
+                </MudHidden>
+            }
 
-        @* Save work item*@
-        @if (!UserService.CurrentWorkItem.IsFavorite)
-        {            
+            @* Model selection *@
             <MudHidden Breakpoint="Breakpoint.Xs">
-                <MudTooltip Text="@(CurrentWorkItemPersistant ? "Saved to cloud" : "Temporary chat")">
-                        <MudToggleIconButton @bind-Toggled="CurrentWorkItemPersistant" Icon="@Icons.Material.Filled.CloudOff" ToggledIcon="@Icons.Material.Filled.CloudDone" Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-hidden-item" />
+                    <MudTooltip Text="Select model" Color="Color.Inherit" Arrow="true" Placement="Placement.Bottom">
+                    <ModelSelect Class="appbar-hidden-item ma-0 pa-0 pl-3" />
                 </MudTooltip>
             </MudHidden>
-        }
+            <MudSpacer />
+            @* Branding? *@
+            <MudText Typo="Typo.h4" Class="pt-3 appbar-hidden-item" >ChatUiT</MudText>
+            <MudSpacer />
 
-        @* Model selection *@
-        <MudHidden Breakpoint="Breakpoint.Xs">
-            <MudTooltip Text="Select model" Arrow>
-                <ModelSelect Class="appbar-hidden-item ma-0 pa-0 pl-3" />
+            @* Render using markdown *@
+            <MudTooltip Text="Select rendering mode" Color="Color.Inherit" Arrow="true" Placement="Placement.Bottom">
+                    <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-hidden-item" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
             </MudTooltip>
-        </MudHidden>
-        <MudSpacer />
-        @* Branding? *@
-        <MudSpacer />
 
-        @* Render using markdown *@
-        <MudTooltip Text="Select rendering mode" Arrow>
-                <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-hidden-item" Icon="@Icons.Material.Filled.TextSnippet" ToggledIcon="@Icons.Material.Filled.RemoveRedEye" @bind-Toggled="UserService.UseMarkdown" />
-        </MudTooltip>
+            @* Allow user to select how wide the chat area should be*@
+            <MudHidden Breakpoint="Breakpoint.SmAndDown">
+                <MudTooltip Text="Selct maximum width of the chat" Color="Color.Inherit" Arrow="true" Placement="Placement.Bottom">
+                    <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="appbar-hidden-item">
+                        <ActivatorContent>
+                            <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" Color="Color.Tertiary" />
+                        </ActivatorContent>
+                        <ChildContent>
+                            <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Small))">
+                                <div class="d-flex align-items-center" style="width: 150px;">
+                                    <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                                        <MudText Typo="Typo.h6" Class="m-0">Small</MudText>
+                                        <MudText Typo="Typo.subtitle2" Class="m-0">800 pixels</MudText>
+                                    </div>
+                                    @if (UserService.ChatWidth == ChatWidth.Small)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                                    }
+                                </div>
+                            </MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Medium))">
+                                <div class="d-flex align-items-center" style="width: 150px;">
+                                    <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                                        <MudText Typo="Typo.h6" Class="m-0">Medium</MudText>
+                                        <MudText Typo="Typo.subtitle2" Class="m-0">1200 pixels</MudText>
+                                    </div>
+                                    @if (UserService.ChatWidth == ChatWidth.Medium)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                                    }
+                                </div>
+                            </MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Large))">
+                                <div class="d-flex align-items-center" style="width: 150px;">
+                                    <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                                        <MudText Typo="Typo.h6" Class="m-0">Large</MudText>
+                                        <MudText Typo="Typo.subtitle2" Class="m-0">1600 pixels</MudText>
+                                    </div>
+                                    @if (UserService.ChatWidth == ChatWidth.Large)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                                    }
+                                </div>
+                            </MudMenuItem>
+                            <MudDivider />
+                            <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Full))">
+                                <div class="d-flex align-items-center" style="width: 150px;">
+                                    <div class="flex-grow-1 d-flex flex-column justify-content-center">
+                                        <MudText Typo="Typo.h6" Class="m-0">Full</MudText>
+                                        <MudText Typo="Typo.subtitle2" Class="m-0">Full screen width</MudText>
+                                    </div>
+                                    @if (UserService.ChatWidth == ChatWidth.Full)
+                                    {
+                                        <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
+                                    }
+                                </div>
+                            </MudMenuItem>
+                        </ChildContent>
+                    </MudMenu>
+                </MudTooltip>
+            </MudHidden>
 
-        @* Allow user to select how wide the chat area should be*@
-        <MudHidden Breakpoint="Breakpoint.SmAndDown">
-            <MudTooltip Text="Selct maximum width of the chat" Arrow>
-                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="appbar-hidden-item">
+
+            @* Dark mode *@
+            <MudTooltip Text="@(UserService.IsDarkMode ? "Light mode" : "Dark mode")" Color="Color.Inherit" Arrow="true" Placement="Placement.Bottom">
+                <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-hidden-item mx-0" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" @bind-Toggled="UserService.IsDarkMode" />
+            </MudTooltip>
+
+            @* User menu *@
+                <MudTooltip Text="Menu" Color="Color.Inherit" Arrow="true" Placement="Placement.Bottom">
+                    <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pr-2 appbar-hidden-item">
                     <ActivatorContent>
-                        <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" Color="Color.Tertiary" />
+                        <MudButton Color="Color.Tertiary" Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large"/>
+                        </MudButton>
                     </ActivatorContent>
                     <ChildContent>
-                        <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Small))">
-                            <div class="d-flex align-items-center" style="width: 150px;">
-                                <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                                    <MudText Typo="Typo.h6" Class="m-0">Small</MudText>
-                                    <MudText Typo="Typo.subtitle2" Class="m-0">800 pixels</MudText>
-                                </div>
-                                @if (UserService.ChatWidth == ChatWidth.Small)
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
-                                }
-                            </div>
+                        <div class="pl-4 pb-2 pt-4">
+                            <MudText Typo="Typo.body2">Logged in as:</MudText>
+                            <MudText Typo="Typo.body1">@UserService.Name</MudText>
+                        </div>
+                        <MudDivider />
+                        <MudMenuItem OnClick="OpenPreferences" Disabled>
+                            <MudStack Row Style="width:150px">
+                                <MudIcon Icon="@Icons.Material.Filled.Settings" /> 
+                                Preferences 
+                            </MudStack>
                         </MudMenuItem>
                         <MudDivider />
-                        <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Medium))">
-                            <div class="d-flex align-items-center" style="width: 150px;">
-                                <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                                    <MudText Typo="Typo.h6" Class="m-0">Medium</MudText>
-                                    <MudText Typo="Typo.subtitle2" Class="m-0">1200 pixels</MudText>
-                                </div>
-                                @if (UserService.ChatWidth == ChatWidth.Medium)
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
-                                }
-                            </div>
-                        </MudMenuItem>
-                        <MudDivider />
-                        <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Large))">
-                            <div class="d-flex align-items-center" style="width: 150px;">
-                                <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                                    <MudText Typo="Typo.h6" Class="m-0">Large</MudText>
-                                    <MudText Typo="Typo.subtitle2" Class="m-0">1600 pixels</MudText>
-                                </div>
-                                @if (UserService.ChatWidth == ChatWidth.Large)
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
-                                }
-                            </div>
-                        </MudMenuItem>
-                        <MudDivider />
-                        <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Full))">
-                            <div class="d-flex align-items-center" style="width: 150px;">
-                                <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                                    <MudText Typo="Typo.h6" Class="m-0">Full</MudText>
-                                    <MudText Typo="Typo.subtitle2" Class="m-0">Full screen width</MudText>
-                                </div>
-                                @if (UserService.ChatWidth == ChatWidth.Full)
-                                {
-                                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
-                                }
-                            </div>
+                        <MudMenuItem OnClick="Logout">
+                            <MudStack Row Style="width:150px">
+                                <MudIcon Icon="@Icons.Material.Filled.ExitToApp" /> 
+                                Logout
+                            </MudStack>
                         </MudMenuItem>
                     </ChildContent>
                 </MudMenu>
+
             </MudTooltip>
-        </MudHidden>
-
-
-        @* Dark mode *@
-        <MudTooltip Text="@(UserService.IsDarkMode ? "Switch to light mode" : "Switch to dark mode")" Arrow>
-            <MudToggleIconButton Color="Color.Tertiary" ToggledColor="Color.Tertiary" Class="appbar-hidden-item mx-0" Icon="@Icons.Material.Filled.DarkMode" ToggledIcon="@Icons.Material.Filled.LightMode" @bind-Toggled="UserService.IsDarkMode" />
-        </MudTooltip>
-
-        @* User menu *@
-        <MudTooltip Text="User menu" Arrow Placement="Placement.Start">
-                <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pr-2 appbar-hidden-item">
-                <ActivatorContent>
-                    <MudButton Color="Color.Tertiary" Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                        <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large"/>
-                    </MudButton>
-                </ActivatorContent>
-                <ChildContent>
-                    <div class="pl-4 pb-2 pt-4">
-                        <MudText Typo="Typo.body2">Logged in as:</MudText>
-                        <MudText Typo="Typo.body1">@UserService.Name</MudText>
-                    </div>
-                    <MudDivider />
-                    <MudMenuItem OnClick="OpenPreferences" Disabled>
-                        <MudStack Row Style="width:150px">
-                            <MudIcon Icon="@Icons.Material.Filled.Settings" /> 
-                            Preferences 
-                        </MudStack>
-                    </MudMenuItem>
-                    <MudDivider />
-                    <MudMenuItem OnClick="Logout">
-                        <MudStack Row Style="width:150px">
-                            <MudIcon Icon="@Icons.Material.Filled.ExitToApp" /> 
-                            Logout
-                        </MudStack>
-                    </MudMenuItem>
-                </ChildContent>
-            </MudMenu>
-
-        </MudTooltip>
         </MudStack>
     </MudAppBar>
 
@@ -288,7 +290,7 @@
             NoHeader = false,
             CloseButton = true,
             FullWidth = false,
-            ClassBackground = "bg-transparent",
+            BackgroundClass = "bg-transparent",
         };
         DialogService.Show<ChatSettingsView>(title: "Chat settings", options: chatSettingsOptions);
     }
@@ -301,7 +303,7 @@
             NoHeader = false,
             CloseButton = true,
             FullWidth = false,
-            ClassBackground = "bg-transparent",
+            BackgroundClass = "bg-transparent",
         };
         DialogService.Show<PreferencesView>(title: "Preferences", options: preferencesOptions);
     }
@@ -382,16 +384,17 @@
             Overline = new Overline { FontSize = "0.75rem" }, // Default is 0.75rem
 
         },
-        Palette = new PaletteLight
+        PaletteLight = new PaletteLight
         {
             Surface = "f0f0f0",
             Primary = "#2a688d",
             // DrawerBackground = "#f0f0f0",
                 DrawerBackground = "#e1eeff",
             DrawerText = "#ffffff",
-            ChipDefaultHover = "rgba(0, 0, 0, 0.05)",
-            ChipDefault = "rgba(0,0,0, 0)",
-                BackgroundGrey = "rgba(0, 0, 0, 0.1)",
+                HoverOpacity = 0.05,
+            // ChipDefaultHover = "rgba(0, 0, 0, 0.05)",
+            // ChipDefault = "rgba(0,0,0, 0)",
+            //     BackgroundGrey = "rgba(0, 0, 0, 0.1)",
             Tertiary = "#373740",
             TertiaryContrastText = "#ffffff",
         },
@@ -403,9 +406,9 @@
                 DrawerBackground = "#171717",
                 // DrawerBackground = "#00061b",
                 // BackgroundGrey = "#2f2f2f",
-                BackgroundGrey = "rgba(255, 255, 255, 0.1)",
-                ChipDefaultHover = "rgba(255, 255, 255, 0.05)",
-                ChipDefault = "rgba(255,255,255, 0)",
+                BackgroundGray = "rgba(255, 255, 255, 0.1)",
+                // ChipDefaultHover = "rgba(255, 255, 255, 0.05)",
+                // ChipDefault = "rgba(255,255,255, 0)",
                 DrawerIcon = "#000000",
                 Tertiary = "#b3b3b3",
                 

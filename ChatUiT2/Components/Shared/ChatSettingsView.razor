@@ -9,7 +9,7 @@
             </div>
         }
         <MudDivider />
-        <MudGrid Class="pa-2" AlignItems="FlexStart">
+        <MudGrid Class="pa-2">
             <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
                 <MudIcon Icon="@Icons.Material.Filled.AutoAwesome" Size="Size.Large" Class="me-2" />
                 <div>
@@ -22,7 +22,7 @@
             </MudItem>
         </MudGrid>
         <MudDivider />
-        <MudGrid Class="pa-2" AlignItems="FlexStart">
+        <MudGrid Class="pa-2">
             <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
                 <MudIcon Icon="@Icons.Material.Filled.Science" Size="Size.Large" Class="me-2" />
                 <div>
@@ -35,7 +35,7 @@
             </MudItem>
         </MudGrid>
         <MudDivider />
-        <MudGrid Class="pa-2" AlignItems="FlexStart">
+        <MudGrid Class="pa-2">
             <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
                 <MudIcon Icon="@Icons.Material.Filled.ListAlt" Size="Size.Large" Class="me-2" />
                 <div>
@@ -48,7 +48,7 @@
             </MudItem>
         </MudGrid>
         <MudDivider />
-        <MudGrid Class="pa-2" AlignItems="FlexStart">
+        <MudGrid Class="pa-2 pb-0">
             <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
                 <MudIcon Icon="@Icons.Material.Filled.Chat" Size="Size.Large" Class="me-2" />
                 <div>
@@ -65,11 +65,11 @@
                 </MudMenu>
                 @* <MudTextField T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" DisableUnderLine /> *@
             </MudItem>
-            <MudTextField Class="mx-2" T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" DisableUnderLine />
+            <MudTextField Class="mx-4 mb-8 pt-0 mt-0" T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" Underline="false" />
 
         </MudGrid>
         <MudDivider />
-        <MudGrid Class="pa-2" AlignItems="FlexStart">
+        <MudGrid Class="pa-2">
             <MudItem xs="12" md="6" Class="d-flex align-items-center" Style="min-width: 300px;">
                 <MudIcon Icon="@Icons.Material.Filled.Cloud" Size="Size.Large" Class="me-2" />
                 <div>

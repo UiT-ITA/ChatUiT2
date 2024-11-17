@@ -1,5 +1,5 @@
 ﻿
-<MudChip Style="@GetChipStyle()" Class="pa-0 mx-1 my-0" Size="Size.Small" OnClick="SelectWorkItem">
+<MudChip T="string" Style="@GetChipStyle()" Class="pa-0 mx-1 my-0" Size="Size.Small" OnClick="SelectWorkItem" >
     @if (!isEditing)
     {
         <div class="d-flex align-items-center" style="width: 220px;">
@@ -56,7 +56,7 @@
    else
    {
        <MudTextField @bind-Value="newName" AutoFocus Immediate Variant="Variant.Text" Style="height:28px; width:210px" 
-            Class="pa-0 ma-0" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Check" 
+            Class="pa-0 ma-0" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Check" Underline="false"
             OnAdornmentClick="StopEditing" @onfocusout="StopEditing" @onkeydown="OnKeyDown" />
    }
 
@@ -130,10 +130,10 @@
         {
             // backgroundColor = "--mud-palette-surface";
             // backgroundColor = "background-color: rgba(255,255,255,0.1);";
-            backgroundColor = "background-color: var(--mud-palette-background-grey);";
         }
         else
         {
+            backgroundColor = "background-color: var(--mud-palette-background-grey);";
             //backgroundColor = "background-color: var(--mud-palette-drawer-background);";
         }
 
