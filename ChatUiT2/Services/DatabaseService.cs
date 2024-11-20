@@ -573,13 +573,21 @@ public class DatabaseService : IDatabaseService
     /// <returns></returns>
     private async Task DeleteChat(WorkItemChat chat, User user)
     {
-        //await _storageService.DeleteContainer(chat);
+        var msgFilter = Builders<BsonDocument>.Filter.And(
+            Builders<BsonDocument>.Filter.Eq("ChatId", chat.Id),
+            Builders<BsonDocument>.Filter.Eq("Username", user.Username) // partition key
+        );
 
-        var filter = Builders<BsonDocument>.Filter.And(
-            Builders<BsonDocument>.Filter.Eq("_id", chat.Id),
-            Builders<BsonDocument>.Filter.Eq("Username", user.Username) // Add partition key
-        );  
-        await _chatMessageCollection.DeleteManyAsync(filter);
+        var messages = await _chatMessageCollection.Find(msgFilter).ToListAsync();
+        var msgIds = messages.Select(msg => msg["_id"]).ToList();
+
+        var fileFilter = Builders<BsonDocument>.Filter.And(
+            Builders<BsonDocument>.Filter.In("MessageId", msgIds),
+            Builders<BsonDocument>.Filter.Eq("Username", user.Username) // partition key
+        );
+
+        var results = await _chatMessageCollection.DeleteManyAsync(msgFilter);
+        results = await _fileCollection.DeleteManyAsync(fileFilter);
 
     }
 
