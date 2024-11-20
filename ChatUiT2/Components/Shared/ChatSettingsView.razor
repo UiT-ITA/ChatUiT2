@@ -79,7 +79,7 @@
             </MudItem>
             <MudItem xs="12" md="6" Style="min-width: 300px;">
                 <MudStack Row>
-                    <MudSwitch Class="ml-1" @bind-Value="CurrentWorkItemPersistant" T="bool" ThumbIconColor="Color.Dark" Color="Color.Success" UnCheckedColor="Color.Error" ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
+                    <MudSwitch Class="ml-1" @bind-Value="CurrentWorkItemPersistant" T="bool" ThumbIconColor="Color.Dark" Color="Color.Success" UncheckedColor="Color.Error" ThumbIcon="@(CurrentWorkItemPersistant ? Icons.Material.Filled.CloudDone : Icons.Material.Filled.CloudOff)" Size="Size.Large" />
                     @if (CurrentWorkItemPersistant)
                     {
                         <MudText Typo="Typo.h6" Class="mt-3">Chat will be saved</MudText>
