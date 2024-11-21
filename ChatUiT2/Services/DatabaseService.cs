@@ -437,7 +437,7 @@ public class DatabaseService : IDatabaseService
         List<Task> tasks = new List<Task>();
         foreach (ChatFile file in message.Files)
         {
-            tasks.Add(SaveChatFile(file, message, user));
+            tasks.Add(SaveChatFile(file, message, chat, user));
         }
         await Task.WhenAll(tasks);
 
@@ -470,7 +470,7 @@ public class DatabaseService : IDatabaseService
     /// <param name="message"></param>
     /// <param name="user"></param>
     /// <returns></returns>
-    private async Task SaveChatFile(ChatFile file, ChatMessage message, User user)
+    private async Task SaveChatFile(ChatFile file, ChatMessage message, WorkItemChat chat, User user)
     {
         var existingFile = await _fileCollection.Find(Builders<BsonDocument>.Filter.Eq("_id", file.Id)).FirstOrDefaultAsync();
         if (existingFile != null)
@@ -508,6 +508,7 @@ public class DatabaseService : IDatabaseService
             {
                 {"_id", file.Id},
                 {"MessageId", message.Id},
+                {"ChatId", chat.Id},
                 {"Username", user.Username },
                 {"FileName", file.FileName},
                 {"Parts", filePartArray}
