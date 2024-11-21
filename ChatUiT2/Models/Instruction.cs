@@ -16,6 +16,21 @@ public class InstructionContent
     public string Name { get; set; } = "New Instruction";
     public string Description { get; set; } = "";
     public string Content { get; set; } = "";
+    public List<ChatTool> Tools { get; set; } = new List<ChatTool>();
     public DateTime Created { get; set; } = DateTimeTools.GetTimestamp();
     public List<string> SharedWith { get; set; } = new List<string>();
+}
+
+public static class InstructionTools
+{
+    public static string GetSystemPrompt(this Instruction instruction)
+    {
+        string systemPrompt = instruction.Content.Content;
+        if (instruction.Content.Tools.Any())
+        {
+            throw new NotImplementedException();
+        }
+
+        return systemPrompt;
+    }
 }
