@@ -2,6 +2,7 @@
 
 public class Settings
 {
+    public List<string> groups { get; set; } = new List<string>();
 
 }
 

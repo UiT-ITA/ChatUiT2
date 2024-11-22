@@ -10,12 +10,27 @@ public class ConfigService : IConfigService
     private Model defaultModel { get; set; } = null!;
     private Model namingModel { get; set; } = null!;
 
+    private readonly IDatabaseService _databaseService;
 
-    public ConfigService(IConfiguration configuration)
+
+    public ConfigService(IConfiguration configuration, IDatabaseService databaseService)
     {
+        _databaseService = databaseService;
         ReadModelConfig(configuration);
         //Console.WriteLine("ConfigService created");
     }
+
+    private async void ReadConfiguration()
+    {
+        var config = await _databaseService.GetConfig();
+        ReadModelConfig(config);
+    }
+
+
+
+
+
+
 
     //private void ReadConfig(IConfiguration configuration, KeyVaultService keyVaultService)
     private void ReadModelConfig(IConfiguration configuration)

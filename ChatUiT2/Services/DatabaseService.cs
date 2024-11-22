@@ -15,13 +15,17 @@ public class DatabaseService : IDatabaseService
     // Services
     private readonly IKeyVaultService _keyVaultService;
     private readonly IEncryptionService _encryptionService;
-    //private IStorageService _storageService;
 
-    // Collections
+    // Collections user
     private readonly IMongoCollection<BsonDocument> _userCollection;
     private readonly IMongoCollection<BsonDocument> _chatCollection;
     private readonly IMongoCollection<BsonDocument> _chatMessageCollection;
     private readonly IMongoCollection<BsonDocument> _fileCollection;
+
+    // Collections system
+    private readonly IMongoCollection<BsonDocument> _configCollection;
+    private readonly IMongoCollection<BsonDocument> _endpointCollection;
+    private readonly IMongoCollection<BsonDocument> _modelCollection;
 
     // Settings
     private readonly bool _useEncryption;
@@ -54,10 +58,33 @@ public class DatabaseService : IDatabaseService
         _chatMessageCollection = userDatabase.GetCollection<BsonDocument>("ChatMessages");
         _fileCollection = userDatabase.GetCollection<BsonDocument>("Files");
 
+        var systemDatabase = client.GetDatabase("System");
+
+        _configCollection = systemDatabase.GetCollection<BsonDocument>("Config");
+        _endpointCollection = systemDatabase.GetCollection<BsonDocument>("Endpoints");
+        _modelCollection = systemDatabase.GetCollection<BsonDocument>("Models");
+
+
         _useEncryption = configuration.GetValue<bool>("UseEncryption", defaultValue: true);
     
         //Console.WriteLine("DatabaseService created");
     }
+
+    // System
+
+    public async Task<Settings> GetSettings()
+    {
+        var document = await _configCollection.Find(new BsonDocument()).FirstOrDefaultAsync();
+        if (document == null)
+        {
+            return new Settings();
+        }
+        return BsonSerializer.Deserialize<Settings>(document);
+    }
+
+
+
+
 
 
     // Users
