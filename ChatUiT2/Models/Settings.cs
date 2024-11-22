@@ -20,9 +20,10 @@ public class Preferences
 public class ChatSettings
 {
     public string Model { get; set; } = "GPT-4o";
-    public float Temperature { get; set; } = 0.2f;
+    public float Temperature { get; set; } = 0.7f;
+    public string InstructionId { get; set; } = "";
     public string Prompt { get; set; } = "You are a helpful ai assistant, respond using markdown.";
-    public int MaxTokens { get; set; } = 1024;
+    public int MaxTokens { get; set; } = 4096;
 
 
     public void Copy(ChatSettings settings)

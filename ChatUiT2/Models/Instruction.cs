@@ -4,7 +4,7 @@ namespace ChatUiT2.Models;
 
 public class Instruction
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Id => Content.Id;
     public bool IsFavorite { get; set; } = false;
     public InstructionContent Content { get; set; } = new InstructionContent();
 }

@@ -22,6 +22,7 @@ public class DatabaseService : IDatabaseService
     private readonly IMongoCollection<BsonDocument> _chatCollection;
     private readonly IMongoCollection<BsonDocument> _chatMessageCollection;
     private readonly IMongoCollection<BsonDocument> _fileCollection;
+    private readonly IMongoCollection<BsonDocument> _instructionCollection;
 
     // Settings
     private readonly bool _useEncryption;
@@ -53,6 +54,7 @@ public class DatabaseService : IDatabaseService
         _chatCollection = userDatabase.GetCollection<BsonDocument>("Chats");
         _chatMessageCollection = userDatabase.GetCollection<BsonDocument>("ChatMessages");
         _fileCollection = userDatabase.GetCollection<BsonDocument>("Files");
+        _instructionCollection = userDatabase.GetCollection<BsonDocument>("Instructions");
 
         _useEncryption = configuration.GetValue<bool>("UseEncryption", defaultValue: true);
     
@@ -610,4 +612,95 @@ public class DatabaseService : IDatabaseService
         }
         return users;
     }
+
+
+    public async Task SaveInstruction(InstructionContent instruction)
+    {
+        var document = new BsonDocument
+        {
+            {"_id", instruction.Id},
+            {"Owner", instruction.Owner},
+            {"Data", instruction.Name},
+            {"Description", instruction.Description},
+            {"Content", instruction.Content},
+            {"Tools", new BsonArray(instruction.Tools.Select(t => t.Id))},
+            {"Created", instruction.Created},
+            {"SharedWith", new BsonArray(instruction.SharedWith)}
+        };
+
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", instruction.Id);
+        var options = new ReplaceOptions { IsUpsert = true };
+
+        await _instructionCollection.ReplaceOneAsync(filter, document, options);
+    } 
+
+    public async Task<List<Instruction>> GetAllInstructions(User user)
+    {
+        var filter = Builders<BsonDocument>.Filter.Or(
+            Builders<BsonDocument>.Filter.Eq("Owner", user.Username),
+            Builders<BsonDocument>.Filter.Eq("Owner", "system"),
+            Builders<BsonDocument>.Filter.AnyIn("SharedWith", new BsonArray(new[] { user.Username }))
+        );
+
+        var documents = await _instructionCollection.Find(filter).ToListAsync();
+        var instructions = new List<Instruction>();
+        foreach (var document in documents)
+        {
+            var instruction = new InstructionContent
+            {
+                Id = document["_id"].AsString,
+                Owner = document["Owner"].AsString,
+                Name = document["Name"].AsString,
+                Description = document["Description"].AsString,
+                Content = document["Content"].AsString,
+                Tools = new List<ChatTool>(), // TODO: Load tools
+                Created = document["Created"].ToUniversalTime(),
+                SharedWith = document["SharedWith"].AsBsonArray.Select(i => i.AsString).ToList()
+            };
+
+            instructions.Add(new Instruction
+            {
+                Content = instruction
+            });
+        }
+        return instructions;
+    }
+
+    public async Task<Instruction?> GetInstruction(string id, User user)
+    {
+        Task.Delay(0).Wait();
+        throw new NotImplementedException();
+        /*var filter = Builders<BsonDocument>.Filter.Eq("_id", id);
+        var document = await _instructionCollection.Find(filter).FirstOrDefaultAsync();
+        if (document == null)
+        {
+            return null;
+        }
+
+
+        var instruction = new InstructionContent
+        {
+            Id = document["_id"].AsString,
+            Owner = document["Owner"].AsString,
+            Name = document["Name"].AsString,
+            Description = document["Description"].AsString,
+            Content = document["Content"].AsString,
+            Tools = new List<ChatTool>(),
+            Created = document["Created"].ToUniversalTime(),
+            SharedWith = document["SharedWith"].AsBsonArray.Select(i => i.AsString).ToList()
+        };
+
+        if (instruction.Owner == "system" || instruction.Owner == user.Username || instruction.SharedWith.Contains(user.Username))
+        {
+            return new Instruction
+            {
+                Content = instruction
+            };
+        }
+        else
+        {
+            throw new Exception("Access denied");
+        }*/
+    }
+
 }
