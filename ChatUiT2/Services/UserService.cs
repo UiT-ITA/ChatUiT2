@@ -158,6 +158,12 @@ public class UserService : IUserService
         SetWorkItem(newChat);
     }
 
+    public void AddChat(WorkItemChat chat)
+    {
+        User.Chats.Add(chat);
+        _updateService.Update(UpdateType.Global);
+    }
+
     public void SetWorkItem(IWorkItem workItem)
     {
         if (Waiting)

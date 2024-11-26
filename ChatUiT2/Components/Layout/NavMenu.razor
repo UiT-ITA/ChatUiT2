@@ -89,8 +89,8 @@
                 </MudStack>
             </MudButton>
         }
-
-        @if (!Nav.Uri.EndsWith("/test") && UserService.IsTester)
+        *@
+        @if (!Nav.Uri.EndsWith("/test"))
         {
             <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/test"))" Color="Color.Tertiary">
                 <MudStack Row>
@@ -98,7 +98,7 @@
                     <MudText Typo="Typo.h5" Class="pt-1">Test area</MudText>
                 </MudStack>
             </MudButton>
-        } *@
+        } 
 
 
 
