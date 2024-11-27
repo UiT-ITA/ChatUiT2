@@ -18,7 +18,7 @@ public class LocalStorageService
         return await JSRuntime.InvokeAsync<string>("localStorage.getItem", key);
     }
 
-    public async Task<List<Conversation>> GetConversationHistoryAsync()
+    public async Task<List<Conversation>?> GetConversationHistoryAsync()
     {
         string json = await GetItemAsync("conversationHistory");
         if (string.IsNullOrEmpty(json))

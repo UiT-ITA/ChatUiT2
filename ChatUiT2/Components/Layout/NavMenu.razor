@@ -185,8 +185,6 @@
     {
         var chats = await LocalStorageService.GetLocalConversations();
 
-        Console.WriteLine(chats[0].Messages[0].Content);
-
         foreach (var chat in chats)
         {
             UserService.AddChat(chat);
