@@ -18,7 +18,7 @@
                 <div class="fade-in-button" style="width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
                     @if (audioState == AudioState.Idle)
                     {
-                        <MudIconButton Style="width: 40px; height: 40px;" Icon="@Icons.Material.Filled.Hearing" Size="Size.Medium" OnClick="PlayMessage" />
+                        @* <MudIconButton Style="width: 40px; height: 40px;" Icon="@Icons.Material.Filled.Hearing" Size="Size.Medium" OnClick="PlayMessage" /> *@
                     }
                     else if (audioState == AudioState.Loading)
                     {
