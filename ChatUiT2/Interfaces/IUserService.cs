@@ -20,6 +20,7 @@ public interface IUserService
     ChatWidth ChatWidth { get; set; }
 
     void NewChat();
+    void AddChat(WorkItemChat chat);
     void SetWorkItem(IWorkItem workItem);
     bool GetSaveHistory();
     Task SetSaveHistory(IWorkItem workItem, bool value);

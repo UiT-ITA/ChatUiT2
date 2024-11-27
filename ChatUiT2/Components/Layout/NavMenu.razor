@@ -1,4 +1,5 @@
-﻿<div style="display:flex; flex-direction:column;height:100%; overflow-x:hidden; width:100%;">
+﻿@using ChatUiT2.Services
+<div style="display:flex; flex-direction:column;height:100%; overflow-x:hidden; width:100%;">
     <div>
 
         <div style="display: flex; align-items: center; justify-content:space-between;" class="pt-0">
@@ -71,6 +72,13 @@
                 </MudStack>
             </MudButton>
 
+            <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="ImportOldChats" Color="Color.Tertiary">
+                <MudStack Row>
+                    <MudIcon Icon="@Icons.Material.Filled.BrowserUpdated" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                    <MudText Typo="Typo.h5" Class="pt-1">Import old chats</MudText>
+                </MudStack>
+            </MudButton>
+
             @* Delete all user data *@
             <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="DeleteAll" Color="Color.Tertiary">
                 <MudStack Row>
@@ -89,8 +97,8 @@
                 </MudStack>
             </MudButton>
         }
-
-        @if (!Nav.Uri.EndsWith("/test") && UserService.IsTester)
+        *@
+        @* @if (!Nav.Uri.EndsWith("/test"))
         {
             <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/test"))" Color="Color.Tertiary">
                 <MudStack Row>
@@ -98,7 +106,7 @@
                     <MudText Typo="Typo.h5" Class="pt-1">Test area</MudText>
                 </MudStack>
             </MudButton>
-        } *@
+        }  *@
 
 
 
@@ -120,6 +128,7 @@
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
+    [Inject] private LocalStorageService LocalStorageService { get; set; } = null!;
 
     [Parameter] public EventCallback OnClose { get; set; }
 
@@ -170,6 +179,18 @@
         var fileName = UserService.CurrentChat.Name + ".json";
 
         await JS.InvokeVoidAsync("downloadFileFromBase64", fileName, base64);
+    }
+
+    private async Task ImportOldChats()
+    {
+        var chats = await LocalStorageService.GetLocalConversations();
+
+        Console.WriteLine(chats[0].Messages[0].Content);
+
+        foreach (var chat in chats)
+        {
+            UserService.AddChat(chat);
+        }
     }
 
     private async Task DeleteAll()
