@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.32.4.45862",
-      "templateHash": "7294716382552593268"
+      "templateHash": "1363774688410625198"
     }
   },
   "parameters": {
@@ -22,6 +22,10 @@
       "defaultValue": ""
     },
     "deployment1": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "chatUitGitUrl": {
       "type": "string",
       "defaultValue": ""
     }
@@ -59,13 +63,13 @@
       "properties": {
         "branch": "master",
         "isGitHubAction": true,
-        "repoUrl": "https://github.com/UiT-ITA/ChatUiT2",
+        "repoUrl": "[parameters('chatUitGitUrl')]",
         "gitHubActionConfiguration": {
           "codeConfiguration": {
             "runtimeStack": "DOTNETCORE|8.0",
             "runtimeVersion": "8.0"
           },
-          "generateWorkflowFile": false,
+          "generateWorkflowFile": true,
           "isLinux": true
         }
       },
@@ -76,7 +80,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
-      "name": "AppServicePlanModule",
+      "name": "appServicePlanModule",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -628,7 +632,7 @@
             "value": "app,linux"
           },
           "serverFarmResourceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'AppServicePlanModule'), '2022-09-01').outputs.resourceId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'appServicePlanModule'), '2022-09-01').outputs.resourceId.value]"
           },
           "managedIdentities": {
             "value": {
@@ -5862,7 +5866,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'AppServicePlanModule')]"
+        "[resourceId('Microsoft.Resources/deployments', 'appServicePlanModule')]"
       ]
     },
     {
