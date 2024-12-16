@@ -5,7 +5,7 @@
       "_generator": {
         "name": "bicep",
         "version": "0.32.4.45862",
-        "templateHash": "6257506493622718182"
+        "templateHash": "16616372160632859341"
       }
     },
     "parameters": {
@@ -84,7 +84,7 @@
           "mode": "Incremental",
           "parameters": {
             "name": {
-              "value": "[format('{0}-asp', variables('resourceGroupName'))]"
+              "value": "[format('{0}{1}-asp', variables('resourceGroupName'), variables('uniquePrefix'))]"
             },
             "reserved": {
               "value": true
@@ -619,7 +619,7 @@
           "mode": "Incremental",
           "parameters": {
             "name": {
-              "value": "[format('{0}-{1}-webapp', variables('resourceGroupName'), variables('uniquePrefix'))]"
+              "value": "[format('{0}{1}-webapp', variables('resourceGroupName'), variables('uniquePrefix'))]"
             },
             "location": {
               "value": "[variables('location')]"
@@ -5876,7 +5876,7 @@
           "mode": "Incremental",
           "parameters": {
             "name": {
-              "value": "[format('{0}-{1}-kv', variables('resourceGroupName'), variables('uniquePrefix'))]"
+              "value": "[format('{0}{1}-kv', variables('resourceGroupName'), variables('uniquePrefix'))]"
             },
             "location": {
               "value": "[variables('location')]"
@@ -8811,7 +8811,7 @@
           "mode": "Incremental",
           "parameters": {
             "name": {
-              "value": "[format('{0}-db', variables('resourceGroupName'))]"
+              "value": "[format('{0}{1}-db', variables('resourceGroupName'), variables('uniquePrefix'))]"
             },
             "secretsExportConfiguration": {
               "value": {
