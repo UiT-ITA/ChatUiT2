@@ -5,7 +5,7 @@
       "_generator": {
         "name": "bicep",
         "version": "0.32.4.45862",
-        "templateHash": "16616372160632859341"
+        "templateHash": "6669639679097346415"
       }
     },
     "parameters": {
@@ -28,14 +28,14 @@
     },
     "variables": {
       "location": "[resourceGroup().location]",
-      "resourceGroupName": "[resourceGroup().name]",
+      "resourceGroupName": "[toLower(resourceGroup().name)]",
       "uniquePrefix": "[toLower(substring(uniqueString(resourceGroup().id), 0, 6))]"
     },
     "resources": [
       {
         "type": "Microsoft.Web/sites/config",
         "apiVersion": "2024-04-01",
-        "name": "[format('{0}/{1}', format('{0}-{1}-webapp', variables('resourceGroupName'), variables('uniquePrefix')), 'connectionstrings')]",
+        "name": "[format('{0}/{1}', format('{0}{1}-webapp', variables('resourceGroupName'), variables('uniquePrefix')), 'connectionstrings')]",
         "properties": {
           "MongoDB": {
             "type": "Custom",
@@ -55,7 +55,7 @@
       {
         "type": "Microsoft.Web/sites/sourcecontrols",
         "apiVersion": "2024-04-01",
-        "name": "[format('{0}/{1}', format('{0}-{1}-webapp', variables('resourceGroupName'), variables('uniquePrefix')), 'web')]",
+        "name": "[format('{0}/{1}', format('{0}{1}-webapp', variables('resourceGroupName'), variables('uniquePrefix')), 'web')]",
         "properties": {
           "branch": "master",
           "isGitHubAction": true,
