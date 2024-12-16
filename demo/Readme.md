@@ -10,6 +10,11 @@ This quick-start guide describes the process of setting up an environment to run
 
 ## Deploy sample application
 
-Set parameters for App registration Client ID, OpenAI endpoint and list of available models.
+Set parameters for Entra ID Client ID, OpenAI endpoint, models and deployment:
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FUiT-ITA%2FChatUiT2%2Ftree%2FazureIAC%2Fdemo%2Fazuredeploy.json)
+`azureAdClientId` - The Object ID of the App registration
+`endpoints` - The URL for the OpenAI endpoint
+`models` - List of the models available
+`deployment1` - xxx?
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FUiT-ITA%2FChatUiT2%2Frefs%2Fheads%2Fdemo%2Fazuredeploy.json)
