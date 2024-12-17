@@ -1,10 +1,8 @@
 # Quick-start deployment of Azure infrastrucure for ChatUiT
 
-This quick-start guide describes the process of setting up an environment to run ChatUiT in your own Azure tennant.
+This template make it easy for you to deploy an environment to run ChatUiT in your own Azure tennant. It creates an Azure Cosmos DB account and Azure Web App, then automatically deploys the ChatUiT web app hosted on GitHub and injects the Cosmos DB endpoint and auth key into the Web App's Application Settings allowing it to connect automatically upon first run.
 
-This template creates an Azure Cosmos DB account and Azure Web App, then automatically deploys the ChatUiT web app hosted on GitHub and injects the Cosmos DB endpoint and auth key into the Web App's Application Settings allowing it to connect automatically upon first run.
-
-This sample is useful where you want to deploy these resources and have the web app automatically connect to Cosmos DB in a single operation without having to manually add connection information to Application Settings in the portal.
+This sample is useful for a demo deployment of ChatUiT and have the web app automatically connect to Cosmos DB in a single operation without having to manually add connection information to Application Settings in the portal.
 
 ## Prerequisites
 
@@ -12,7 +10,7 @@ This sample is useful where you want to deploy these resources and have the web 
 2. Open AI endpoint with enabled models. [Create and deploy an Azure OpenAI Service resource](https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/create-resource?pivots=web-portal)
 3. Entra ID app registration to use for login. [Register an application with the Microsoft identity platform](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app?tabs=certificate)
 
-## Deploy sample application
+## Deployment
 
 Below are the parameters which can be user configured in the parameters file including:
 
