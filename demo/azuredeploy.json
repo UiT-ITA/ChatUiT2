@@ -5,17 +5,23 @@
     "_generator": {
       "name": "bicep",
       "version": "0.32.4.45862",
-      "templateHash": "837972939994525785"
+      "templateHash": "10313002348063971883"
     }
   },
   "parameters": {
     "azureAdClientId": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "",
+      "metadata": {
+        "description": "The Entra ID client ID for the application."
+      }
     },
     "endpoints": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "",
+      "metadata": {
+        "description": "The endpoints for the deployment."
+      }
     },
     "models": {
       "type": "string",
@@ -26,7 +32,10 @@
     },
     "deployment1": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "",
+      "metadata": {
+        "description": "The key for the deployment to use."
+      }
     },
     "chatUitGitUrl": {
       "type": "string",
@@ -65,6 +74,21 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', 'cosmosModule')]",
+        "[resourceId('Microsoft.Resources/deployments', 'keyVaultModule')]",
+        "[resourceId('Microsoft.Resources/deployments', 'webAppModule')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/sites/config",
+      "apiVersion": "2024-04-01",
+      "name": "[format('{0}/{1}', format('{0}{1}-webapp', variables('resourceGroupName'), variables('uniquePrefix')), 'appsettings')]",
+      "properties": {
+        "AzureAd__ClientId": "[parameters('azureAdClientId')]",
+        "Endpoints": "[parameters('endpoints')]",
+        "Models": "[parameters('models')]",
+        "Deployment1": "[format('@Microsoft.KeyVault(SecretUri={0}secrets/deployment1)', reference(resourceId('Microsoft.Resources/deployments', 'keyVaultModule'), '2022-09-01').outputs.uri.value)]"
+      },
+      "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', 'keyVaultModule')]",
         "[resourceId('Microsoft.Resources/deployments', 'webAppModule')]"
       ]
@@ -642,14 +666,6 @@
           "managedIdentities": {
             "value": {
               "systemAssigned": true
-            }
-          },
-          "appSettingsKeyValuePairs": {
-            "value": {
-              "AzureAd__ClientId": "[parameters('azureAdClientId')]",
-              "Endpoints": "[parameters('endpoints')]",
-              "Models": "[parameters('models')]",
-              "Deployment1": "[parameters('deployment1')]"
             }
           },
           "siteConfig": {
@@ -5904,6 +5920,14 @@
                 "principalType": "ServicePrincipal"
               }
             ]
+          },
+          "secrets": {
+            "value": [
+              {
+                "name": "deployment1",
+                "value": "[parameters('deployment1')]"
+              }
+            ]
           }
         },
         "template": {
@@ -8901,9 +8925,7 @@
                   },
                   {
                     "name": "Instructions",
-                    "shardKey": {
-                      "Username": "Hash"
-                    },
+                    "shardKey": {},
                     "indexes": [
                       {
                         "key": {
