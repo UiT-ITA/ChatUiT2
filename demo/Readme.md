@@ -16,10 +16,10 @@ Below are the parameters which can be user configured in the parameters file inc
 
 | Parameter         | Description                                |
 |-------------------|--------------------------------------------|
-| `azureAdClientId` | The Object ID of the App registration      |
+| `azureAdClientId` | The Client ID of the App registration      |
 | `endpoints`       | The URL for the OpenAI endpoint            |
 | `models`          | List of the models available               |
-| `deployment1`     | Deployment configuration (details needed)  |
+| `deployment1`     | Key for the deployment to use              |
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FUiT-ITA%2FChatUiT2%2Fmaster%2Fdemo%2Fazuredeploy.json)
 
