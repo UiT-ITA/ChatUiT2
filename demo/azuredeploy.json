@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.32.4.45862",
-      "templateHash": "4291023193321005058"
+      "templateHash": "837972939994525785"
     }
   },
   "parameters": {
@@ -19,7 +19,10 @@
     },
     "models": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "[[{\"Name\":\"GPT-4o\",\"Description\":\"Best model\",\"DeploymentName\":\"gpt-4o\",\"MaxContext\":128000,\"MaxTokens\":4096,\"DeploymentType\":\"AzureOpenAI\",\"Deployment\":\"Deployment1\"},{\"Name\":\"GPT-4o-Mini\",\"Description\":\"Good and fast\",\"DeploymentName\":\"gpt-4o-mini\",\"MaxContext\":128000,\"MaxTokens\":16000,\"DeploymentType\":\"AzureOpenAI\",\"Deployment\":\"Deployment1\"}]",
+      "metadata": {
+        "description": "The models available for the deployment."
+      }
     },
     "deployment1": {
       "type": "string",
@@ -27,11 +30,17 @@
     },
     "chatUitGitUrl": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "https://github.com/UiT-ITA/ChatUiT2",
+      "metadata": {
+        "description": "The URL for the GitHub repository that contains the project to deploy."
+      }
     },
     "chatUitGitBranch": {
       "type": "string",
-      "defaultValue": ""
+      "defaultValue": "master",
+      "metadata": {
+        "description": "The branch of the GitHub repository to use."
+      }
     }
   },
   "variables": {
