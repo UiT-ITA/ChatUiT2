@@ -1,4 +1,4 @@
-# Quick-start deployment of Azure infrastrucure for ChatUiT
+# Demo deployment of Azure infrastrucure for ChatUiT
 
 This template make it easy for you to deploy an environment to run ChatUiT in your own Azure tennant. It creates an Azure Cosmos DB account and Azure Web App, then automatically deploys the ChatUiT web app hosted on GitHub and injects the Cosmos DB endpoint and auth key into the Web App's Application Settings allowing it to connect automatically upon first run.
 
