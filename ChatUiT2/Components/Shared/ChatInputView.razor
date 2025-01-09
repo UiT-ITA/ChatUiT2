@@ -11,7 +11,7 @@
         </div>
     }
 
-    <div style="display: flex; align-items: flex-end; justify-content: space-between;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
 
         @* Upload files *@
         <div style="width: 54px; height: 54px; display: flex; justify-content: center; align-items: center;">
@@ -64,9 +64,9 @@
 
         @* Input field *@
         <MudTextField id="inputField" @bind-Value="prompt" Variant="Variant.Text" @onkeydown="HandleKeyPress"
-        AutoFocus AutoGrow Placeholder="Ask anything!" Lines="1" MaxLines="10"
-        Style="position: relative; top: -12px;" Class="ml-0 pl-0" ReadOnly="generating"
-        Underline="false" @ref="inputFieldRef" TextUpdateSuppression="false"/>
+                      AutoFocus AutoGrow Placeholder="Ask anything!" Lines="1" MaxLines="10"
+                      Class="ml-0 pl-0" ReadOnly="generating" Underline="false" @ref="inputFieldRef" 
+                      TextUpdateSuppression="false" />
 
 
         @* Send message *@
