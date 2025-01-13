@@ -1,6 +1,7 @@
 ﻿using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using ChatUiT2.Interfaces;
+using Microsoft.Extensions.Configuration;
 
 namespace ChatUiT2.Services;
 
@@ -11,7 +12,7 @@ public class KeyVaultService : IKeyVaultService
 
     public KeyVaultService(IConfiguration configuration,
                            IEncryptionService encryptionService)
-    {
+    {        
         var vaultUriString = configuration["ConnectionStrings:KeyVault"];
         if (vaultUriString == null)
         {

@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using MongoDB.Bson;
 using System.Text.Json;
 using Azure.AI.OpenAI.Chat;
+using Microsoft.Extensions.Logging;
 //using OpenAI.Chat;
 
 namespace ChatUiT2.Services;

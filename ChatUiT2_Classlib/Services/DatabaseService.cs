@@ -1,11 +1,13 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using System.Text;
 using System.Text.Json;
+using UiT.CommonToolsLib.Services;
 using static ChatUiT2.Models.ChatFile;
 
 namespace ChatUiT2.Services;
@@ -13,9 +15,9 @@ namespace ChatUiT2.Services;
 public class DatabaseService : IDatabaseService
 {
     // Services
-    private readonly IKeyVaultService _keyVaultService;
     private readonly IEncryptionService _encryptionService;
-    //private IStorageService _storageService;
+    private readonly IKeyVaultService _keyVaultService;
+    private readonly IDateTimeProvider _dateTimeProvider;
 
     // Collections
     private readonly IMongoCollection<BsonDocument> _userCollection;
@@ -28,9 +30,11 @@ public class DatabaseService : IDatabaseService
 
     public DatabaseService(IConfiguration configuration, 
                            IEncryptionService encryptionService, 
-                           IKeyVaultService keyVaultService)
+                           IKeyVaultService keyVaultService,
+                           IDateTimeProvider dateTimeProvider)
     {
         _keyVaultService = keyVaultService;
+        this._dateTimeProvider = dateTimeProvider;
         _encryptionService = encryptionService;
         //_storageService = storageService;
 
@@ -55,7 +59,9 @@ public class DatabaseService : IDatabaseService
         _fileCollection = userDatabase.GetCollection<BsonDocument>("Files");
 
         _useEncryption = configuration.GetValue<bool>("UseEncryption", defaultValue: true);
-    
+        this._encryptionService = encryptionService;
+        this._keyVaultService = keyVaultService;
+
         //Console.WriteLine("DatabaseService created");
     }
 
@@ -162,6 +168,40 @@ public class DatabaseService : IDatabaseService
         var results = await Task.WhenAll(tasks);
 
         workItems.AddRange(results.Where(item => item != null).Select(item => item!));
+        return workItems;
+    }
+
+    // WorkItems
+    /// <summary>
+    /// Gets a list of WorkItems that may be deleted.
+    /// Get a list of work items that have not been updated for seven days
+    /// and that are not marked as favorite.
+    /// </summary>
+    /// <param name="user"></param>
+    /// <returns>List of work items belonging to a user</returns>
+    public async Task<List<IWorkItem>> GetWorkItemsExpired()
+    {
+        var workItems = new List<IWorkItem>();
+        
+        DateTime olderThan = _dateTimeProvider.UtcNow.AddDays(-7);
+        var filter = Builders<BsonDocument>.Filter.Lt("Updated", olderThan);
+        var sort = Builders<BsonDocument>.Sort.Descending("Updated");
+        var documents = await _chatCollection.Find(filter).ToListAsync();
+        foreach (var doc in documents)
+        {
+            if (doc["Type"] == WorkItemType.Chat.ToString())
+            {
+                var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
+                if (workItem != null && !workItem.IsFavorite)
+                {
+                    workItems.Add(workItem);
+                }
+            }
+            else
+            {
+                // Ignore unknown types
+            }
+        }
         return workItems;
     }
 

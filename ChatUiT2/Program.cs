@@ -8,6 +8,7 @@ using MudBlazor.Services;
 using Microsoft.Identity.Web.UI;
 using ChatUiT2.Services.Template;
 using Microsoft.ApplicationInsights.Extensibility;
+using UiT.CommonToolsLib.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -65,6 +66,7 @@ builder.Services.AddScoped<LocalStorageService>();
 // Transient services
 
 builder.Services.AddTransient<TestService>();
+builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 
 var app = builder.Build();
 

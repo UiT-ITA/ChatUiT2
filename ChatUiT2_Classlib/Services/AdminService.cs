@@ -1,5 +1,6 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace ChatUiT2.Services;
 
