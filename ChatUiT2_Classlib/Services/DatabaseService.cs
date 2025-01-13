@@ -184,7 +184,8 @@ public class DatabaseService : IDatabaseService
         var workItems = new List<IWorkItem>();
         
         DateTime olderThan = _dateTimeProvider.UtcNow.AddDays(-7);
-        var filter = Builders<BsonDocument>.Filter.Lt("Updated", olderThan);
+        var filter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Lt("Updated", olderThan),
+                                                       Builders<BsonDocument>.Filter.Ne("Permanent", true));
         var sort = Builders<BsonDocument>.Sort.Descending("Updated");
         var documents = await _chatCollection.Find(filter).ToListAsync();
         foreach (var doc in documents)
@@ -649,5 +650,21 @@ public class DatabaseService : IDatabaseService
             users.Add(user);
         }
         return users;
+    }
+
+    public async Task<User> GetUser(string id)
+    {
+        List<User> users = new List<User>();
+
+        // Get all user objects in the user database
+        var filter = Builders<BsonDocument>.Filter.Lt("_id", id);
+        var documents = await _userCollection.FindAsync(filter);
+        var firstDoc = documents.FirstOrDefault();
+        var user = new User
+        {
+            Username = firstDoc["Username"].AsString,
+            Preferences = BsonSerializer.Deserialize<Preferences>(firstDoc["Preferences"].AsBsonDocument)
+        };
+        return user;
     }
 }

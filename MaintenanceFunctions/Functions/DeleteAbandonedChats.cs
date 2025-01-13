@@ -35,6 +35,11 @@ namespace UiT.ChatUiT2.MaintenanceFunctions.Functions
                                        1);
 
                 var expiredWorkItems = await _databaseService.GetWorkItemsExpired();
+                foreach (var workItem in expiredWorkItems)
+                {
+                    await _databaseService.GetUser(workItem.User);
+                    await _databaseService.DeleteWorkItem(workItem);
+                }
 
                 /*
                 _logger.LogInformation("{functionName} deleted {numDeleted} jobRunLogs. {logType} {debugRelevance}",
