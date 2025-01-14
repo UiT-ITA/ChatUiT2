@@ -1,4 +1,5 @@
 using ChatUiT2.Interfaces;
+using ChatUiT2.Models;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 using UiT.ChatUiT2.MaintenanceFunctions.Model;
@@ -22,7 +23,7 @@ namespace UiT.ChatUiT2.MaintenanceFunctions.Functions
             this._databaseService = databaseService;
         }
 
-        [Function("Function1")]
+        [Function("DeleteAbandonedChats")]
         public async Task Run([TimerTrigger("0 */5 * * * *", RunOnStartup = DebugTools.IsDebug)] TimerInfo myTimer)
         {
             var startTime = _dateTimeProvider.UtcNow;
@@ -33,21 +34,26 @@ namespace UiT.ChatUiT2.MaintenanceFunctions.Functions
                                        nameof(DeleteAbandonedChats),
                                        LogType.FunctionProcessingStarted,
                                        1);
-
-                var expiredWorkItems = await _databaseService.GetWorkItemsExpired();
-                foreach (var workItem in expiredWorkItems)
+                var usersWithExpiredWorkItems = await _databaseService.GetUsersWithWorkItemsExpired();
+                foreach (var username in usersWithExpiredWorkItems)
                 {
-                    await _databaseService.GetUser(workItem.User);
-                    await _databaseService.DeleteWorkItem(workItem);
+                    User tmpUser = new()
+                    {
+                        Username = username
+                    };
+                    var chats = await _databaseService.GetUsersExpiredWorkItems(username);
+                    foreach (var chat in chats)
+                    {
+                        await _databaseService.DeleteWorkItem(tmpUser, chat);
+                    }
                 }
-
-                /*
-                _logger.LogInformation("{functionName} deleted {numDeleted} jobRunLogs. {logType} {debugRelevance}",
+                var numDeleted = 1;//await _databaseService.DeleteWorkItemsExpired();
+                                
+                _logger.LogInformation("{functionName} deleted {numDeleted} chats not updated in seven days. {logType} {debugRelevance}",
                                        nameof(DeleteAbandonedChats),
                                        numDeleted,
                                        LogType.DeleteCount,
-                                       2);
-                */
+                                       1);
             }
             catch (Exception e)
             {
