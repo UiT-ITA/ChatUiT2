@@ -24,7 +24,6 @@ public interface IDatabaseService
 
     // Admin functions
     Task<List<User>> GetUsers();
-    Task<List<IWorkItem>> GetWorkItemsExpired();
     Task<User> GetUser(string id);    
     Task<List<string>> GetUsersWithWorkItemsExpired();
     Task<List<IWorkItem>> GetUsersExpiredWorkItems(string username);

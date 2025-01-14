@@ -171,41 +171,10 @@ public class DatabaseService : IDatabaseService
         return workItems;
     }
 
-    // WorkItems
     /// <summary>
-    /// Gets a list of WorkItems that may be deleted.
-    /// Get a list of work items that have not been updated for seven days
-    /// and that are not marked as favorite.
+    /// Gets a list of usernames for for users that have at least one expired chat (not updated in 7 days)
     /// </summary>
-    /// <param name="user"></param>
-    /// <returns>List of work items belonging to a user</returns>
-    public async Task<List<IWorkItem>> GetWorkItemsExpired()
-    {
-        var workItems = new List<IWorkItem>();
-        
-        DateTime olderThan = _dateTimeProvider.UtcNow.AddDays(-7);
-        var filter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Lt("Updated", olderThan),
-                                                       Builders<BsonDocument>.Filter.Ne("Permanent", true));
-        var sort = Builders<BsonDocument>.Sort.Descending("Updated");
-        var documents = await _chatCollection.Find(filter).ToListAsync();
-        foreach (var doc in documents)
-        {
-            if (doc["Type"] == WorkItemType.Chat.ToString())
-            {
-                var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
-                if (workItem != null && !workItem.IsFavorite)
-                {
-                    workItems.Add(workItem);
-                }
-            }
-            else
-            {
-                // Ignore unknown types
-            }
-        }
-        return workItems;
-    }
-
+    /// <returns></returns>
     public async Task<List<string>> GetUsersWithWorkItemsExpired()
     {
         var workItems = new List<IWorkItem>();
