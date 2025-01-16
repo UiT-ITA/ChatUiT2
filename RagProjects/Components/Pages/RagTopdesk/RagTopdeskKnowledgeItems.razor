@@ -59,6 +59,8 @@
             </MudTh>
             <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Personnr_field">Nummer</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Fornavn_field">Tittel</MudTableSortLabel></MudTh>
+            <MudTh>In vector db</MudTh>
+            <MudTh>Vector db needs update</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
@@ -70,7 +72,9 @@
                     @context.KnowledgeItem?.Number
                 </MudLink>
             </MudTd>
-            <MudTd DataLabel="Fornavn">@context.KnowledgeItem?.Translation?.Content?.Title</MudTd>
+            <MudTd DataLabel="Content">@context.KnowledgeItem?.Translation?.Content?.Title</MudTd>
+            <MudTd DataLabel="Content">@context.IsInVectorDb</MudTd>
+            <MudTd DataLabel="Content">@context.VectorDbNeedsUpdate</MudTd>
         </RowTemplate>
         <PagerContent>
             <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
@@ -90,12 +94,14 @@
     private MudTable<KnowledgeItemViewClass> table;
     private bool selectAllFlag = false;
     private MudCheckBox<bool> selectAllCheckbox;
-
+    private List<TopdeskArticle> topdeskArticlesVectorDb = [];
     private string titleSearch = string.Empty;
 
     private class KnowledgeItemViewClass
     {
         public bool IsChecked { get; set; } = false;
+        public bool IsInVectorDb { get; set; }
+        public bool VectorDbNeedsUpdate { get; set; }
         public KnowledgeItem? KnowledgeItem { get; set; }
     }
 
@@ -103,8 +109,14 @@
     {
         if (firstRender)
         {
+            await LoadVectorDbTopdeskArticles();
             await LoadKnowledgeItemsFromTopdesk();
         }
+    }
+
+    private async Task LoadVectorDbTopdeskArticles()
+    {
+        topdeskArticlesVectorDb = await ragTopdeskService.GetAllTopdeskArticles();
     }
 
     private async Task LoadKnowledgeItemsFromTopdesk()
@@ -114,9 +126,21 @@
         tableKnowledgeItemList = [];
         foreach (var item in allKnowledgeItemList.Items)
         {
+            var vectorDbItem = topdeskArticlesVectorDb.FirstOrDefault(x => x.TopdeskId == item.Id);
+            bool needsUpdate = false;
+            if (vectorDbItem != null)
+            {
+                if(vectorDbItem.Title != item.Translation?.Content?.Title ||
+                   vectorDbItem.Content != item.Translation?.Content?.Content)
+                {
+                    needsUpdate = true;
+                }
+            }
             tableKnowledgeItemList.Add(new KnowledgeItemViewClass()
             {
-                KnowledgeItem = item
+                KnowledgeItem = item,
+                IsInVectorDb = vectorDbItem == null ? false : true,
+                VectorDbNeedsUpdate = needsUpdate
             });
         }
         tableIsLoading = false;
