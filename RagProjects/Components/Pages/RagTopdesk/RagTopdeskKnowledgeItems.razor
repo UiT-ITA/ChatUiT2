@@ -1,0 +1,66 @@
+﻿@page "/ragtopdesk/topdesk-article-list"
+@using ChatUiT2.Services
+@using UiT.RestClientTopdesk.Services
+@using UiT.RestClientTopdesk.Model
+
+<PageTitle>Topdesk knowledge items</PageTitle>
+
+<MudText Typo="Typo.h3">
+    Liste over knowledge items som finnes i topdesk
+</MudText>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudTable Items="knowledgeItemList.Items"
+              T="KnowledgeItem"
+              Dense="false"
+              Hover="true"
+              Bordered="true"
+              Striped="true"
+              SortLabel="Sort By"
+              AllowUnsorted="false"
+              Loading="tableIsLoading"
+              RowsPerPage="50"
+              @ref="table">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6"></MudText>
+            <MudSpacer />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Personnr_field">Nummer</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Fornavn_field">Tittel</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nummer">@context.Number</MudTd>
+            <MudTd DataLabel="Fornavn">@context.Translation?.Content?.Title</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
+        </PagerContent>
+
+
+    </MudTable>
+</MudPaper>
+
+@code {
+    [Inject] private IKnowledgeItemService knowledgeItemService { get; set; } = null!;
+
+    private KnowledgeItemList knowledgeItemList = new() { Items = [] };
+    private bool tableIsLoading = true;
+    private MudTable<KnowledgeItem> table;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadKnowledgeItemsFromTopdesk();
+        }
+    }
+
+    private async Task LoadKnowledgeItemsFromTopdesk()
+    {
+        tableIsLoading = true;
+        knowledgeItemList = await knowledgeItemService.GetAll();
+        tableIsLoading = false;
+        StateHasChanged();
+    }
+}

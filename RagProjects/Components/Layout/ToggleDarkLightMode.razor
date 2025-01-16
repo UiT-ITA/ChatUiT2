@@ -1,0 +1,22 @@
+﻿@using UiT.RagProjects.Services
+
+<MudThemeProvider Theme="myUI.MyTheme" @bind-IsDarkMode="@myUI.IsDarkTheme" />
+
+@if (myUI.IsDarkTheme)
+{
+    <MudIconButton Icon="@Icons.Material.Filled.LightMode" Style="@($"color:{myUI.MyTheme.PaletteLight.GrayLight};")" OnClick="@((e) => SwitchDarkLightMode())" />
+}
+else
+{
+    <MudIconButton Icon="@Icons.Material.Filled.DarkMode" Style="@($"color:{myUI.MyTheme.PaletteDark.GrayLight};")" OnClick="@((e) => SwitchDarkLightMode())" />
+}
+
+@code {
+    [Inject] MyUIManager myUI { get; set; } = null!;
+
+    void SwitchDarkLightMode()
+    {
+        myUI.SwitchTheme();
+        this.StateHasChanged();
+    }
+}
