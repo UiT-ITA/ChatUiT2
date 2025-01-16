@@ -1,7 +1,9 @@
 ﻿@page "/ragtopdesk/topdesk-article-list"
 @using ChatUiT2.Services
+@using ChatUiT2.Interfaces
 @using UiT.RestClientTopdesk.Services
 @using UiT.RestClientTopdesk.Model
+@using ChatUiT2_Classlib.Model.Topdesk
 
 <PageTitle>Topdesk knowledge items</PageTitle>
 
@@ -10,8 +12,34 @@
 </MudText>
 
 <MudPaper Elevation="3" Class="mt-4 pa-4">
-    <MudTable Items="knowledgeItemList.Items"
-              T="KnowledgeItem"
+    <MudText Typo="Typo.h6">Filtere</MudText>
+    <MudGrid>
+        <MudItem xs="2">
+            Tittel
+        </MudItem>
+        <MudItem xs="10">
+            <MudTextField T="string"
+                          @bind-Value="titleSearch"
+                          Immediate="true"
+                          Placeholder="Tittel"
+                          Adornment="Adornment.Start"
+                          IconSize="Size.Medium"
+                          Class="mt-0"
+                          OnKeyDown="CheckIfEnterPressed">
+            </MudTextField>
+        </MudItem>
+        <MudItem xs="2">
+            <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
+        </MudItem>
+        <MudItem xs="10">
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudTable Items="tableKnowledgeItemList"
+              T="KnowledgeItemViewClass"
               Dense="false"
               Hover="true"
               Bordered="true"
@@ -26,12 +54,23 @@
             <MudSpacer />
         </ToolBarContent>
         <HeaderContent>
+            <MudTh>
+                <MudCheckBox T="bool" Value="selectAllFlag" ValueChanged="@((newVal) => SelectAllCheckboxClicked(newVal))" @ref="selectAllCheckbox"></MudCheckBox>
+            </MudTh>
             <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Personnr_field">Nummer</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Fornavn_field">Tittel</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Nummer">@context.Number</MudTd>
-            <MudTd DataLabel="Fornavn">@context.Translation?.Content?.Title</MudTd>
+            <MudTd>
+                <MudCheckBox T="bool" @bind-Value="context.IsChecked"></MudCheckBox>
+            </MudTd>
+            <MudTd DataLabel="Nummer">
+                <MudLink Href="@($"https://uit.topdesk.net/solutions/open-knowledge-items/item/{context.KnowledgeItem?.Number}/{context.KnowledgeItem?.Translation?.Language}/")"
+                         Target="_new">
+                    @context.KnowledgeItem?.Number
+                </MudLink>
+            </MudTd>
+            <MudTd DataLabel="Fornavn">@context.KnowledgeItem?.Translation?.Content?.Title</MudTd>
         </RowTemplate>
         <PagerContent>
             <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
@@ -43,10 +82,22 @@
 
 @code {
     [Inject] private IKnowledgeItemService knowledgeItemService { get; set; } = null!;
+    [Inject] private IRagTopdeskDatabaseService ragTopdeskService { get; set; } = null!;
 
-    private KnowledgeItemList knowledgeItemList = new() { Items = [] };
+    private List<KnowledgeItemViewClass> tableKnowledgeItemList = [];
+    private KnowledgeItemList allKnowledgeItemList = new() { Items = [] };
     private bool tableIsLoading = true;
-    private MudTable<KnowledgeItem> table;
+    private MudTable<KnowledgeItemViewClass> table;
+    private bool selectAllFlag = false;
+    private MudCheckBox<bool> selectAllCheckbox;
+
+    private string titleSearch = string.Empty;
+
+    private class KnowledgeItemViewClass
+    {
+        public bool IsChecked { get; set; } = false;
+        public KnowledgeItem? KnowledgeItem { get; set; }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -59,8 +110,66 @@
     private async Task LoadKnowledgeItemsFromTopdesk()
     {
         tableIsLoading = true;
-        knowledgeItemList = await knowledgeItemService.GetAll();
+        allKnowledgeItemList = await knowledgeItemService.GetOpen();
+        tableKnowledgeItemList = [];
+        foreach (var item in allKnowledgeItemList.Items)
+        {
+            tableKnowledgeItemList.Add(new KnowledgeItemViewClass()
+            {
+                KnowledgeItem = item
+            });
+        }
         tableIsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveKnowledgeItemToMongoDb(KnowledgeItem item)
+    {
+        var topdeskArticle = ConvertKnowledgeItemToTopdeskArticle(item);
+        await ragTopdeskService.SaveTopdeskArticle(topdeskArticle);
+    }
+
+    private TopdeskArticle ConvertKnowledgeItemToTopdeskArticle(KnowledgeItem item)
+    {
+        return new TopdeskArticle
+        {
+            Number = item.Number ?? string.Empty,
+            Title = item.Translation?.Content?.Title ?? string.Empty,
+
+        };
+    }
+
+    private async Task CheckIfEnterPressed(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Call your function here
+            await DoSearch();
+        }
+    }
+
+    private async Task DoSearch()
+    {
+        tableIsLoading = true;
+        tableKnowledgeItemList = [];
+        foreach (var item in allKnowledgeItemList.Items?.Where(x => x.Translation?.Content?.Title?.Contains(titleSearch, StringComparison.OrdinalIgnoreCase) ?? false).ToList() ?? [])
+        {
+            tableKnowledgeItemList.Add(new KnowledgeItemViewClass()
+            {
+                KnowledgeItem = item
+            });
+        }
+        tableIsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task SelectAllCheckboxClicked(bool newValue)
+    {
+        selectAllFlag = newValue;
+        foreach (var item in tableKnowledgeItemList)
+        {
+            item.IsChecked = newValue;
+        }
         StateHasChanged();
     }
 }

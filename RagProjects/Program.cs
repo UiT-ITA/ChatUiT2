@@ -8,6 +8,9 @@ using Microsoft.Identity.Web.UI;
 using Microsoft.Extensions.DependencyInjection;
 using UiT.RestClientTopdesk.Services;
 using UiT.RestClientTopdesk.Extension;
+using ChatUiT2.Interfaces;
+using ChatUiT2.Services;
+using UiT.CommonToolsLib.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +60,8 @@ builder.Services.AddUitTopdeskClient(new()
 );
 
 builder.Services.AddTransient<IKnowledgeItemService, KnowledgeItemService>();
+builder.Services.AddTransient<IRagTopdeskDatabaseService, RagTopdeskDatabaseService>();
+builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 
 var app = builder.Build();
 
