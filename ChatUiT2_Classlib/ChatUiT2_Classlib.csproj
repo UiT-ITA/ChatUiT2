@@ -27,5 +27,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\DotnetCommonToolsLib\DotnetCommonToolsLib\DotnetCommonToolsLib.csproj" />
+    <ProjectReference Include="..\..\RestClientTopdesk\RestClientTopdesk\RestClientTopdesk.csproj" />
   </ItemGroup>
 </Project>
