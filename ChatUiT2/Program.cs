@@ -9,6 +9,9 @@ using Microsoft.Identity.Web.UI;
 using ChatUiT2.Services.Template;
 using Microsoft.ApplicationInsights.Extensibility;
 using UiT.CommonToolsLib.Services;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using UiT.RestClientTopdesk.Extension;
+using UiT.RestClientTopdesk.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,9 +67,20 @@ builder.Services.AddScoped<SpeechService>();
 builder.Services.AddScoped<LocalStorageService>();
 
 // Transient services
-
 builder.Services.AddTransient<TestService>();
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+builder.Services.AddTransient<IKnowledgeItemService, KnowledgeItemService>();
+
+// Topdesk client
+builder.Services.AddUitTopdeskClient(new()
+{
+    ApiKey = builder.Configuration["TopdeskApi:ApiKey"] ?? string.Empty,
+    ApiKeyHeaderName = builder.Configuration["TopdeskApi:ApiKeyHeaderName"] ?? string.Empty,
+    BaseUrl = builder.Configuration["TopdeskApi:BaseUrl"] ?? string.Empty,
+    Timeout = builder.Configuration["TopdeskApi:Timeout"] ?? string.Empty
+}
+);
+
 
 var app = builder.Build();
 
