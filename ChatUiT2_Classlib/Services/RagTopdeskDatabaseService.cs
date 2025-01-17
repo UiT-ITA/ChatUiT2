@@ -42,7 +42,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 
         foreach (var doc in documents.ToList())
         {
-            var article = BsonSerializer.Deserialize<TopdeskArticle>(doc["Preferences"].AsBsonDocument);
+            var article = BsonSerializer.Deserialize<TopdeskArticle>(doc.AsBsonDocument);
             result.Add(article);
         }
 
@@ -65,7 +65,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             topdeskArticle.Updated = _dateTimeProvider.OffsetUtcNow;
             var document = topdeskArticle.ToBsonDocument();
             // This is an existing document, do update
-            var filter = Builders<BsonDocument>.Filter.Eq("_id", document["_id"]);
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", topdeskArticle.Id);
             document.Remove("_id");
             await _topdeskArticleCollection.ReplaceOneAsync(filter, document);
         }
