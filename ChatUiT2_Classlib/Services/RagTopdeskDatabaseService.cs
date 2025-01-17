@@ -1,5 +1,6 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2_Classlib.Model.Topdesk;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -130,5 +131,15 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             document.Remove("_id");
             await _topdeskKnowledgeItemEmbeddingCollection.ReplaceOneAsync(filter, document);
         }
+    }
+
+    public async Task DeleteTopdeskEmbedding(TopdeskTextEmbedding embedding)
+    {
+        if (string.IsNullOrEmpty(embedding.Id))
+        {
+            throw new ArgumentException("Embedding.Id must be set to delete embedding");
+        }
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", embedding.Id);
+        await _topdeskKnowledgeItemEmbeddingCollection.DeleteOneAsync(filter);
     }
 }

@@ -4,6 +4,7 @@ namespace ChatUiT2.Interfaces
 {
     public interface IRagTopdeskDatabaseService
     {
+        Task DeleteTopdeskEmbedding(TopdeskTextEmbedding embedding);
         Task<List<TopdeskKnowledgeItem>> GetAllTopdeskKnowledgeItems();
         Task<TopdeskKnowledgeItem> GetByTopdeskId(string topdeskId);
         Task<List<TopdeskTextEmbedding>> GetEmbeddingsByTopdeskKnowledgeItemId(string knowledgeItemId);
