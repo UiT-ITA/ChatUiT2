@@ -13,11 +13,8 @@
 
 <MudPaper Elevation="3" Class="mt-4 pa-4">
     <MudText Typo="Typo.h6">Filtere</MudText>
-    <MudGrid>
-        <MudItem xs="2">
-            Tittel
-        </MudItem>
-        <MudItem xs="10">
+    <MudGrid Class="mt-1">
+        <MudItem xs="12">
             <MudTextField T="string"
                           @bind-Value="titleSearch"
                           Immediate="true"
@@ -27,6 +24,14 @@
                           Class="mt-0"
                           OnKeyDown="CheckIfEnterPressed">
             </MudTextField>
+        </MudItem>
+        <MudItem xs="12">
+            <MudField Label="Vis bare de som er i rag database" Variant="Variant.Outlined" InnerPadding="false">
+                <MudRadioGroup T="string" Value="@ShowInVectorDbOnly" ValueChanged="ShowInVectorDbOnlyChanged">
+                    <MudRadio Value="@("yes")" Color="Color.Primary">Yes</MudRadio>
+                    <MudRadio Value="@("no")" Color="Color.Secondary">No</MudRadio>
+                </MudRadioGroup>
+            </MudField>
         </MudItem>
         <MudItem xs="2">
             <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
@@ -55,16 +60,21 @@
         </ToolBarContent>
         <HeaderContent>
             <MudTh>
-                <MudCheckBox T="bool" Value="selectAllFlag" ValueChanged="@((newVal) => SelectAllCheckboxClicked(newVal))" @ref="selectAllCheckbox"></MudCheckBox>
+                Med i rag
             </MudTh>
-            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Personnr_field">Nummer</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Fornavn_field">Tittel</MudTableSortLabel></MudTh>
-            <MudTh>In vector db</MudTh>
-            <MudTh>Vector db needs update</MudTh>
+            <MudTh>                
+            </MudTh>
+            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Nummer_field">Nummer</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Tittel_field">Tittel</MudTableSortLabel></MudTh>
+            <MudTh>Finnes i vector db</MudTh>
+            <MudTh>Vector db er i sync</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudCheckBox T="bool" Value="context.IsChecked" ValueChanged="@((newVal) => SelectCheckboxClicked(context, newVal))"></MudCheckBox>
+                <MudCheckBox T="bool" Value="context.IsInVectorDb" ValueChanged="@((newVal) => SelectCheckboxClicked(context, newVal))"></MudCheckBox>
+            </MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="@(() => UpdateArticleInRagDb(context))" />
             </MudTd>
             <MudTd DataLabel="Nummer">
                 <MudLink Href="@($"https://uit.topdesk.net/solutions/open-knowledge-items/item/{context.KnowledgeItem?.Number}/{context.KnowledgeItem?.Translation?.Language}/")"
@@ -73,7 +83,16 @@
                 </MudLink>
             </MudTd>
             <MudTd DataLabel="Content">@context.KnowledgeItem?.Translation?.Content?.Title</MudTd>
-            <MudTd DataLabel="Content">@context.IsInVectorDb</MudTd>
+            <MudTd DataLabel="Content">
+                @if (context.IsInVectorDb)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" />
+                }
+            </MudTd>
             <MudTd DataLabel="Content">
                 @if (context.VectorDbInSync)
                 {
@@ -82,7 +101,6 @@
                 else
                 {
                     <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="@(() => UpdateArticleInRagDb(context))" />
                 }
             </MudTd>
         </RowTemplate>
@@ -105,10 +123,10 @@
     private MudCheckBox<bool> selectAllCheckbox;
     private List<TopdeskArticle> topdeskArticlesVectorDb = [];
     private string titleSearch = string.Empty;
+    private string ShowInVectorDbOnly = "no";
 
     private class KnowledgeItemViewClass
     {
-        public bool IsChecked { get; set; } = false;
         public bool IsInVectorDb { get; set; }
         /// <summary>
         /// True if the article in vector db has same values as the knowledge item
@@ -145,25 +163,30 @@
         tableKnowledgeItemList = [];
         foreach (var item in allKnowledgeItemList.Items)
         {
-            var vectorDbItem = topdeskArticlesVectorDb.FirstOrDefault(x => x.TopdeskId == item.Id);
-            bool isUpdated = false;
-            if (vectorDbItem != null)
-            {
-                if(vectorDbItem.Title == item.Translation?.Content?.Title ||
-                   vectorDbItem.Content == item.Translation?.Content?.Content)
-                {
-                    isUpdated = true;
-                }
-            }
-            tableKnowledgeItemList.Add(new KnowledgeItemViewClass()
-            {
-                KnowledgeItem = item,
-                IsInVectorDb = vectorDbItem == null ? false : true,
-                VectorDbInSync = isUpdated
-            });
+            AddKnowledgeItemToViewList(item);
         }
         tableIsLoading = false;
         StateHasChanged();
+    }
+
+    private void AddKnowledgeItemToViewList(KnowledgeItem item)
+    {
+        var vectorDbItem = topdeskArticlesVectorDb.FirstOrDefault(x => x.TopdeskId == item.Id);
+        bool isUpdated = false;
+        if (vectorDbItem != null)
+        {
+            if (vectorDbItem.Title == item.Translation?.Content?.Title ||
+               vectorDbItem.Content == item.Translation?.Content?.Content)
+            {
+                isUpdated = true;
+            }
+        }
+        tableKnowledgeItemList.Add(new KnowledgeItemViewClass()
+        {
+            KnowledgeItem = item,
+            IsInVectorDb = vectorDbItem == null ? false : true,
+            VectorDbInSync = isUpdated
+        });
     }
 
     private async Task SaveKnowledgeItemToMongoDb(KnowledgeItem item)
@@ -209,30 +232,37 @@
     {
         tableIsLoading = true;
         tableKnowledgeItemList = [];
-        foreach (var item in allKnowledgeItemList.Items?.Where(x => x.Translation?.Content?.Title?.Contains(titleSearch, StringComparison.OrdinalIgnoreCase) ?? false).ToList() ?? [])
+
+        IQueryable<KnowledgeItem>? query = allKnowledgeItemList.Items?.AsQueryable();
+        if(query == null)
         {
-            tableKnowledgeItemList.Add(new KnowledgeItemViewClass()
-            {
-                KnowledgeItem = item
-            });
+            Snackbar.Add("Fant ingen artikler", Severity.Info, config => { });
+            tableIsLoading = false;
+            return;
+        }
+        if (ShowInVectorDbOnly == "yes")
+        {
+            query = query?.Where(x => topdeskArticlesVectorDb.Any(y => y.TopdeskId == x.Id));
+        }
+
+        if(string.IsNullOrEmpty(titleSearch) == false)
+        {
+            query = query?.Where(x => x.Translation != null &&
+                                        x.Translation.Content != null &&
+                                        x.Translation.Content.Title != null &&
+                                        x.Translation.Content.Title.Contains(titleSearch, StringComparison.OrdinalIgnoreCase));
+        }
+        foreach (var item in query.ToList())
+        {
+            AddKnowledgeItemToViewList(item);
         }
         tableIsLoading = false;
         StateHasChanged();
     }
 
-    private async Task SelectAllCheckboxClicked(bool newValue)
-    {
-        selectAllFlag = newValue;
-        foreach (var item in tableKnowledgeItemList)
-        {
-            item.IsChecked = newValue;
-        }
-        StateHasChanged();
-    }
-
     private async Task SelectCheckboxClicked(KnowledgeItemViewClass item, bool newValue)
     {
-        item.IsChecked = newValue;
+        item.IsInVectorDb = newValue;
         await UpdateArticleInRagDb(item);
         StateHasChanged();
     }
@@ -248,5 +278,11 @@
         {
             Snackbar.Add($"Noe feilet ved lagring av artikkel i RAG database {e.Message}", Severity.Error, config => { });
         }
+    }
+
+    private async Task ShowInVectorDbOnlyChanged(string value)
+    {
+        ShowInVectorDbOnly = value;
+        if (table != null) await table.ReloadServerData();
     }
 }
