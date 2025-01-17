@@ -4,8 +4,10 @@ namespace ChatUiT2.Interfaces
 {
     public interface IRagTopdeskDatabaseService
     {
-        Task<List<TopdeskArticle>> GetAllTopdeskArticles();
-        Task<TopdeskArticle> GetByTopdeskId(string topdeskId);
-        Task SaveTopdeskArticle(TopdeskArticle topdeskArticle);
+        Task<List<TopdeskKnowledgeItem>> GetAllTopdeskKnowledgeItems();
+        Task<TopdeskKnowledgeItem> GetByTopdeskId(string topdeskId);
+        Task<List<TopdeskTextEmbedding>> GetEmbeddingsByTopdeskKnowledgeItemId(string knowledgeItemId);
+        Task SaveTopdeskKnowledgeItem(TopdeskKnowledgeItem topdeskKnowledgeItem);
+        Task SaveTopdeskKnowledgeItemEmbedding(TopdeskTextEmbedding embedding);
     }
 }

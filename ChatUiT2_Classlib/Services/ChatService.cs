@@ -6,6 +6,7 @@ using MongoDB.Bson;
 using System.Text.Json;
 using Azure.AI.OpenAI.Chat;
 using Microsoft.Extensions.Logging;
+using OpenAI.Embeddings;
 //using OpenAI.Chat;
 
 namespace ChatUiT2.Services;
@@ -197,6 +198,15 @@ public class ChatService : IChatService
         }
 
         return name;
+    }
+
+    public async Task<OpenAIEmbedding> GetEmbedding(string text)
+    {
+        string name;
+        var model = _configService.GetEmbeddingModel();
+        var endpoint = _configService.GetEndpoint(model.Deployment);
+
+        return await AzureOpenAIService.GetEmbedding(text, model, endpoint);
     }
 }
 

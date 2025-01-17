@@ -11,4 +11,5 @@ public interface IConfigService
     Model GetModel(string name);
     ModelEndpoint GetEndpoint(string name);
     ModelEndpoint GetEndpoint(Model model);
+    Model GetEmbeddingModel();
 }

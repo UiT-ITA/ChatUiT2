@@ -5,6 +5,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using UiT.CommonToolsLib.Services;
+using UiT.RestClientTopdesk.Model;
 
 namespace ChatUiT2.Services;
 
@@ -14,7 +15,8 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     private readonly IDateTimeProvider _dateTimeProvider;
 
     // Collections
-    private readonly IMongoCollection<BsonDocument> _topdeskArticleCollection;
+    private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemCollection;
+    private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemEmbeddingCollection;
 
     public RagTopdeskDatabaseService(IConfiguration configuration,
                            IDateTimeProvider dateTimeProvider)
@@ -26,63 +28,107 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 
         var userDatabase = client.GetDatabase("RagTopdesk");
 
-        _topdeskArticleCollection = userDatabase.GetCollection<BsonDocument>("TopdeskArticles");
+        _topdeskKnowledgeItemCollection = userDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItems");
+        _topdeskKnowledgeItemEmbeddingCollection = userDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItemEmbeddings");
     }
 
 
     /// <summary>
-    /// Get topdesk articles from the database
+    /// Get topdesk knowledgeItems from the database
     /// </summary>
     /// <param name="username"></param>
     /// <returns></returns>
-    public async Task<List<TopdeskArticle>> GetAllTopdeskArticles()
+    public async Task<List<TopdeskKnowledgeItem>> GetAllTopdeskKnowledgeItems()
     {
-        List<TopdeskArticle> result = [];
-        var documents = await _topdeskArticleCollection.FindAsync(new BsonDocument());
+        List<TopdeskKnowledgeItem> result = [];
+        var documents = await _topdeskKnowledgeItemCollection.FindAsync(new BsonDocument());
 
         foreach (var doc in documents.ToList())
         {
-            var article = BsonSerializer.Deserialize<TopdeskArticle>(doc.AsBsonDocument);
-            result.Add(article);
+            var knowledgeItem = BsonSerializer.Deserialize<TopdeskKnowledgeItem>(doc.AsBsonDocument);
+            result.Add(knowledgeItem);
         }
 
         return result;
     }
 
-    public async Task SaveTopdeskArticle(TopdeskArticle topdeskArticle)
+    public async Task SaveTopdeskKnowledgeItem(TopdeskKnowledgeItem topdeskKnowledgeItem)
     {
-        if (string.IsNullOrEmpty(topdeskArticle.Id))
+        if (string.IsNullOrEmpty(topdeskKnowledgeItem.Id))
         {
-            topdeskArticle.Created = _dateTimeProvider.OffsetUtcNow;
-            topdeskArticle.Updated = _dateTimeProvider.OffsetUtcNow;
-            var document = topdeskArticle.ToBsonDocument();
+            topdeskKnowledgeItem.Created = _dateTimeProvider.OffsetUtcNow;
+            topdeskKnowledgeItem.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = topdeskKnowledgeItem.ToBsonDocument();
             // This is new document, generate new id
             document["_id"] = ObjectId.GenerateNewId().ToString();
-            await _topdeskArticleCollection.InsertOneAsync(document);
+            await _topdeskKnowledgeItemCollection.InsertOneAsync(document);
         }
         else
         {
-            topdeskArticle.Updated = _dateTimeProvider.OffsetUtcNow;
-            var document = topdeskArticle.ToBsonDocument();
+            topdeskKnowledgeItem.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = topdeskKnowledgeItem.ToBsonDocument();
             // This is an existing document, do update
-            var filter = Builders<BsonDocument>.Filter.Eq("_id", topdeskArticle.Id);
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", topdeskKnowledgeItem.Id);
             document.Remove("_id");
-            await _topdeskArticleCollection.ReplaceOneAsync(filter, document);
+            await _topdeskKnowledgeItemCollection.ReplaceOneAsync(filter, document);
         }
     }
 
     /// <summary>
-    /// Get topdesk article by topdesk id
+    /// Get topdesk knowledgeItem by topdesk id
     /// </summary>
-    /// <param name="topdeskId">The article id in topdesk</param>
+    /// <param name="topdeskId">The knowledgeItem id in topdesk</param>
     /// <returns></returns>
-    public async Task<TopdeskArticle> GetByTopdeskId(string topdeskId)
+    public async Task<TopdeskKnowledgeItem> GetByTopdeskId(string topdeskId)
     {
         var filter = Builders<BsonDocument>.Filter.Eq("TopdeskId", topdeskId);
-        var documents = await _topdeskArticleCollection.FindAsync(filter);
+        var documents = await _topdeskKnowledgeItemCollection.FindAsync(filter);
 
-        var article = BsonSerializer.Deserialize<TopdeskArticle>(documents.FirstOrDefault().AsBsonDocument);
+        var knowledgeItem = BsonSerializer.Deserialize<TopdeskKnowledgeItem>(documents.FirstOrDefault().AsBsonDocument);
 
-        return article;
+        return knowledgeItem;
+    }
+
+    /// <summary>
+    /// Get topdesk embeddings for knowledgeItem topdesk id
+    /// </summary>
+    /// <param name="topdeskId">The knowledgeItem id in topdesk</param>
+    /// <returns></returns>
+    public async Task<List<TopdeskTextEmbedding>> GetEmbeddingsByTopdeskKnowledgeItemId(string knowledgeItemId)
+    {
+        List<TopdeskTextEmbedding> result = [];
+        var filter = Builders<BsonDocument>.Filter.Eq("TopdeskKnowledgeItemId", knowledgeItemId);
+        var documents = await _topdeskKnowledgeItemEmbeddingCollection.FindAsync(filter);
+
+        foreach (var doc in documents.ToList())
+        {
+            var knowledgeItem = BsonSerializer.Deserialize<TopdeskTextEmbedding>(doc.AsBsonDocument);
+            result.Add(knowledgeItem);
+        }
+
+        return result;
+    }
+
+    public async Task SaveTopdeskKnowledgeItemEmbedding(TopdeskTextEmbedding embedding)
+    {
+        if (string.IsNullOrEmpty(embedding.Id))
+        {
+            embedding.Created = _dateTimeProvider.OffsetUtcNow;
+            embedding.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = embedding.ToBsonDocument();
+            // This is new document, generate new id
+            document["_id"] = ObjectId.GenerateNewId().ToString();
+            await _topdeskKnowledgeItemEmbeddingCollection.InsertOneAsync(document);
+            embedding.Id = document["_id"].AsString;
+        }
+        else
+        {
+            embedding.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = embedding.ToBsonDocument();
+            // This is an existing document, do update
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", embedding.Id);
+            document.Remove("_id");
+            await _topdeskKnowledgeItemEmbeddingCollection.ReplaceOneAsync(filter, document);
+        }
     }
 }

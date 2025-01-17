@@ -10,6 +10,7 @@ public class ConfigService : IConfigService
     private List<ModelEndpoint> endpoints { get; set; } = null!;
     private Model defaultModel { get; set; } = null!;
     private Model namingModel { get; set; } = null!;
+    private Model embeddingModel { get; set; } = null!;
 
 
     public ConfigService(IConfiguration configuration)
@@ -31,9 +32,11 @@ public class ConfigService : IConfigService
 
         string defaultModelName = configuration["DefaultModel"] ?? models[0].Name;
         string namingModelName = configuration["NamingModel"] ?? models[0].Name;
+        string embeddingModelName = configuration["EmbeddingModel"] ?? models[0].Name;
 
         defaultModel = models.FirstOrDefault(m => m.Name == defaultModelName) ?? models[0];
         namingModel = models.FirstOrDefault(m => m.Name == namingModelName) ?? models[0];
+        embeddingModel = models.FirstOrDefault(m => m.Name == embeddingModelName) ?? models[0];
 
         var endpointSection = configuration.GetSection("Endpoints");
         endpoints = endpointSection.Get<List<ModelEndpoint>>() ?? new List<ModelEndpoint>();
@@ -71,6 +74,11 @@ public class ConfigService : IConfigService
     public Model GetNamingModel()
     {
         return namingModel;
+    }
+
+    public Model GetEmbeddingModel()
+    {
+        return embeddingModel;
     }
 
     public Model GetModel(string name)

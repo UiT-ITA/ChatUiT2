@@ -3,7 +3,7 @@ using MongoDB.Bson;
 
 namespace ChatUiT2_Classlib.Model.Topdesk;
 
-public class TopdeskArticle
+public class TopdeskKnowledgeItem
 {
     /// <summary>
     /// MongoDB Id

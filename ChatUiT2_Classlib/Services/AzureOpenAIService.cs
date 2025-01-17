@@ -4,6 +4,7 @@ using ChatUiT2.Models;
 using ChatUiT2.Tools;
 using MongoDB.Bson;
 using OpenAI.Chat;
+using OpenAI.Embeddings;
 using System.ClientModel;
 using System.Reflection;
 using System.Reflection.PortableExecutable;
@@ -282,6 +283,14 @@ public static class AzureOpenAIService
         return tokens;
     }
 
+    public static async Task<OpenAIEmbedding> GetEmbedding(string text, Model model, ModelEndpoint endpoint)
+    {
+        var client = new AzureOpenAIClient(new Uri(endpoint.Url), new ApiKeyCredential(endpoint.Key)).GetEmbeddingClient(model.DeploymentName);
+
+        var embeddingResponse = await client.GenerateEmbeddingAsync(text);
+
+        return embeddingResponse;
+    }
 }
 
 

@@ -121,7 +121,7 @@
     private MudTable<KnowledgeItemViewClass> table;
     private bool selectAllFlag = false;
     private MudCheckBox<bool> selectAllCheckbox;
-    private List<TopdeskArticle> topdeskArticlesVectorDb = [];
+    private List<TopdeskKnowledgeItem> topdeskKnowledgeItemsVectorDb = [];
     private string titleSearch = string.Empty;
     private string ShowInVectorDbOnly = "no";
 
@@ -141,7 +141,7 @@
         {
             try
             {
-                await LoadVectorDbTopdeskArticles();
+                await LoadVectorDbTopdeskKnowledgeItems();
                 await LoadKnowledgeItemsFromTopdesk();
             }
             catch (Exception e)
@@ -151,9 +151,9 @@
         }
     }
 
-    private async Task LoadVectorDbTopdeskArticles()
+    private async Task LoadVectorDbTopdeskKnowledgeItems()
     {
-        topdeskArticlesVectorDb = await ragTopdeskService.GetAllTopdeskArticles();
+        topdeskKnowledgeItemsVectorDb = await ragTopdeskService.GetAllTopdeskKnowledgeItems();
     }
 
     private async Task LoadKnowledgeItemsFromTopdesk()
@@ -171,7 +171,7 @@
 
     private void AddKnowledgeItemToViewList(KnowledgeItem item)
     {
-        var vectorDbItem = topdeskArticlesVectorDb.FirstOrDefault(x => x.TopdeskId == item.Id);
+        var vectorDbItem = topdeskKnowledgeItemsVectorDb.FirstOrDefault(x => x.TopdeskId == item.Id);
         bool isUpdated = false;
         if (vectorDbItem != null)
         {
@@ -191,11 +191,11 @@
 
     private async Task SaveKnowledgeItemToMongoDb(KnowledgeItem item)
     {
-        var topdeskArticle = await ConvertKnowledgeItemToTopdeskArticle(item);
-        await ragTopdeskService.SaveTopdeskArticle(topdeskArticle);
+        var topdeskArticle = await ConvertKnowledgeItemToTopdeskKnowledgeItem(item);
+        await ragTopdeskService.SaveTopdeskKnowledgeItem(topdeskArticle);
     }
 
-    private async Task<TopdeskArticle> ConvertKnowledgeItemToTopdeskArticle(KnowledgeItem item)
+    private async Task<TopdeskKnowledgeItem> ConvertKnowledgeItemToTopdeskKnowledgeItem(KnowledgeItem item)
     {
         if(item?.Id == null)
         {
@@ -205,7 +205,7 @@
         var knowledgeItemWithContent = await knowledgeItemService.GetById(item.Id);
 
         // Get existing vectorDb document if found
-        var existingVectorDbArticle = topdeskArticlesVectorDb.FirstOrDefault(x => x.TopdeskId == item.Id);
+        var existingVectorDbArticle = topdeskKnowledgeItemsVectorDb.FirstOrDefault(x => x.TopdeskId == item.Id);
         if(existingVectorDbArticle == null)
         {
             existingVectorDbArticle = new();
@@ -242,7 +242,7 @@
         }
         if (ShowInVectorDbOnly == "yes")
         {
-            query = query?.Where(x => topdeskArticlesVectorDb.Any(y => y.TopdeskId == x.Id));
+            query = query?.Where(x => topdeskKnowledgeItemsVectorDb.Any(y => y.TopdeskId == x.Id));
         }
 
         if(string.IsNullOrEmpty(titleSearch) == false)
@@ -271,7 +271,7 @@
     {
         try
         {
-            await ragTopdeskService.SaveTopdeskArticle(await ConvertKnowledgeItemToTopdeskArticle(item.KnowledgeItem!));
+            await ragTopdeskService.SaveTopdeskKnowledgeItem(await ConvertKnowledgeItemToTopdeskKnowledgeItem(item.KnowledgeItem!));
             Snackbar.Add("Artikkel lagret i RAG database", Severity.Success, config => { });
         }
         catch (Exception e)

@@ -62,6 +62,7 @@ builder.Services.AddUitTopdeskClient(new()
 builder.Services.AddTransient<IKnowledgeItemService, KnowledgeItemService>();
 builder.Services.AddTransient<IRagTopdeskDatabaseService, RagTopdeskDatabaseService>();
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+builder.Services.AddTransient<IConfigService, ConfigService>();
 
 var app = builder.Build();
 

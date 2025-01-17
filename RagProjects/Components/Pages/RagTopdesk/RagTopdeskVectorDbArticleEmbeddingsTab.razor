@@ -1,0 +1,135 @@
+﻿@using ChatUiT2.Interfaces
+@using ChatUiT2_Classlib.Model.Topdesk
+
+@if (isLoading == false)
+{
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AddTopdeskTextEmbedding()" Class="mt-4">Add text to embed</MudButton>
+    <MudGrid Class="mt-2">
+        <MudItem xs="2">
+            Text
+        </MudItem>
+        <MudItem xs="10">
+            Text
+        </MudItem>
+        @foreach (var embedding in embeddings)
+        {
+            @if (embedding.IsEditing)
+            {
+                <MudItem xs="2">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Save" OnClick="@(() => SaveEmbedding(embedding))" />
+                </MudItem>
+                <MudItem xs="10">
+                    <MudTextField T="string"
+                                  @bind-Value="embedding.TopdeskTextEmbedding.Originaltext"
+                                  Immediate="true"
+                                  Placeholder="Text"
+                                  Adornment="Adornment.Start"
+                                  IconSize="Size.Medium"
+                                  Class="mt-0">
+                    </MudTextField>
+                </MudItem>
+            }
+            else
+            {
+                <MudItem xs="2">
+                    <MudIconButton Icon="@Icons.Material.Outlined.Edit" OnClick="@(() => embedding.IsEditing = true)" />
+                </MudItem>
+                <MudItem xs="10">
+                    @embedding.TopdeskTextEmbedding?.Originaltext
+                </MudItem>
+            }
+        }
+    </MudGrid>
+}
+else
+{
+    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+}
+
+@code {
+    [Inject] IRagTopdeskDatabaseService ragTopdeskService { get; set; }
+    [Inject] ISnackbar Snackbar { get; set; }
+    [Inject] IConfigService configService { get; set; }
+
+    [Parameter]
+    public string? TopdeskId { get; set; }
+
+    private List<TopdeskTextEmbeddingViewItem> embeddings = [];
+
+    private bool isLoading = true;
+
+    public class TopdeskTextEmbeddingViewItem
+    {
+        public TopdeskTextEmbedding? TopdeskTextEmbedding { get; set; }
+        public bool IsEditing { get; set; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await LoadVectorDbEmbeddings();
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved lasting av data fra vector database {e.Message}", Severity.Error, config => { });
+            }
+        }
+    }
+
+    private async Task LoadVectorDbEmbeddings()
+    {
+        isLoading = true;
+        StateHasChanged();
+        var embeddingsFromDb = await ragTopdeskService.GetEmbeddingsByTopdeskKnowledgeItemId(TopdeskId);
+        foreach(var embedding in embeddingsFromDb)
+        {
+            embeddings.Add(new TopdeskTextEmbeddingViewItem()
+            {
+                TopdeskTextEmbedding = embedding,
+                IsEditing = false
+            });
+        }
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task AddTopdeskTextEmbedding(string originalText = "")
+    {
+        try
+        {
+            TopdeskTextEmbedding newEmbedding = new TopdeskTextEmbedding()
+            {
+                Model = configService.GetEmbeddingModel().Name,
+                ModelProvider = configService.GetEmbeddingModel().DeploymentType,
+                Originaltext = originalText,
+                TopdeskKnowledgeItemId = TopdeskId
+            };
+            await ragTopdeskService.SaveTopdeskKnowledgeItemEmbedding(newEmbedding);
+            embeddings.Add(new()
+            {
+                IsEditing = false,
+                TopdeskTextEmbedding = newEmbedding
+            });
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lagring av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private async Task SaveEmbedding(TopdeskTextEmbeddingViewItem item)
+    {
+        try
+        {
+            await ragTopdeskService.SaveTopdeskKnowledgeItemEmbedding(item.TopdeskTextEmbedding);
+            item.IsEditing = false;
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lagring av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+}
