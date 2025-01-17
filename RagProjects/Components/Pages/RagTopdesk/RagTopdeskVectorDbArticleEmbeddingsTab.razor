@@ -1,7 +1,24 @@
 ﻿@using ChatUiT2.Interfaces
 @using ChatUiT2_Classlib.Model.Topdesk
+@using ChatUiT2.Models
+@using System.Text.Json
+@using ChatUiT2.Model
+@using UiT.RestClientTopdesk.Services
+@using UiT.RestClientTopdesk.Model
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AddTopdeskTextEmbedding()" Class="mt-4">Add text to embed</MudButton>
+
+<MudTextField T="int"
+              @bind-Value="numToGenerate"
+              Immediate="true"
+              Placeholder="Tittel"
+              Adornment="Adornment.Start"
+              IconSize="Size.Medium"
+              Class="mt-0">
+</MudTextField>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GenerateQuestionsFromContent" Class="mt-4">Generate questions from knowledgeItem text</MudButton>
+
 
 <MudTable Items="embeddings"
           T="TopdeskTextEmbeddingViewItem"
@@ -38,7 +55,7 @@
         <MudTd>@context.TopdeskTextEmbedding?.Model</MudTd>
     </RowTemplate>
     <RowEditingTemplate>
-        <MudTd>            
+        <MudTd>
         </MudTd>
         <MudTd>@context.TopdeskTextEmbedding?.ModelProvider</MudTd>
         <MudTd>@context.TopdeskTextEmbedding?.Model</MudTd>
@@ -46,13 +63,15 @@
     <PagerContent>
         <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
     </PagerContent>
-    
+
 </MudTable>
 
 @code {
     [Inject] IRagTopdeskDatabaseService ragTopdeskService { get; set; }
     [Inject] ISnackbar Snackbar { get; set; }
     [Inject] IConfigService configService { get; set; }
+    [Inject] IChatService chatService { get; set; }
+    [Inject] IKnowledgeItemService knowledgeItemService { get; set; } = null!;
 
     [Parameter]
     public string? TopdeskId { get; set; }
@@ -61,6 +80,8 @@
     private MudTable<TopdeskTextEmbeddingViewItem> table;
     private TopdeskTextEmbeddingViewItem selectedItem1 = null;
     private TopdeskTextEmbeddingViewItem elementBeforeEdit;
+    private int numToGenerate = 10;
+    private KnowledgeItem? knowledgeItem;
 
     private bool isLoading = true;
 
@@ -77,6 +98,7 @@
             try
             {
                 await LoadVectorDbEmbeddings();
+                await LoadKnowledgeItemFromTopdesk();
             }
             catch (Exception e)
             {
@@ -156,7 +178,7 @@
     private async Task CommitEditAsync(MouseEventArgs args)
     {
         try
-        {            
+        {
             await SaveEmbedding(selectedItem1);
         }
         catch (Exception e)
@@ -182,5 +204,43 @@
         {
             Snackbar.Add($"Noe feilet ved sletting av embedding {e.Message}", Severity.Error, config => { });
         }
+    }
+
+    private async Task GenerateQuestionsFromContent()
+    {
+        Model defaultModel = configService.GetDefaultModel();
+        WorkItemChat chat = new();
+        chat.Settings = new ChatSettings()
+        {
+            MaxTokens = defaultModel.MaxTokens,
+            Model = defaultModel.Name,
+            Temperature = 0.5f
+        };
+        chat.Type = WorkItemType.Chat;
+        chat.Messages.Add(new ChatMessage()
+        {
+            Role = ChatMessageRole.System,
+            Content = $"Using the input that is a knowledge article, generate {numToGenerate} questions a person may ask that this article answers. Generate the questions in norwegian language. Give me the answer as json in the following format: {{ \"Questions\" : [ \"question1\", \"question2\" ] }}. Return the json string only no other information. "
+        });
+        chat.Messages.Add(new ChatMessage()
+        {
+            Role = ChatMessageRole.User,
+            Content = knowledgeItem.Translation.Content.Content
+        });
+        var chatResponse = await chatService.GetTextResponseForChat(chat);
+        var questions = JsonSerializer.Deserialize<QuestionsFromTextResult>(chatResponse);
+        foreach (var question in questions.Questions)
+        {
+            await AddTopdeskTextEmbedding(question);
+        }
+    }
+
+    private async Task LoadKnowledgeItemFromTopdesk()
+    {
+        isLoading = true;
+        StateHasChanged();
+        knowledgeItem = await knowledgeItemService.GetById(TopdeskId);
+        isLoading = false;
+        StateHasChanged();
     }
 }

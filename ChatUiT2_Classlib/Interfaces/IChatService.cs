@@ -10,4 +10,5 @@ public interface IChatService
     //Task GetChatResponse(WorkItemChat chat, ChatMessage message);
     Task GetChatResponse(WorkItemChat chat);
     Task<OpenAIEmbedding> GetEmbedding(string text);
+    Task<string> GetTextResponseForChat(WorkItemChat chat);
 }
