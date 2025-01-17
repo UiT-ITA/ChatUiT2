@@ -1,0 +1,38 @@
+﻿@page "/ragtopdesk/{TopdeskId}"
+@using ChatUiT2.Services
+@using ChatUiT2.Interfaces
+@using UiT.RestClientTopdesk.Services
+@using UiT.RestClientTopdesk.Model
+@using ChatUiT2_Classlib.Model.Topdesk
+
+<PageTitle>Topdesk knowledge item details</PageTitle>
+
+<MudText Typo="Typo.h3">
+    Detaljer om en topdesk knowledge item og dens tilhørende data i vector db
+</MudText>
+
+<MudTabs Class="mt-4" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+    <MudTabPanel Text="Data fra topdesk">
+        <RagTopdeskKnowledgeItemDataTab TopdeskId="@TopdeskId"></RagTopdeskKnowledgeItemDataTab>
+    </MudTabPanel>
+    <MudTabPanel Text="Data fra rag database">
+        <RagTopdeskVectorDbArticleDataTab TopdeskId="@TopdeskId"></RagTopdeskVectorDbArticleDataTab>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    [Inject] private IKnowledgeItemService knowledgeItemService { get; set; } = null!;
+    [Inject] private IRagTopdeskDatabaseService ragTopdeskService { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; }
+
+    [Parameter]
+    public string? TopdeskId { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+        }
+    }
+}

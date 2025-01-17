@@ -1,0 +1,77 @@
+﻿@using ChatUiT2.Services
+@using ChatUiT2.Interfaces
+@using UiT.RestClientTopdesk.Services
+@using UiT.RestClientTopdesk.Model
+@using ChatUiT2_Classlib.Model.Topdesk
+
+@if(topdeskArticleVectorDb != null)
+{
+    <MudGrid Class="mt-1">
+        <MudItem xs="2">
+            Artikkelnr
+        </MudItem>
+        <MudItem xs="10">
+            @topdeskArticleVectorDb.Number
+        </MudItem>
+        <MudItem xs="2">
+            Tittel
+        </MudItem>
+        <MudItem xs="10">
+            @topdeskArticleVectorDb.Title
+        </MudItem>
+        <MudItem xs="2">
+            Description
+        </MudItem>
+        <MudItem xs="10">
+            @topdeskArticleVectorDb.Description
+        </MudItem>
+        <MudItem xs="2">
+            Content
+        </MudItem>
+        <MudItem xs="10">
+            @topdeskArticleVectorDb.Content
+        </MudItem>
+        <MudItem xs="2">
+            TopdeskId
+        </MudItem>
+        <MudItem xs="10">
+            @topdeskArticleVectorDb.TopdeskId
+        </MudItem>
+    </MudGrid>
+} else {
+    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+}
+
+@code {
+    [Inject] private IRagTopdeskDatabaseService ragTopdeskService { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; }
+
+    [Parameter]
+    public string? TopdeskId { get; set; }
+
+    private TopdeskArticle? topdeskArticleVectorDb;
+    private bool isLoading = true;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await LoadVectorDbTopdeskArticle();
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved lasting av data fra vector database {e.Message}", Severity.Error, config => { });
+            }
+        }
+    }
+
+    private async Task LoadVectorDbTopdeskArticle()
+    {
+        isLoading = true;
+        StateHasChanged();
+        topdeskArticleVectorDb = await ragTopdeskService.GetByTopdeskId(TopdeskId);
+        isLoading = false;
+        StateHasChanged();
+    }
+}

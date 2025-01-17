@@ -71,4 +71,18 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         }
     }
 
+    /// <summary>
+    /// Get topdesk article by topdesk id
+    /// </summary>
+    /// <param name="topdeskId">The article id in topdesk</param>
+    /// <returns></returns>
+    public async Task<TopdeskArticle> GetByTopdeskId(string topdeskId)
+    {
+        var filter = Builders<BsonDocument>.Filter.Eq("TopdeskId", topdeskId);
+        var documents = await _topdeskArticleCollection.FindAsync(filter);
+
+        var article = BsonSerializer.Deserialize<TopdeskArticle>(documents.FirstOrDefault().AsBsonDocument);
+
+        return article;
+    }
 }
