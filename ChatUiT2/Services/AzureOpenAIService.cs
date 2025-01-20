@@ -211,7 +211,7 @@ public static class AzureOpenAIService
     {
         // Use tiktoken to calculate tokens
         Encoder encoder;
-        if (model == "gpt-4o")
+        if (model == "gpt-4o" || model == "gpt-4o-mini")
         {
             encoder = new Encoder(new O200KBase());
         }

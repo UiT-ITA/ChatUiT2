@@ -12,9 +12,12 @@
 
 
 
-<span>@debug_text</span>
+<MudTextField AutoGrow="true" Value="debug_text"  />
 
 @code {
+
+
+
     [Inject] private LocalStorageService LocalStorageService { get; set; } = null!;
     [Inject] private IUserService UserService { get; set; } = null!;
 
@@ -22,13 +25,9 @@
 
     public async void Testing()
     {
-        var chats = await LocalStorageService.GetLocalConversations();
 
-        Console.WriteLine(chats[0].Messages[0].Content);
+        debug_text = await ChatToolService.GetWikipediaEntry("Elvis_Presley");
 
-        foreach(var chat in chats)
-        {
-            UserService.AddChat(chat);
-        }
+        StateHasChanged();
     }
 }
