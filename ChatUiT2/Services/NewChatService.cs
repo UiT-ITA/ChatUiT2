@@ -66,7 +66,7 @@ public class NewChatService
             var openAIService = new OpenAIService(model, endpoint);
 
             int inputTokens = openAIService.GetTokens(chat);
-            var response = openAIService.GetStreamingResponse(chat, model, endpoint, allowFiles: true);
+            var response = openAIService.GetStreamingResponse(chat);
 
         }
         catch (Exception ex)
@@ -192,7 +192,7 @@ public class OpenAIService
             tokens += GetTokens(message.Content);
             foreach (var file in message.Files)
             {
-                tokens += GetFileTokens(model.DeploymentName, file);
+                tokens += GetTokens(file);
             }
         }
         return tokens;
