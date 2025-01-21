@@ -5,6 +5,7 @@
 @using UiT.RestClientTopdesk.Model
 @using ChatUiT2_Classlib.Model.Topdesk
 @using ChatUiT2_Classlib.Model
+@using ChatUiT2.Models
 
 <PageTitle>Topdesk rag search test</PageTitle>
 
@@ -58,7 +59,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                @context.Text
+                @context.EmbeddingText
             </MudTd>
             <MudTd>
                 @context.MatchScore
@@ -76,16 +77,21 @@
     </MudTable>
 </MudPaper>
 
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    @llmQuestionresponse
+</MudPaper>
+
 @code {
     [Inject] private IKnowledgeItemService knowledgeItemService { get; set; } = null!;
     [Inject] private IRagTopdeskDatabaseService ragTopdeskService { get; set; } = null!;
     [Inject] ISnackbar Snackbar { get; set; }
+    [Inject] IConfigService configService { get; set; }
 
     private List<RagSearchResult> tableRagResultList = [];
     private bool tableIsLoading = false;
     private MudTable<RagSearchResult> table;
     private string searchTerm = string.Empty;
-
+    private string llmQuestionresponse = string.Empty;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -107,6 +113,7 @@
             tableIsLoading = true;
             var result = await ragTopdeskService.DoRagSearch(searchTerm);
             tableRagResultList = result;
+            await SendUserQuestionToLlm(result);
         }
         catch (Exception e)
         {
@@ -117,6 +124,36 @@
             tableIsLoading = false;
         }
         StateHasChanged();
+    }
+
+    private async Task SendUserQuestionToLlm(List<RagSearchResult> ragSearchResults)
+    {
+        Model defaultModel = configService.GetDefaultModel();
+        WorkItemChat chat = new();
+        chat.Settings = new ChatSettings()
+        {
+            MaxTokens = defaultModel.MaxTokens,
+            Model = defaultModel.Name,
+            Temperature = 0.5f
+        };
+        chat.Type = WorkItemType.Chat;
+        chat.Settings.Prompt = $"Use the information in the knowledge articles the user provides to answer the user question. Answer in the same language as the user is asking in.\n\n";
+        for(int i = 0; i < ragSearchResults.Count(); i++)
+        {
+            chat.Messages.Add(new ChatMessage()
+            {
+                Role = ChatMessageRole.User,
+                Content = $"## Knowledge article {i}\n\n{ragSearchResults.ElementAt(i).SourceContent}\n\n"
+            });
+        }
+
+        chat.Messages.Add(new ChatMessage()
+        {
+            Role = ChatMessageRole.User,
+            Content = $"My question is {searchTerm}"
+        });
+
+        llmQuestionresponse = await ragTopdeskService.GetTextResponseForChat(chat);
     }
 
     private async Task CheckIfEnterPressed(KeyboardEventArgs e)

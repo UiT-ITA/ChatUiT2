@@ -220,7 +220,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
                     MatchScore = matchScore,
                     SourceId = embedding.TopdeskKnowledgeItemId,
                     Source = RagSource.Topdesk,
-                    Text = embedding.Originaltext,
+                    EmbeddingText = embedding.Originaltext,
                 };
                 result.Add(ragResult);
             }
@@ -239,6 +239,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             var knowledgeItem = await GetByTopdeskId(res.SourceId);
             res.ContentUrl = $"https://uit.topdesk.net/solutions/open-knowledge-items/item/{knowledgeItem.Number}/no".Replace(" ", "%20");
             res.SourceAltId = knowledgeItem.Number;
+            res.SourceContent = knowledgeItem.Content;
         }
         return result;
     }
