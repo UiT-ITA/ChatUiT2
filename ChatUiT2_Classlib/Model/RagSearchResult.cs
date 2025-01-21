@@ -6,5 +6,6 @@ public class RagSearchResult
     public double MatchScore { get; set; }
     public string Source { get; set; }
     public string SourceId { get; set; }
+    public string SourceAltId { get; set; }
     public string ContentUrl { get; set; }
 }

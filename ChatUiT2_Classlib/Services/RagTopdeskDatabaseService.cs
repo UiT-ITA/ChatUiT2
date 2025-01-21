@@ -228,10 +228,18 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         result = result.Where(x => x.MatchScore >= minMatchScore).ToList();
         if(result.Count() >= numResults)
         {
-            return result.OrderByDescending(x => x.MatchScore).Take(numResults).ToList();
+            result = result.OrderByDescending(x => x.MatchScore).Take(numResults).ToList();
         } else
         {
-            return result.OrderByDescending(x => x.MatchScore).ToList();
+            result = result.OrderByDescending(x => x.MatchScore).ToList();
         }
+
+        foreach (var res in result)
+        {
+            var knowledgeItem = await GetByTopdeskId(res.SourceId);
+            res.ContentUrl = $"https://uit.topdesk.net/solutions/open-knowledge-items/item/{knowledgeItem.Number}/no".Replace(" ", "%20");
+            res.SourceAltId = knowledgeItem.Number;
+        }
+        return result;
     }
 }

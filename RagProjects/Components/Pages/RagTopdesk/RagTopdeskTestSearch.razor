@@ -52,8 +52,9 @@
             <MudSpacer />
         </ToolBarContent>
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Nummer_field">Text</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Tittel_field">MatchScore</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Text_field">Text</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="MatchScore_field">MatchScore</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Number_field">Kunnskapsartikkel</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
@@ -61,6 +62,12 @@
             </MudTd>
             <MudTd>
                 @context.MatchScore
+            </MudTd>
+            <MudTd>
+                <MudLink Href="@(context.ContentUrl)"
+                         Target="_new">
+                    @context.SourceAltId
+                </MudLink>
             </MudTd>
         </RowTemplate>
         <PagerContent>
