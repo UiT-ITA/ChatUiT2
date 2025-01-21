@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.AI;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
+using OpenAI.Embeddings;
 
 namespace ChatUiT2_Classlib.Model.Topdesk;
 
@@ -16,7 +17,7 @@ public class TopdeskTextEmbedding
     /// The actual embedding
     /// </summary>
     [BsonElement("Embedding")]
-    public Embedding<float>? Embedding { get; set; }
+    public float[]? Embedding { get; set; }
     /// <summary>
     /// The text this embedding was created from
     /// </summary>

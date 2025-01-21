@@ -14,6 +14,8 @@ using UiT.CommonToolsLib.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddLogging();
+
 // Authentication
 builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));
@@ -64,11 +66,6 @@ builder.Services.AddTransient<IRagTopdeskDatabaseService, RagTopdeskDatabaseServ
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 builder.Services.AddTransient<IConfigService, ConfigService>();
 builder.Services.AddTransient<IKnowledgeItemService, KnowledgeItemService>();
-builder.Services.AddTransient<IChatService, ChatService>();
-builder.Services.AddTransient<IUserService, UserService>();
-builder.Services.AddTransient<IAuthUserService, AuthUserService>();
-builder.Services.AddTransient<IDatabaseService, DatabaseService>();
-builder.Services.AddTransient<IEncryptionService, EncryptionService>();
 
 var app = builder.Build();
 

@@ -1,4 +1,7 @@
-﻿using ChatUiT2_Classlib.Model.Topdesk;
+﻿using ChatUiT2.Models;
+using ChatUiT2_Classlib.Model.Topdesk;
+using MongoDB.Bson;
+using OpenAI.Embeddings;
 
 namespace ChatUiT2.Interfaces
 {
@@ -10,5 +13,8 @@ namespace ChatUiT2.Interfaces
         Task<List<TopdeskTextEmbedding>> GetEmbeddingsByTopdeskKnowledgeItemId(string knowledgeItemId);
         Task SaveTopdeskKnowledgeItem(TopdeskKnowledgeItem topdeskKnowledgeItem);
         Task SaveTopdeskKnowledgeItemEmbedding(TopdeskTextEmbedding embedding);
+        Task<string> GetTextResponseForChat(WorkItemChat chat);
+        Task<OpenAIEmbedding> GetEmbeddingForText(string text);
+        Task SetAllEmbeddingVectorsToNull();
     }
 }

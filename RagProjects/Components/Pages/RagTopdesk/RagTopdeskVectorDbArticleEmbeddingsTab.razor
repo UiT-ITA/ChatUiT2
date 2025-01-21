@@ -18,6 +18,7 @@
 </MudTextField>
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GenerateQuestionsFromContent" Class="mt-4">Generate questions from knowledgeItem text</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RecreteAllEmbeddings" Class="mt-4">Recreate all embeddings</MudButton>
 
 
 <MudTable Items="embeddings"
@@ -57,6 +58,14 @@
     <RowEditingTemplate>
         <MudTd>
         </MudTd>
+        <MudTextField T="string"
+                      @bind-Value="context.TopdeskTextEmbedding.Originaltext"
+                      Immediate="true"
+                      Placeholder="Text som skal embeddes"
+                      Adornment="Adornment.Start"
+                      IconSize="Size.Medium"
+                      Class="mt-0">
+        </MudTextField>
         <MudTd>@context.TopdeskTextEmbedding?.ModelProvider</MudTd>
         <MudTd>@context.TopdeskTextEmbedding?.Model</MudTd>
     </RowEditingTemplate>
@@ -70,7 +79,6 @@
     [Inject] IRagTopdeskDatabaseService ragTopdeskService { get; set; }
     [Inject] ISnackbar Snackbar { get; set; }
     [Inject] IConfigService configService { get; set; }
-    [Inject] IChatService chatService { get; set; }
     [Inject] IKnowledgeItemService knowledgeItemService { get; set; } = null!;
 
     [Parameter]
@@ -80,7 +88,7 @@
     private MudTable<TopdeskTextEmbeddingViewItem> table;
     private TopdeskTextEmbeddingViewItem selectedItem1 = null;
     private TopdeskTextEmbeddingViewItem elementBeforeEdit;
-    private int numToGenerate = 10;
+    private int numToGenerate = 20;
     private KnowledgeItem? knowledgeItem;
 
     private bool isLoading = true;
@@ -137,6 +145,7 @@
                 Originaltext = originalText,
                 TopdeskKnowledgeItemId = TopdeskId
             };
+            newEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(newEmbedding.Originaltext)).ToFloats().ToArray();
             await ragTopdeskService.SaveTopdeskKnowledgeItemEmbedding(newEmbedding);
             await LoadVectorDbEmbeddings();
         }
@@ -146,12 +155,15 @@
         }
     }
 
-    private async Task SaveEmbedding(TopdeskTextEmbeddingViewItem item)
+    private async Task SaveEmbedding(TopdeskTextEmbeddingViewItem item, bool reloadData = true)
     {
         try
         {
             await ragTopdeskService.SaveTopdeskKnowledgeItemEmbedding(item.TopdeskTextEmbedding);
-            await LoadVectorDbEmbeddings();
+            if(reloadData)
+            {
+                await LoadVectorDbEmbeddings();
+            }
         }
         catch (Exception e)
         {
@@ -179,6 +191,7 @@
     {
         try
         {
+            selectedItem1.TopdeskTextEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(selectedItem1.TopdeskTextEmbedding.Originaltext)).ToFloats().ToArray();
             await SaveEmbedding(selectedItem1);
         }
         catch (Exception e)
@@ -217,17 +230,13 @@
             Temperature = 0.5f
         };
         chat.Type = WorkItemType.Chat;
-        chat.Messages.Add(new ChatMessage()
-        {
-            Role = ChatMessageRole.System,
-            Content = $"Using the input that is a knowledge article, generate {numToGenerate} questions a person may ask that this article answers. Generate the questions in norwegian language. Give me the answer as json in the following format: {{ \"Questions\" : [ \"question1\", \"question2\" ] }}. Return the json string only no other information. "
-        });
+        chat.Settings.Prompt = $"Using the input that is a knowledge article, generate {numToGenerate} questions a person may ask that this article answers. Generate the questions in norwegian language. Give me the answer as json in the following format: {{ \"Questions\" : [ \"question1\", \"question2\" ] }}. Return the json string only no other information. Do not include ```json literal.";
         chat.Messages.Add(new ChatMessage()
         {
             Role = ChatMessageRole.User,
             Content = knowledgeItem.Translation.Content.Content
         });
-        var chatResponse = await chatService.GetTextResponseForChat(chat);
+        var chatResponse = await ragTopdeskService.GetTextResponseForChat(chat);
         var questions = JsonSerializer.Deserialize<QuestionsFromTextResult>(chatResponse);
         foreach (var question in questions.Questions)
         {
@@ -242,5 +251,23 @@
         knowledgeItem = await knowledgeItemService.GetById(TopdeskId);
         isLoading = false;
         StateHasChanged();
+    }
+
+    private async Task RecreteAllEmbeddings()
+    {
+        try
+        {
+            foreach (var embedding in embeddings)
+            {
+                embedding.TopdeskTextEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(embedding.TopdeskTextEmbedding.Originaltext)).ToFloats().ToArray();
+                await SaveEmbedding(embedding, false);
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved kalkulering av embeddings {e.Message}", Severity.Error, config => { });
+        }
+        Snackbar.Add($"Alle embeddings rekalkulert", Severity.Success, config => { });
+        await LoadVectorDbEmbeddings();
     }
 }

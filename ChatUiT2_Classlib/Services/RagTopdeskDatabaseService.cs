@@ -1,10 +1,12 @@
 ﻿using ChatUiT2.Interfaces;
+using ChatUiT2.Models;
 using ChatUiT2_Classlib.Model.Topdesk;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using OpenAI.Embeddings;
 using UiT.CommonToolsLib.Services;
 using UiT.RestClientTopdesk.Model;
 
@@ -12,17 +14,23 @@ namespace ChatUiT2.Services;
 
 public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 {
+    private readonly IConfiguration _configuration;
+
     // Services
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly IConfigService _configService;
 
     // Collections
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemCollection;
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemEmbeddingCollection;
 
     public RagTopdeskDatabaseService(IConfiguration configuration,
-                           IDateTimeProvider dateTimeProvider)
+                                     IDateTimeProvider dateTimeProvider,
+                                     IConfigService configService)
     {
+        this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
+        this._configService = configService;
         var connectionString = configuration.GetConnectionString("MongoDbRagTopdesk");
 
         var client = new MongoClient(connectionString);
@@ -141,5 +149,38 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         }
         var filter = Builders<BsonDocument>.Filter.Eq("_id", embedding.Id);
         await _topdeskKnowledgeItemEmbeddingCollection.DeleteOneAsync(filter);
+    }
+
+    /// <summary>
+    /// For when you have a chat and you simply want to get a text response
+    /// with the next answer from the model.
+    /// </summary>
+    /// <param name="chat">The chat to send to model</param>
+    /// <returns></returns>
+    public async Task<string> GetTextResponseForChat(WorkItemChat chat)
+    {
+        string name;
+        var model = _configService.GetDefaultModel();
+        var endpoint = _configService.GetEndpoint(model.Deployment);
+
+        return await AzureOpenAIService.GetResponse(chat, model, endpoint);
+    }
+
+    public async Task<OpenAIEmbedding> GetEmbeddingForText(string text)
+    {
+        string name;
+        var model = _configService.GetEmbeddingModel();
+        var endpoint = _configService.GetEndpoint(model.Deployment);
+
+        return await AzureOpenAIService.GetEmbedding(text, model, endpoint);
+    }
+
+    /// <summary>
+    /// For the topdesk embedding collection set embedding field to null to clear all embeddings
+    /// </summary>
+    public async Task SetAllEmbeddingVectorsToNull()
+    {
+        var update = Builders<BsonDocument>.Update.Set("Embedding", BsonNull.Value);
+        await _topdeskKnowledgeItemEmbeddingCollection.UpdateManyAsync(FilterDefinition<BsonDocument>.Empty, update);
     }
 }

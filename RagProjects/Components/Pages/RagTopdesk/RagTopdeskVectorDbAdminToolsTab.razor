@@ -1,0 +1,44 @@
+﻿@using ChatUiT2.Interfaces
+@using ChatUiT2_Classlib.Model.Topdesk
+@using ChatUiT2.Models
+@using System.Text.Json
+@using ChatUiT2.Model
+@using UiT.RestClientTopdesk.Services
+@using UiT.RestClientTopdesk.Model
+@using RagProjects.Model
+@using System.Numerics.Tensors
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DeleteVectors" Class="mt-4">Slett embedding vectorer i MongoDb</MudButton>
+
+@code {
+    [Inject] IRagTopdeskDatabaseService ragTopdeskService { get; set; }
+    [Inject] ISnackbar Snackbar { get; set; }
+    [Inject] IConfigService configService { get; set; }
+    [Inject] IKnowledgeItemService knowledgeItemService { get; set; } = null!;
+
+    private bool isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved lasting av data fra vector database {e.Message}", Severity.Error, config => { });
+            }
+        }
+    }
+
+    /// <summary>
+    /// Deletes the embedding property of all embedding objects in DB
+    /// </summary>
+    /// <returns></returns>
+    private async Task DeleteVectors()
+    {
+        await ragTopdeskService.SetAllEmbeddingVectorsToNull();
+        Snackbar.Add($"Alle embedding vectors slettet fra databasen", Severity.Success, config => { });
+    }
+}

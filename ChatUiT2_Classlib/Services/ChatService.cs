@@ -198,31 +198,7 @@ public class ChatService : IChatService
         }
 
         return name;
-    }
-
-    public async Task<OpenAIEmbedding> GetEmbedding(string text)
-    {
-        string name;
-        var model = _configService.GetEmbeddingModel();
-        var endpoint = _configService.GetEndpoint(model.Deployment);
-
-        return await AzureOpenAIService.GetEmbedding(text, model, endpoint);
-    }
-
-    /// <summary>
-    /// For when you have a chat and you simply want to get a text response
-    /// with the next answer from the model.
-    /// </summary>
-    /// <param name="chat">The chat to send to model</param>
-    /// <returns></returns>
-    public async Task<string> GetTextResponseForChat(WorkItemChat chat)
-    {
-        string name;
-        var model = _configService.GetDefaultModel();
-        var endpoint = _configService.GetEndpoint(model.Deployment);
-
-        return await AzureOpenAIService.GetResponse(chat, model, endpoint);
-    }
+    }    
 }
 
 

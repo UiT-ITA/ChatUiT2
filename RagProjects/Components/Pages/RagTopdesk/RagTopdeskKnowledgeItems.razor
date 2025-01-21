@@ -77,9 +77,12 @@
                 <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="@(() => UpdateArticleInRagDb(context))" />
             </MudTd>
             <MudTd DataLabel="Nummer">
+                <MudLink Href="@($"/ragtopdesk/{context.KnowledgeItem?.Id}")">
+                    @context.KnowledgeItem?.Number
+                </MudLink>                
                 <MudLink Href="@($"https://uit.topdesk.net/solutions/open-knowledge-items/item/{context.KnowledgeItem?.Number}/{context.KnowledgeItem?.Translation?.Language}/")"
                          Target="_new">
-                    @context.KnowledgeItem?.Number
+                    <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Primary" />
                 </MudLink>
             </MudTd>
             <MudTd DataLabel="Content">@context.KnowledgeItem?.Translation?.Content?.Title</MudTd>
