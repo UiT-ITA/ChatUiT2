@@ -19,5 +19,6 @@ namespace ChatUiT2.Interfaces
         Task SetAllEmbeddingVectorsToNull();
         Task<List<TopdeskTextEmbedding>> GetAllEmbeddings();
         Task<List<RagSearchResult>> DoRagSearch(string searchTerm, int numResults = 3, double minMatchScore = 0.8);
+        Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerate = 20);
     }
 }

@@ -108,6 +108,7 @@
     [Inject] private IKnowledgeItemService knowledgeItemService { get; set; } = null!;
     [Inject] private IRagTopdeskDatabaseService ragTopdeskService { get; set; } = null!;
     [Inject] ISnackbar Snackbar { get; set; }
+    [Inject] IConfigService configService { get; set; }
 
     private List<KnowledgeItemViewClass> tableKnowledgeItemList = [];
     private KnowledgeItemList allKnowledgeItemList = new() { Items = [] };
@@ -289,6 +290,7 @@
                 if (item.IsInVectorDb == false)
                 {
                     await SaveKnowledgeItemToMongoDb(item.KnowledgeItem!);
+                    await GenerateQuestionsFromContent(item.KnowledgeItem!.Id);
                 }
             }
             Snackbar.Add("Alle artikler lagret i RAG database", Severity.Success, config => { });
@@ -296,6 +298,50 @@
         catch (Exception e)
         {
             Snackbar.Add($"Noe feilet ved lagring av artikler i RAG database {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private async Task GenerateQuestionsFromContent(string topdeskId)
+    {
+        try
+        {
+            var knowledgeItem = await knowledgeItemService.GetById(topdeskId);
+            var questionsFromLlm = await ragTopdeskService.GenerateQuestionsFromContent(knowledgeItem.Translation.Content.Content);
+            if (questionsFromLlm != null)
+            {
+                foreach (var question in questionsFromLlm.Questions)
+                {
+                    await AddTopdeskTextEmbedding(knowledgeItem.Id, question);
+                }
+            }
+            else
+            {
+                Snackbar.Add($"Fikk ingen spørsmål fra language model", Severity.Error, config => { });
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved generering av spørsmål {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private async Task AddTopdeskTextEmbedding(string topdeskId, string originalText = "")
+    {
+        try
+        {
+            TopdeskTextEmbedding newEmbedding = new TopdeskTextEmbedding()
+            {
+                Model = configService.GetEmbeddingModel().Name,
+                ModelProvider = configService.GetEmbeddingModel().DeploymentType,
+                Originaltext = originalText,
+                TopdeskKnowledgeItemId = topdeskId
+            };
+            newEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(newEmbedding.Originaltext)).ToFloats().ToArray();
+            await ragTopdeskService.SaveTopdeskKnowledgeItemEmbedding(newEmbedding);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lagring av embedding {e.Message}", Severity.Error, config => { });
         }
     }
 }

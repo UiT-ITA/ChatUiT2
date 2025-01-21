@@ -13,7 +13,7 @@ using OpenAI.Embeddings;
 using UiT.CommonToolsLib.Services;
 using UiT.RestClientTopdesk.Model;
 using System.Numerics.Tensors;
-
+using System.Text.Json;
 namespace ChatUiT2.Services;
 
 public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
@@ -242,5 +242,26 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             res.SourceContent = knowledgeItem.Content;
         }
         return result;
+    }
+
+    public async Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerate = 20)
+    {
+        Model defaultModel = _configService.GetDefaultModel();
+        WorkItemChat chat = new();
+        chat.Settings = new ChatSettings()
+        {
+            MaxTokens = defaultModel.MaxTokens,
+            Model = defaultModel.Name,
+            Temperature = 0.5f
+        };
+        chat.Type = WorkItemType.Chat;
+        chat.Settings.Prompt = $"Using the input that is a knowledge article, generate {numToGenerate} questions a person may ask that this article answers. Generate the questions in norwegian language. Give me the answer as json in the following format: {{ \"Questions\" : [ \"question1\", \"question2\" ] }}. Return the json string only no other information. Do not include ```json literal.";
+        chat.Messages.Add(new ChatUiT2.Models.ChatMessage()
+        {
+            Role = ChatMessageRole.User,
+            Content = content
+        });
+        var chatResponse = await GetTextResponseForChat(chat);
+        return JsonSerializer.Deserialize<QuestionsFromTextResult>(chatResponse);
     }
 }

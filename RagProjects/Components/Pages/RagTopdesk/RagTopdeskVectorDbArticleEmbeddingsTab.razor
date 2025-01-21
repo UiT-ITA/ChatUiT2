@@ -2,7 +2,6 @@
 @using ChatUiT2_Classlib.Model.Topdesk
 @using ChatUiT2.Models
 @using System.Text.Json
-@using ChatUiT2.Model
 @using UiT.RestClientTopdesk.Services
 @using UiT.RestClientTopdesk.Model
 
@@ -221,26 +220,24 @@
 
     private async Task GenerateQuestionsFromContent()
     {
-        Model defaultModel = configService.GetDefaultModel();
-        WorkItemChat chat = new();
-        chat.Settings = new ChatSettings()
+        try
         {
-            MaxTokens = defaultModel.MaxTokens,
-            Model = defaultModel.Name,
-            Temperature = 0.5f
-        };
-        chat.Type = WorkItemType.Chat;
-        chat.Settings.Prompt = $"Using the input that is a knowledge article, generate {numToGenerate} questions a person may ask that this article answers. Generate the questions in norwegian language. Give me the answer as json in the following format: {{ \"Questions\" : [ \"question1\", \"question2\" ] }}. Return the json string only no other information. Do not include ```json literal.";
-        chat.Messages.Add(new ChatMessage()
+            var questionsFromLlm = await ragTopdeskService.GenerateQuestionsFromContent(knowledgeItem.Translation.Content.Content);
+            if (questionsFromLlm != null)
+            {
+                foreach (var question in questionsFromLlm.Questions)
+                {
+                    await AddTopdeskTextEmbedding(question);
+                }
+            }
+            else
+            {
+                Snackbar.Add($"Fikk ingen spørsmål fra language model", Severity.Error, config => { });
+            }
+        }
+        catch (Exception e)
         {
-            Role = ChatMessageRole.User,
-            Content = knowledgeItem.Translation.Content.Content
-        });
-        var chatResponse = await ragTopdeskService.GetTextResponseForChat(chat);
-        var questions = JsonSerializer.Deserialize<QuestionsFromTextResult>(chatResponse);
-        foreach (var question in questions.Questions)
-        {
-            await AddTopdeskTextEmbedding(question);
+            Snackbar.Add($"Noe feilet ved generering av spørsmål {e.Message}", Severity.Error, config => { });
         }
     }
 

@@ -1,4 +1,4 @@
-﻿namespace ChatUiT2.Model;
+﻿namespace ChatUiT2_Classlib.Model;
 
 public class QuestionsFromTextResult
 {
