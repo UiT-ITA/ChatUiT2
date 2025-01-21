@@ -11,6 +11,8 @@
     Liste over knowledge items som finnes i topdesk
 </MudText>
 
+<MudButton OnClick="AddAllToDb">Add all to rag database</MudButton>
+
 <MudPaper Elevation="3" Class="mt-4 pa-4">
     <MudText Typo="Typo.h6">Filtere</MudText>
     <MudGrid Class="mt-1">
@@ -67,7 +69,6 @@
             <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Nummer_field">Nummer</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Tittel_field">Tittel</MudTableSortLabel></MudTh>
             <MudTh>Finnes i vector db</MudTh>
-            <MudTh>Vector db er i sync</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
@@ -88,16 +89,6 @@
             <MudTd DataLabel="Content">@context.KnowledgeItem?.Translation?.Content?.Title</MudTd>
             <MudTd DataLabel="Content">
                 @if (context.IsInVectorDb)
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
-                }
-                else
-                {
-                    <MudIcon Icon="@Icons.Material.Filled.Cancel" Color="Color.Error" />
-                }
-            </MudTd>
-            <MudTd DataLabel="Content">
-                @if (context.VectorDbInSync)
                 {
                     <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" />
                 }
@@ -287,5 +278,24 @@
     {
         ShowInVectorDbOnly = value;
         if (table != null) await table.ReloadServerData();
+    }
+
+    private async Task AddAllToDb()
+    {
+        try
+        {
+            foreach (var item in tableKnowledgeItemList)
+            {
+                if (item.IsInVectorDb == false)
+                {
+                    await SaveKnowledgeItemToMongoDb(item.KnowledgeItem!);
+                }
+            }
+            Snackbar.Add("Alle artikler lagret i RAG database", Severity.Success, config => { });
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lagring av artikler i RAG database {e.Message}", Severity.Error, config => { });
+        }
     }
 }
