@@ -66,7 +66,7 @@ public class NewChatService
             var openAIService = new OpenAIService(model, endpoint);
 
             int inputTokens = openAIService.GetTokens(chat);
-            var response = openAIService.GetStreamingResponse(chat);
+            var response = openAIService.GetStreamingResponse(chat, _userService.StreamUpdated);
 
         }
         catch (Exception ex)
@@ -94,7 +94,7 @@ public class OpenAIService
     }
 
 
-    public AsyncCollectionResult<StreamingChatCompletionUpdate> GetStreamingResponse(WorkItemChat chat, bool allowFiles = true)
+    public async AsyncCollectionResult<StreamingChatCompletionUpdate> GetStreamingResponse(WorkItemChat chat,Action updateCallback, bool allowFiles = true)
     {
 
         var options = new ChatCompletionOptions()
@@ -165,8 +165,29 @@ public class OpenAIService
             availableTokens -= messageTokens;
         }
 
+        var response = _client.CompleteChatStreamingAsync(messages, options);
+
+        Models.ChatMessage responseMessage = new Models.ChatMessage
+        {
+            Content = "",
+            Role = Models.ChatMessageRole.Assistant,
+            Status = ChatMessageStatus.Working
+        };
+
+        chat.Messages.Add(responseMessage);
+
+        await foreach (var chatCompletionUpdate in response)
+        {
+            foreach (var update in chatCompletionUpdate.ContentUpdate)
+            {
+
+                updateCallback();
+            }
+        }
+
         return _client.CompleteChatStreamingAsync(messages, options);
     }
+
 
     public static OpenAI.Chat.ChatMessage GetOpenAIMessage(Models.ChatMessage message)
     {
