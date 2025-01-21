@@ -1,4 +1,5 @@
 ﻿using ChatUiT2.Models;
+using ChatUiT2_Classlib.Model;
 using ChatUiT2_Classlib.Model.Topdesk;
 using MongoDB.Bson;
 using OpenAI.Embeddings;
@@ -16,5 +17,7 @@ namespace ChatUiT2.Interfaces
         Task<string> GetTextResponseForChat(WorkItemChat chat);
         Task<OpenAIEmbedding> GetEmbeddingForText(string text);
         Task SetAllEmbeddingVectorsToNull();
+        Task<List<TopdeskTextEmbedding>> GetAllEmbeddings();
+        Task<List<RagSearchResult>> DoRagSearch(string searchTerm, int numResults = 3, double minMatchScore = 0.8);
     }
 }

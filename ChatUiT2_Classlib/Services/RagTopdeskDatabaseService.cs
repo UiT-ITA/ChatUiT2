@@ -1,7 +1,10 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
+using ChatUiT2_Classlib.Model;
 using ChatUiT2_Classlib.Model.Topdesk;
+using DocumentFormat.OpenXml.Office2010.ExcelAc;
 using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
@@ -9,6 +12,7 @@ using MongoDB.Driver;
 using OpenAI.Embeddings;
 using UiT.CommonToolsLib.Services;
 using UiT.RestClientTopdesk.Model;
+using System.Numerics.Tensors;
 
 namespace ChatUiT2.Services;
 
@@ -182,5 +186,52 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     {
         var update = Builders<BsonDocument>.Update.Set("Embedding", BsonNull.Value);
         await _topdeskKnowledgeItemEmbeddingCollection.UpdateManyAsync(FilterDefinition<BsonDocument>.Empty, update);
+    }
+
+    public async Task<List<TopdeskTextEmbedding>> GetAllEmbeddings()
+    {
+        List<TopdeskTextEmbedding> result = [];
+        var documents = await _topdeskKnowledgeItemEmbeddingCollection.FindAsync(new BsonDocument());
+        foreach (var doc in documents.ToList())
+        {
+            var embedding = BsonSerializer.Deserialize<TopdeskTextEmbedding>(doc.AsBsonDocument);
+            result.Add(embedding);
+        }
+        return result;
+    }
+
+    public async Task<List<RagSearchResult>> DoRagSearch(string searchTerm, int numResults = 3, double minMatchScore = 0.8d)
+    {
+        List<RagSearchResult> result = [];
+        var userPhraseEmbedding = await GetEmbeddingForText(searchTerm);
+
+        var embeddings = await GetAllEmbeddings();
+        foreach (var embedding in embeddings)
+        {
+            var floatsUser = userPhraseEmbedding.ToFloats().ToArray();
+            var floatsText = embedding.Embedding;
+            if (floatsUser != null &&
+                floatsText != null &&
+                floatsUser.Length == floatsText.Length)
+            {
+                var matchScore = TensorPrimitives.CosineSimilarity(floatsUser, floatsText);
+                RagSearchResult ragResult = new()
+                {
+                    MatchScore = matchScore,
+                    SourceId = embedding.TopdeskKnowledgeItemId,
+                    Source = RagSource.Topdesk,
+                    Text = embedding.Originaltext,
+                };
+                result.Add(ragResult);
+            }
+        }
+        result = result.Where(x => x.MatchScore >= minMatchScore).ToList();
+        if(result.Count() >= numResults)
+        {
+            return result.OrderByDescending(x => x.MatchScore).Take(numResults).ToList();
+        } else
+        {
+            return result.OrderByDescending(x => x.MatchScore).ToList();
+        }
     }
 }

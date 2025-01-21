@@ -1,0 +1,123 @@
+﻿@page "/ragtopdesk/topdesk-search"
+@using ChatUiT2.Services
+@using ChatUiT2.Interfaces
+@using UiT.RestClientTopdesk.Services
+@using UiT.RestClientTopdesk.Model
+@using ChatUiT2_Classlib.Model.Topdesk
+@using ChatUiT2_Classlib.Model
+
+<PageTitle>Topdesk rag search test</PageTitle>
+
+<MudText Typo="Typo.h3">
+    Test søk ved hjelp av topdesk rag database
+</MudText>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudText Typo="Typo.h6">Filtere</MudText>
+    <MudGrid Class="mt-1">
+        <MudItem xs="12">
+            <MudTextField T="string"
+                          @bind-Value="searchTerm"
+                          Immediate="true"
+                          Placeholder="Tittel"
+                          Adornment="Adornment.Start"
+                          IconSize="Size.Medium"
+                          Class="mt-0"
+                          OnKeyDown="CheckIfEnterPressed">
+            </MudTextField>
+        </MudItem>
+        <MudItem xs="2">
+            <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
+        </MudItem>
+        <MudItem xs="10">
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudTable Items="tableRagResultList"
+              T="RagSearchResult"
+              Dense="false"
+              Hover="true"
+              Bordered="true"
+              Striped="true"
+              SortLabel="Sort By"
+              AllowUnsorted="false"
+              Loading="tableIsLoading"
+              RowsPerPage="50"
+              @ref="table">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6"></MudText>
+            <MudSpacer />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Nummer_field">Text</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Tittel_field">MatchScore</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                @context.Text
+            </MudTd>
+            <MudTd>
+                @context.MatchScore
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [Inject] private IKnowledgeItemService knowledgeItemService { get; set; } = null!;
+    [Inject] private IRagTopdeskDatabaseService ragTopdeskService { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; }
+
+    private List<RagSearchResult> tableRagResultList = [];
+    private bool tableIsLoading = false;
+    private MudTable<RagSearchResult> table;
+    private string searchTerm = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved lasting av data {e.Message}", Severity.Error, config => { });
+            }
+        }
+    }
+
+    private async Task DoSearch()
+    {
+        try
+        {
+            tableIsLoading = true;
+            var result = await ragTopdeskService.DoRagSearch(searchTerm);
+            tableRagResultList = result;
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lasting av data {e.Message}", Severity.Error, config => { });
+        }
+        finally
+        {
+            tableIsLoading = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task CheckIfEnterPressed(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Call your function here
+            await DoSearch();
+        }
+    }
+}
