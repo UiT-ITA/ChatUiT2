@@ -51,7 +51,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     /// </summary>
     /// <param name="username"></param>
     /// <returns></returns>
-    public async Task<List<TopdeskKnowledgeItem>> GetAllTopdeskKnowledgeItems()
+    public async Task<List<TopdeskKnowledgeItem>> GetAllTopdeskKnowledgeItems(bool includeEmbeddings = false)
     {
         List<TopdeskKnowledgeItem> result = [];
         var documents = await _topdeskKnowledgeItemCollection.FindAsync(new BsonDocument());
@@ -60,6 +60,15 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         {
             var knowledgeItem = BsonSerializer.Deserialize<TopdeskKnowledgeItem>(doc.AsBsonDocument);
             result.Add(knowledgeItem);
+        }
+
+        if(includeEmbeddings)
+        {
+            var allEmbeddings = await GetAllEmbeddings();
+            foreach (var item in result)
+            {
+                item.Embeddings = allEmbeddings.Where(x => x.TopdeskKnowledgeItemId == item.TopdeskId).ToList();
+            }
         }
 
         return result;

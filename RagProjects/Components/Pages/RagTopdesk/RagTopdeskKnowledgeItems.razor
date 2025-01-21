@@ -4,7 +4,7 @@
 @using UiT.RestClientTopdesk.Services
 @using UiT.RestClientTopdesk.Model
 @using ChatUiT2_Classlib.Model.Topdesk
-
+@using RagProjects.Model
 <PageTitle>Topdesk knowledge items</PageTitle>
 
 <MudText Typo="Typo.h3">
@@ -119,16 +119,6 @@
     private List<TopdeskKnowledgeItem> topdeskKnowledgeItemsVectorDb = [];
     private string titleSearch = string.Empty;
     private string ShowInVectorDbOnly = "no";
-
-    private class KnowledgeItemViewClass
-    {
-        public bool IsInVectorDb { get; set; }
-        /// <summary>
-        /// True if the article in vector db has same values as the knowledge item
-        /// </summary>
-        public bool VectorDbInSync { get; set; }
-        public KnowledgeItem? KnowledgeItem { get; set; }
-    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
