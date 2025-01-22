@@ -253,18 +253,18 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         return result;
     }
 
-    public async Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerate = 20)
+    public async Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerateMin = 5, int numToGenerateMax = 20)
     {
-        Model defaultModel = _configService.GetDefaultModel();
+        Model gpt4MiniModel = _configService.GetModel("GPT-4o-Mini");
         WorkItemChat chat = new();
         chat.Settings = new ChatSettings()
         {
-            MaxTokens = defaultModel.MaxTokens,
-            Model = defaultModel.Name,
+            MaxTokens = gpt4MiniModel.MaxTokens,
+            Model = gpt4MiniModel.Name,
             Temperature = 0.5f
         };
         chat.Type = WorkItemType.Chat;
-        chat.Settings.Prompt = $"Using the input that is a knowledge article, generate {numToGenerate} questions a person may ask that this article answers. Generate the questions in norwegian language. Give me the answer as json in the following format: {{ \"Questions\" : [ \"question1\", \"question2\" ] }}. Return the json string only no other information. Do not include ```json literal.";
+        chat.Settings.Prompt = $"Using the input that is a knowledge article, generate between {numToGenerateMin} and {numToGenerateMax} questions a person may ask that this article answers. Generate the questions in norwegian language. Give me the answer as json in the following format: {{ \"Questions\" : [ \"question1\", \"question2\" ] }}. Return the json string only no other information. Do not include ```json literal.";
         chat.Messages.Add(new ChatUiT2.Models.ChatMessage()
         {
             Role = ChatMessageRole.User,

@@ -11,7 +11,7 @@
     Liste over knowledge items som finnes i topdesk
 </MudText>
 
-<MudButton OnClick="AddAllToDb">Add all to rag database</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="AddAllToDb" >Add all to rag database</MudButton>
 
 <MudPaper Elevation="3" Class="mt-4 pa-4">
     <MudText Typo="Typo.h6">Filtere</MudText>
@@ -271,16 +271,31 @@
         if (table != null) await table.ReloadServerData();
     }
 
+    /// <summary>
+    /// Adds all knowledge items not already in rag database to rag database.
+    /// </summary>
+    /// <returns></returns>
     private async Task AddAllToDb()
     {
         try
         {
+            var existingTopdeskIds = await ragTopdeskService.GetAllTopdeskKnowledgeItems(true);
             foreach (var item in tableKnowledgeItemList)
             {
-                if (item.IsInVectorDb == false)
+                var knowledgeItemFull = await knowledgeItemService.GetById(item.KnowledgeItem.Id);
+                // Skip articles with less than 200 characters
+                if (knowledgeItemFull.Translation.Content.Content.Length < 200)
+                {
+                    continue;
+                }
+                var existingItem = existingTopdeskIds.FirstOrDefault(x => x.TopdeskId == item.KnowledgeItem.Id);
+                if (existingItem == null)
                 {
                     await SaveKnowledgeItemToMongoDb(item.KnowledgeItem!);
-                    await GenerateQuestionsFromContent(item.KnowledgeItem!.Id);
+                    await GenerateQuestionsFromContent(knowledgeItemFull);
+                } else
+                {
+                    string t1 = "";
                 }
             }
             Snackbar.Add("Alle artikler lagret i RAG database", Severity.Success, config => { });
@@ -291,17 +306,17 @@
         }
     }
 
-    private async Task GenerateQuestionsFromContent(string topdeskId)
+    private async Task GenerateQuestionsFromContent(KnowledgeItem item)
     {
         try
         {
-            var knowledgeItem = await knowledgeItemService.GetById(topdeskId);
-            var questionsFromLlm = await ragTopdeskService.GenerateQuestionsFromContent(knowledgeItem.Translation.Content.Content);
+
+            var questionsFromLlm = await ragTopdeskService.GenerateQuestionsFromContent(item.Translation.Content.Content);
             if (questionsFromLlm != null)
             {
                 foreach (var question in questionsFromLlm.Questions)
                 {
-                    await AddTopdeskTextEmbedding(knowledgeItem.Id, question);
+                    await AddTopdeskTextEmbedding(item.Id, question);
                 }
             }
             else
