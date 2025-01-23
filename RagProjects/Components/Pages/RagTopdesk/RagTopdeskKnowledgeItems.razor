@@ -13,6 +13,7 @@
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="AddAllToDb">Add all to rag database</MudButton>
 <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="DeleteMissingFromMongoDb">Delete rag database items that no longer exist in topdesk</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="DeleteOrphanEmbeddings">Delete embeddings no longer connected to a knowledge item</MudButton>
 
 <MudPaper Elevation="3" Class="mt-4 pa-4">
     <MudText Typo="Typo.h6">Filtere</MudText>
@@ -370,6 +371,19 @@
         catch (Exception e)
         {
             Snackbar.Add($"Noe feilet ved sletting av artikler i RAG database {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private async Task DeleteOrphanEmbeddings()
+    {
+        try
+        {
+            await ragTopdeskService.DeleteOrphanEmbeddings();
+            Snackbar.Add("Alle orphan embeddings er nå slettet fra RAG database", Severity.Success, config => { });
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sletting av orphan embeddings i RAG database {e.Message}", Severity.Error, config => { });
         }
     }
 }

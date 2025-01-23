@@ -25,4 +25,5 @@ public interface IRagTopdeskDatabaseService
     Task<RagProject> GetRagProjectById(string projectId);
     Task<List<RagProject>> GetAllRagProjects();
     Task DeleteKnowledgeItem(TopdeskKnowledgeItem knowledgeItem);
+    Task DeleteOrphanEmbeddings();
 }

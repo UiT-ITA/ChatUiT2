@@ -345,4 +345,28 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         }
         return result;
     }
+
+    public async Task DeleteOrphanEmbeddings()
+    {
+        var pipeline = new[]
+        {
+            new BsonDocument("$lookup", new BsonDocument
+            {
+                { "from", "TopdeskKnowledgeItemEmbeddings" },
+                { "localField", "TopdeskKnowledgeItemId" },
+                { "foreignField", "TopdeskId" },
+                { "as", "children_docs" }
+            }),
+            new BsonDocument("$match", new BsonDocument
+            {
+                { "children_docs", new BsonDocument("$eq", new BsonArray()) }
+            })
+        };
+
+        var orphans = _topdeskKnowledgeItemEmbeddingCollection.Aggregate<TopdeskTextEmbedding>(pipeline).ToList();
+        foreach (var orphan in orphans)
+        {
+            await DeleteTopdeskEmbedding(orphan);
+        }   
+    }
 }
