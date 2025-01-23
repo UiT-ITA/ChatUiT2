@@ -25,6 +25,24 @@
     <MudItem xs="10">
         @RagProject?.Updated
     </MudItem>
+    <MudItem xs="2">
+        Rag database navn
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Configuration?.DbName
+    </MudItem>
+    <MudItem xs="2">
+        Item collection name
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Configuration?.ItemCollectionName
+    </MudItem>
+    <MudItem xs="2">
+        Embedding collection name
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Configuration?.EmbeddingCollectioName
+    </MudItem>
 </MudGrid>
 
 @code {

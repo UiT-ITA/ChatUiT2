@@ -66,15 +66,19 @@
             <MudSpacer />
         </ToolBarContent>
         <HeaderContent>
+            <MudTh></MudTh>
             <MudTh><MudTableSortLabel T="RagProjectViewClass" SortLabel="Navn_field">Navn</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="RagProjectViewClass" SortLabel="Beskrivelse_field">Beskrivelse</MudTableSortLabel></MudTh>
             <MudTh>Antall sources</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Class="pa-0" OnClick="@(async () => await DeleteRagProject(context))" />
+            </MudTd>
+            <MudTd>
                 <MudLink Href="@($"/ragprojects/{context.RagProject?.Id}")">
                     @context.RagProject?.Name
-                </MudLink>                
+                </MudLink>
             </MudTd>
             <MudTd>
                 @context.RagProject.Description
@@ -116,6 +120,8 @@
 
     private async Task LoadRagProjectsFromRagDb()
     {
+        tableIsLoading = true;
+        tableRagProjectList = [];
         var dbRagProjects = await ragDatabaseService.GetAllRagProjects();
         allRagProjectList = dbRagProjects.Select(x => new RagProjectViewClass(x)).ToList();
         tableRagProjectList = allRagProjectList.ToList();
@@ -174,6 +180,7 @@
             {
                 await ragDatabaseService.SaveRagProject(ragProject);
                 Snackbar.Add("Nytt RAG prosjekt lagret i database", Severity.Success, config => { });
+                await LoadRagProjectsFromRagDb();
             } else
             {
                 Snackbar.Add("Klarte ikke å få ut data for nytt RAG prosjekt", Severity.Error, config => { });
@@ -183,6 +190,19 @@
         {
             Snackbar.Add($"Noe feilet i opprettelse av nytt RAG prosjekt {e.Message}", Severity.Error, config => { });
         }
-
     }
+
+    private async Task DeleteRagProject(RagProjectViewClass project)
+        {
+            try
+            {
+                await ragDatabaseService.DeleteRagProject(project.RagProject.Id);
+                Snackbar.Add("RAG prosjekt slettet i db", Severity.Success, config => { });
+                await LoadRagProjectsFromRagDb();
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet i sletting av RAG prosjekt {e.Message}", Severity.Error, config => { });
+            }
+        }
 }

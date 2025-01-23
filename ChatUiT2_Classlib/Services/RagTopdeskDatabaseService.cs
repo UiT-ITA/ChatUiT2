@@ -369,4 +369,15 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             await DeleteTopdeskEmbedding(orphan);
         }   
     }
+
+    public async Task DeleteRagProject(string ragProjectId)
+    {
+        if (string.IsNullOrEmpty(ragProjectId))
+        {
+            throw new ArgumentException("Embedding.Id must be set to delete embedding");
+        }
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", ragProjectId);
+        await _ragProjectItemCollection.DeleteOneAsync(filter);
+    }
+
 }
