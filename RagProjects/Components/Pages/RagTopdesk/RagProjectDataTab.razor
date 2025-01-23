@@ -1,0 +1,35 @@
+﻿@using ChatUiT2_Classlib.Model.RagProject
+
+<MudGrid Class="mt-1">
+    <MudItem xs="2">
+        Navn
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Name
+    </MudItem>
+    <MudItem xs="2">
+        Beskrivelse
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Description
+    </MudItem>
+    <MudItem xs="2">
+        Opprettet
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Created
+    </MudItem>
+    <MudItem xs="2">
+        Sist oppdatert
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Updated
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+
+    [Parameter]
+    public RagProject? RagProject { get; set; }
+}

@@ -21,4 +21,10 @@
     <ProjectReference Include="..\ChatUiT2_Classlib\ChatUiT2_Classlib.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Update="Components\Pages\RagTopdesk\RagProjectList.razor">
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+
 </Project>

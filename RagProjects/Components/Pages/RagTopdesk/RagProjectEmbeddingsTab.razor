@@ -1,0 +1,268 @@
+﻿@using ChatUiT2.Interfaces
+@using ChatUiT2_Classlib.Model.Topdesk
+@using UiT.RestClientTopdesk.Services
+@using UiT.RestClientTopdesk.Model
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => AddTextEmbedding()" Class="mt-4">Add text to embed</MudButton>
+
+<MudTextField T="int"
+              @bind-Value="numToGenerate"
+              Immediate="true"
+              Placeholder="Tittel"
+              Adornment="Adornment.Start"
+              IconSize="Size.Medium"
+              Class="mt-0">
+</MudTextField>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GenerateQuestionsFromContent" Class="mt-4">Generate questions from knowledgeItem text</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RecreteAllEmbeddings" Class="mt-4">Recreate all embeddings</MudButton>
+
+
+<MudTable Items="embeddings"
+          T="TopdeskTextEmbeddingViewItem"
+          Dense="false"
+          Hover="true"
+          Bordered="true"
+          Striped="true"
+          SortLabel="Sort By"
+          AllowUnsorted="false"
+          Loading="isLoading"
+          RowsPerPage="50"
+          @bind-SelectedItem="selectedItem1"
+          CommitEditTooltip="Commit Edit"
+          OnCommitEditClick="CommitEditAsync"
+          RowEditPreview="BackupItem"
+          RowEditCancel="ResetItemToOriginalValues"
+          CanCancelEdit="true"
+          @ref="table">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6"></MudText>
+        <MudSpacer />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh><MudTableSortLabel T="TopdeskTextEmbeddingViewItem" SortLabel="Nummer_field">Text</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="TopdeskTextEmbeddingViewItem" SortLabel="Tittel_field">Provider</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="TopdeskTextEmbeddingViewItem" SortLabel="Tittel_field">Model</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Outlined.Delete" Class="pa-0" OnClick="@(async () => await DeleteEmbedding(context))" />
+        </MudTd>
+        <MudTd>@context.TopdeskTextEmbedding?.Originaltext</MudTd>
+        <MudTd>@context.TopdeskTextEmbedding?.ModelProvider</MudTd>
+        <MudTd>@context.TopdeskTextEmbedding?.Model</MudTd>
+    </RowTemplate>
+    <RowEditingTemplate>
+        <MudTd>
+        </MudTd>
+        <MudTextField T="string"
+                      @bind-Value="context.TopdeskTextEmbedding.Originaltext"
+                      Immediate="true"
+                      Placeholder="Text som skal embeddes"
+                      Adornment="Adornment.Start"
+                      IconSize="Size.Medium"
+                      Class="mt-0">
+        </MudTextField>
+        <MudTd>@context.TopdeskTextEmbedding?.ModelProvider</MudTd>
+        <MudTd>@context.TopdeskTextEmbedding?.Model</MudTd>
+    </RowEditingTemplate>
+    <PagerContent>
+        <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
+    </PagerContent>
+
+</MudTable>
+
+@code {
+    [Inject] IRagTopdeskDatabaseService ragTopdeskService { get; set; }
+    [Inject] ISnackbar Snackbar { get; set; }
+    [Inject] IConfigService configService { get; set; }
+    [Inject] IKnowledgeItemService knowledgeItemService { get; set; } = null!;
+
+    [Parameter]
+    public string? TopdeskId { get; set; }
+
+    private List<TopdeskTextEmbeddingViewItem> embeddings = [];
+    private MudTable<TopdeskTextEmbeddingViewItem> table;
+    private TopdeskTextEmbeddingViewItem selectedItem1 = null;
+    private TopdeskTextEmbeddingViewItem elementBeforeEdit;
+    private int numToGenerate = 20;
+    private KnowledgeItem? knowledgeItem;
+
+    private bool isLoading = true;
+
+    public class TopdeskTextEmbeddingViewItem
+    {
+        public TopdeskTextEmbedding? TopdeskTextEmbedding { get; set; }
+        public bool IsEditing { get; set; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await LoadVectorDbEmbeddings();
+                await LoadKnowledgeItemFromTopdesk();
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved lasting av data fra vector database {e.Message}", Severity.Error, config => { });
+            }
+        }
+    }
+
+    private async Task LoadVectorDbEmbeddings()
+    {
+        isLoading = true;
+        embeddings = [];
+        StateHasChanged();
+        var embeddingsFromDb = await ragTopdeskService.GetEmbeddingsByTopdeskKnowledgeItemId(TopdeskId);
+        foreach (var embedding in embeddingsFromDb)
+        {
+            embeddings.Add(new TopdeskTextEmbeddingViewItem()
+            {
+                TopdeskTextEmbedding = embedding,
+                IsEditing = false
+            });
+        }
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task AddTextEmbedding(string originalText = "")
+    {
+        try
+        {
+            isLoading = true;
+            TopdeskTextEmbedding newEmbedding = new TopdeskTextEmbedding()
+            {
+                Model = configService.GetEmbeddingModel().Name,
+                ModelProvider = configService.GetEmbeddingModel().DeploymentType,
+                Originaltext = originalText,
+                TopdeskKnowledgeItemId = TopdeskId
+            };
+            newEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(newEmbedding.Originaltext)).ToFloats().ToArray();
+            await ragTopdeskService.SaveTopdeskKnowledgeItemEmbedding(newEmbedding);
+            await LoadVectorDbEmbeddings();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lagring av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private async Task SaveEmbedding(TopdeskTextEmbeddingViewItem item, bool reloadData = true)
+    {
+        try
+        {
+            await ragTopdeskService.SaveTopdeskKnowledgeItemEmbedding(item.TopdeskTextEmbedding);
+            if(reloadData)
+            {
+                await LoadVectorDbEmbeddings();
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lagring av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+
+    private void BackupItem(object elementObj)
+    {
+        TopdeskTextEmbeddingViewItem element = (TopdeskTextEmbeddingViewItem)elementObj;
+        element.IsEditing = true;
+        elementBeforeEdit = new()
+        {
+            TopdeskTextEmbedding = new()
+            {
+                Originaltext = element.TopdeskTextEmbedding.Originaltext,
+            }
+        };
+        StateHasChanged();
+    }
+
+
+    private async Task CommitEditAsync(MouseEventArgs args)
+    {
+        try
+        {
+            selectedItem1.TopdeskTextEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(selectedItem1.TopdeskTextEmbedding.Originaltext)).ToFloats().ToArray();
+            await SaveEmbedding(selectedItem1);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lagring av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private void ResetItemToOriginalValues(object elementObj)
+    {
+        TopdeskTextEmbeddingViewItem element = (TopdeskTextEmbeddingViewItem)elementObj;
+        element.TopdeskTextEmbedding.Originaltext = elementBeforeEdit.TopdeskTextEmbedding.Originaltext;
+    }
+
+    private async Task DeleteEmbedding(TopdeskTextEmbeddingViewItem item)
+    {
+        try
+        {
+            await ragTopdeskService.DeleteTopdeskEmbedding(item.TopdeskTextEmbedding);
+            await LoadVectorDbEmbeddings();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sletting av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private async Task GenerateQuestionsFromContent()
+    {
+        try
+        {
+            var questionsFromLlm = await ragTopdeskService.GenerateQuestionsFromContent(knowledgeItem.Translation.Content.Content);
+            if (questionsFromLlm != null)
+            {
+                foreach (var question in questionsFromLlm.Questions)
+                {
+                    await AddTextEmbedding(question);
+                }
+            }
+            else
+            {
+                Snackbar.Add($"Fikk ingen spørsmål fra language model", Severity.Error, config => { });
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved generering av spørsmål {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private async Task LoadKnowledgeItemFromTopdesk()
+    {
+        isLoading = true;
+        StateHasChanged();
+        knowledgeItem = await knowledgeItemService.GetById(TopdeskId);
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task RecreteAllEmbeddings()
+    {
+        try
+        {
+            foreach (var embedding in embeddings)
+            {
+                embedding.TopdeskTextEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(embedding.TopdeskTextEmbedding.Originaltext)).ToFloats().ToArray();
+                await SaveEmbedding(embedding, false);
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved kalkulering av embeddings {e.Message}", Severity.Error, config => { });
+        }
+        Snackbar.Add($"Alle embeddings rekalkulert", Severity.Success, config => { });
+        await LoadVectorDbEmbeddings();
+    }
+}

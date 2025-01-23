@@ -1,0 +1,48 @@
+﻿@using ChatUiT2_Classlib.Model.RagProject
+
+@foreach (var source in RagProject?.Sources ?? new List<RagSource>())
+{
+    <MudText Typo="Typo.h5">Kildesystem: @source.SystemName</MudText>
+
+    <MudTable Items="@source.ContentItems"
+              Class="mt-4"
+              T="Contentitem"
+              Dense="false"
+              Hover="true"
+              Bordered="true"
+              Striped="true"
+              SortLabel="Sort By"
+              AllowUnsorted="false"
+              RowsPerPage="50">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6"></MudText>
+            <MudSpacer />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>Type</MudTh>
+            <MudTh>Tittel</MudTh>
+            <MudTh>KildesystemId</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                @context?.Type
+            </MudTd>
+            <MudTd>
+                @context.Title
+            </MudTd>
+            <MudTd>
+                @context.SourceSystemId
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
+        </PagerContent>
+    </MudTable>    
+}
+
+@code {
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+
+    [Parameter]
+    public RagProject? RagProject { get; set; }
+}

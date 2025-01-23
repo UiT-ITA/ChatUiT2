@@ -14,6 +14,7 @@ using UiT.CommonToolsLib.Services;
 using UiT.RestClientTopdesk.Model;
 using System.Numerics.Tensors;
 using System.Text.Json;
+using ChatUiT2_Classlib.Model.RagProject;
 namespace ChatUiT2.Services;
 
 public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
@@ -27,6 +28,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     // Collections
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemCollection;
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemEmbeddingCollection;
+    private readonly IMongoCollection<BsonDocument> _ragProjectItemCollection;
 
     public RagTopdeskDatabaseService(IConfiguration configuration,
                                      IDateTimeProvider dateTimeProvider,
@@ -43,6 +45,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 
         _topdeskKnowledgeItemCollection = userDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItems");
         _topdeskKnowledgeItemEmbeddingCollection = userDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItemEmbeddings");
+        _ragProjectItemCollection = userDatabase.GetCollection<BsonDocument>("RagProjectDescriptions");
     }
 
 
@@ -62,7 +65,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             result.Add(knowledgeItem);
         }
 
-        if(includeEmbeddings)
+        if (includeEmbeddings)
         {
             var allEmbeddings = await GetAllEmbeddings();
             foreach (var item in result)
@@ -228,17 +231,18 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
                 {
                     MatchScore = matchScore,
                     SourceId = embedding.TopdeskKnowledgeItemId,
-                    Source = RagSource.Topdesk,
+                    Source = RagSources.Topdesk,
                     EmbeddingText = embedding.Originaltext,
                 };
                 result.Add(ragResult);
             }
         }
         result = result.Where(x => x.MatchScore >= minMatchScore).ToList();
-        if(result.Count() >= numResults)
+        if (result.Count() >= numResults)
         {
             result = result.OrderByDescending(x => x.MatchScore).Take(numResults).ToList();
-        } else
+        }
+        else
         {
             result = result.OrderByDescending(x => x.MatchScore).ToList();
         }
@@ -272,5 +276,47 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         });
         var chatResponse = await GetTextResponseForChat(chat);
         return JsonSerializer.Deserialize<QuestionsFromTextResult>(chatResponse);
+    }
+
+    public async Task SaveRagProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            ragProject.Created = _dateTimeProvider.OffsetUtcNow;
+            ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = ragProject.ToBsonDocument();
+            // This is new document, generate new id
+            document["_id"] = ObjectId.GenerateNewId().ToString();
+            await _ragProjectItemCollection.InsertOneAsync(document);
+        }
+        else
+        {
+            ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = ragProject.ToBsonDocument();
+            // This is an existing document, do update
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", ragProject.Id);
+            document.Remove("_id");
+            await _ragProjectItemCollection.ReplaceOneAsync(filter, document);
+        }
+    }
+
+    public async Task<RagProject> GetRagProjectById(string projectId)
+    {
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", projectId);
+        var documents = await _ragProjectItemCollection.FindAsync(filter);
+        var ragProject = BsonSerializer.Deserialize<RagProject>(documents.FirstOrDefault().AsBsonDocument);
+        return ragProject;
+    }
+
+    public async Task<List<RagProject>> GetAllRagProjects()
+    {
+        List<RagProject> result = [];
+        var documents = await _ragProjectItemCollection.FindAsync(new BsonDocument());
+        foreach (var doc in documents.ToList())
+        {
+            var ragProject = BsonSerializer.Deserialize<RagProject>(doc.AsBsonDocument);
+            result.Add(ragProject);
+        }
+        return result;
     }
 }
