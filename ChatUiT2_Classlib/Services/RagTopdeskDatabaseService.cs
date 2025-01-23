@@ -167,6 +167,19 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         await _topdeskKnowledgeItemEmbeddingCollection.DeleteOneAsync(filter);
     }
 
+    public async Task DeleteKnowledgeItem(TopdeskKnowledgeItem knowledgeItem)
+    {
+        if (string.IsNullOrEmpty(knowledgeItem.Id))
+        {
+            throw new ArgumentException("KnowledgeItem.Id must be set to delete knowledgeItem");
+        }
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", knowledgeItem.Id);
+        await _topdeskKnowledgeItemCollection.DeleteOneAsync(filter);
+        // Delete all embeddings for this knowledgeItem
+        filter = Builders<BsonDocument>.Filter.Eq("TopdeskKnowledgeItemId", knowledgeItem.TopdeskId);
+        await _topdeskKnowledgeItemEmbeddingCollection.DeleteManyAsync(filter);
+    }
+
     /// <summary>
     /// For when you have a chat and you simply want to get a text response
     /// with the next answer from the model.
@@ -210,6 +223,19 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             result.Add(embedding);
         }
         return result;
+    }
+
+    public async Task<List<TopdeskTextEmbedding>> GetAllEmbeddingsMissingKnowledgeItem()
+    {
+        List<TopdeskTextEmbedding> result = [];
+        var documents = await _topdeskKnowledgeItemEmbeddingCollection.FindAsync(new BsonDocument());
+        foreach (var doc in documents.ToList())
+        {
+            var embedding = BsonSerializer.Deserialize<TopdeskTextEmbedding>(doc.AsBsonDocument);
+            result.Add(embedding);
+        }
+        return result;
+
     }
 
     public async Task<List<RagSearchResult>> DoRagSearch(string searchTerm, int numResults = 3, double minMatchScore = 0.8d)

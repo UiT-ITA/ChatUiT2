@@ -24,4 +24,5 @@ public interface IRagTopdeskDatabaseService
     Task SaveRagProject(RagProject ragProject);
     Task<RagProject> GetRagProjectById(string projectId);
     Task<List<RagProject>> GetAllRagProjects();
+    Task DeleteKnowledgeItem(TopdeskKnowledgeItem knowledgeItem);
 }

@@ -11,7 +11,8 @@
     Liste over knowledge items som finnes i topdesk
 </MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="AddAllToDb" >Add all to rag database</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="AddAllToDb">Add all to rag database</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="DeleteMissingFromMongoDb">Delete rag database items that no longer exist in topdesk</MudButton>
 
 <MudPaper Elevation="3" Class="mt-4 pa-4">
     <MudText Typo="Typo.h6">Filtere</MudText>
@@ -64,7 +65,7 @@
             <MudTh>
                 Med i rag
             </MudTh>
-            <MudTh>                
+            <MudTh>
             </MudTh>
             <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Nummer_field">Nummer</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="KnowledgeItem" SortLabel="Tittel_field">Tittel</MudTableSortLabel></MudTh>
@@ -80,7 +81,7 @@
             <MudTd DataLabel="Nummer">
                 <MudLink Href="@($"/ragtopdesk/{context.KnowledgeItem?.Id}")">
                     @context.KnowledgeItem?.Number
-                </MudLink>                
+                </MudLink>
                 <MudLink Href="@($"https://uit.topdesk.net/solutions/open-knowledge-items/item/{context.KnowledgeItem?.Number}/{context.KnowledgeItem?.Translation?.Language}/")"
                          Target="_new">
                     <MudIcon Icon="@Icons.Material.Filled.Language" Color="Color.Primary" />
@@ -182,7 +183,7 @@
 
     private async Task<TopdeskKnowledgeItem> ConvertKnowledgeItemToTopdeskKnowledgeItem(KnowledgeItem item)
     {
-        if(item?.Id == null)
+        if (item?.Id == null)
         {
             throw new ArgumentException("knowledge item id does not have value");
         }
@@ -191,7 +192,7 @@
 
         // Get existing vectorDb document if found
         var existingVectorDbArticle = topdeskKnowledgeItemsVectorDb.FirstOrDefault(x => x.TopdeskId == item.Id);
-        if(existingVectorDbArticle == null)
+        if (existingVectorDbArticle == null)
         {
             existingVectorDbArticle = new();
         }
@@ -219,7 +220,7 @@
         tableKnowledgeItemList = [];
 
         IQueryable<KnowledgeItem>? query = allKnowledgeItemList.Items?.AsQueryable();
-        if(query == null)
+        if (query == null)
         {
             Snackbar.Add("Fant ingen artikler", Severity.Info, config => { });
             tableIsLoading = false;
@@ -230,7 +231,7 @@
             query = query?.Where(x => topdeskKnowledgeItemsVectorDb.Any(y => y.TopdeskId == x.Id));
         }
 
-        if(string.IsNullOrEmpty(titleSearch) == false)
+        if (string.IsNullOrEmpty(titleSearch) == false)
         {
             query = query?.Where(x => x.Translation != null &&
                                         x.Translation.Content != null &&
@@ -293,7 +294,8 @@
                 {
                     await SaveKnowledgeItemToMongoDb(item.KnowledgeItem!);
                     await GenerateQuestionsFromContent(knowledgeItemFull);
-                } else
+                }
+                else
                 {
                     string t1 = "";
                 }
@@ -347,6 +349,27 @@
         catch (Exception e)
         {
             Snackbar.Add($"Noe feilet ved lagring av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private async Task DeleteMissingFromMongoDb()
+    {
+        try
+        {
+            var existingInRagDb = await ragTopdeskService.GetAllTopdeskKnowledgeItems(true);
+            foreach (var item in existingInRagDb)
+            {
+                var existingItemInTopdesk = allKnowledgeItemList.Items?.FirstOrDefault(x => x.Id == item.TopdeskId);
+                if (existingItemInTopdesk == null)
+                {
+                    await ragTopdeskService.DeleteKnowledgeItem(item);
+                }
+            }
+            Snackbar.Add("Alle artikler som ikke ble funnet i topdesk er nå slettet fra RAG database", Severity.Success, config => { });
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sletting av artikler i RAG database {e.Message}", Severity.Error, config => { });
         }
     }
 }
