@@ -1,36 +1,179 @@
-﻿using static System.Net.WebRequestMethods;
+﻿using ChatUiT2.Models;
+using HtmlAgilityPack;
+using MudBlazor;
+using Newtonsoft.Json.Linq;
+using OpenAI.Chat;
+using System.Text.Json;
+using static System.Net.WebRequestMethods;
 
 namespace ChatUiT2.Tools;
 
 public class ChatTools
 {
-    public static List<Dictionary<string, object>> GetTools()
-    {
-        return new List<Dictionary<string, object>>
-        {
-            new Dictionary<string, object>
+
+    public static ChatTool getCurrentLocationTool = ChatTool.CreateFunctionTool(
+        functionName: "getCurrentLocation",
+        functionDescription: "Get the current location of the user"
+    );
+
+    public static ChatTool getCurrentDateTimeTool = ChatTool.CreateFunctionTool(
+        functionName: "getCurrentDateTime",
+        functionDescription: "Get the current date and time"
+    );
+
+    public static ChatTool getWeatherTool = ChatTool.CreateFunctionTool(
+        functionName: "getWeather",
+        functionDescription: "Get the weather for a given location and date",
+        functionParameters: BinaryData.FromString("""
             {
-                { "name", "generate_image" },
-                { "description", "Generate an image based on the provided description." },
-                { "parameters", new Dictionary<string, object>
-                    {
-                        { "type", "object" },
-                        { "properties", new Dictionary<string, object>
-                            {
-                                { "description", new Dictionary<string, object>
-                                    {
-                                        { "type", "string" },
-                                        { "description", "The description of the image to generate." }
-                                    }
-                                }
-                            }
-                        },
-                        { "required", new List<string> { "description" } },
-                        { "additionalProperties", false }
+                "type": "object",
+                "properties": {
+                    "location": {
+                        "type": "string",
+                        "description": "The city and state, e.g. Boston, MA"
+                    },
+                    "unit": {
+                        "type": "string",
+                        "enum": [ "celsius", "fahrenheit" ],
+                        "description": "The temperature unit to use. Infer this from the specified location."
                     }
-                }
+                },
+                "required": [ "location" ]
             }
-        };
+            """)
+    );
+
+    public static ChatTool getWikiEntryTool = ChatTool.CreateFunctionTool(
+        functionName: "getWikiEntry",
+        functionDescription: "Get the first section of a Wikipedia article",
+        functionParameters: BinaryData.FromString("""
+            {
+                "type": "object",
+                "properties": {
+                    "topic": {
+                        "type": "string",
+                        "description": "The topic to search for on Wikipedia"
+                    }
+                },
+                "required": [ "topic" ]
+            }
+            """)
+    );
+
+    public static ChatToolDescription LocationTool = new ChatToolDescription
+    {
+        DisplayName = "Location",
+        Description = "Allow the AI to access your location if needed",
+        Icon = Icons.Material.Filled.LocationOn,
+        Tool = getCurrentLocationTool
+    };
+
+    public static ChatToolDescription DateTimeTool = new ChatToolDescription
+    {
+        DisplayName = "Date & Time",
+        Description = "Get the current date and time",
+        Icon = Icons.Material.Filled.Schedule,
+        Tool = getCurrentDateTimeTool
+    };
+
+    public static ChatToolDescription WeatherTool = new ChatToolDescription
+    {
+        DisplayName = "Weather",
+        Description = "Get the weather for a location",
+        Icon = Icons.Material.Filled.WbSunny,
+        Tool = getWeatherTool
+    };
+
+    public static ChatToolDescription WikiEntryTool = new ChatToolDescription
+    {
+        DisplayName = "Wikipedia",
+        Description = "Get the first section and the infobox of a Wikipedia article",
+        Icon = Icons.Material.Filled.MenuBook,
+        Tool = getWikiEntryTool
+    };
+
+    public static string GetLocation()
+    {
+        Console.WriteLine("GetLocation");
+        return "Tromsø, NO";
+    }
+
+    public static string GetDateTime()
+    {
+        Console.WriteLine("GetDateTime");
+        // Get the current date (date, month, year) and time (hours, minutes) as string. ex: 18.10.2021 14:30
+        return DateTime.Now.ToString("dd.MM.yyyy HH:mm");
+    }
+
+    public static string GetWeather(string location, string unit = "celsius")
+    {
+        Console.WriteLine($"GetWeather: {location}, {unit}");
+        // Get the weather for the given location and date
+        return "The weather in " + location + " is 20°C";
+    }
+
+    public static string GenerateImage(string description)
+    {
+        Console.WriteLine($"GenerateImage: {description}");
+        return "Not implemented";
+    }
+
+    public static async Task<string> GetWikipedia(string topic)
+    {
+        Console.WriteLine($"GetWikipedia: {topic}");
+        return await WikipeidaHelper.GetWikipediaFirstSectionAsync(topic);
+    }
+
+
+
+
+    public static async Task<string> HandleToolCall(ChatToolCall toolCall)
+    {
+        Console.WriteLine(toolCall.FunctionName);
+        try
+        {
+            using JsonDocument argumentsDocument = JsonDocument.Parse(toolCall.FunctionArguments);
+            switch (toolCall.FunctionName)
+            {
+                case "getCurrentLocation":
+                    return GetLocation();
+                case "getCurrentDateTime":
+                    return GetDateTime();
+                case "getWeather":
+                    if (!argumentsDocument.RootElement.TryGetProperty("location", out JsonElement locationElement))
+                    {
+                        return "This tool needs a valid location";
+                    }
+                    else
+                    {
+                        string location = locationElement.GetString()!;
+                        if (argumentsDocument.RootElement.TryGetProperty("unit", out JsonElement unitElement))
+                        {
+                            return GetWeather(location, unitElement.GetString()!);
+                        }
+                        else
+                        {
+                            return GetWeather(location);
+                        }
+                    }
+                case "getWikiEntry":
+                    if (!argumentsDocument.RootElement.TryGetProperty("topic", out JsonElement topicElement))
+                    {
+                        return "This tool needs a valid topic";
+                    }
+                    else
+                    {
+                        return await GetWikipedia(topicElement.GetString()!);
+                    }
+                default:
+                    return "Sorry, I don't know how to handle this tool.";
+            }
+
+        }
+        catch (Exception)
+        {
+            return "Sorry, I don't know how to handle this tool.";
+        }
     }
 }
 public class GenerateImage
@@ -43,5 +186,176 @@ public class GenerateImage
         Console.WriteLine($"Generating image based on description: {description}");
         //return $"https://image.service/api/generate?description={Uri.EscapeDataString(description)}";
         return "https://commons.wikimedia.org/wiki/Example_images#/media/File:Example.png";
+    }
+}
+
+
+public static class WikipeidaHelper
+{
+    public static async Task<string> GetWikipediaFirstSectionAsync(string topic)
+    {
+        HttpClient client = new HttpClient();
+        try
+        {
+            string url = $"https://en.wikipedia.org/w/api.php?action=parse&page={Uri.EscapeDataString(topic)}&prop=text&format=json";
+            string response = await client.GetStringAsync(url);
+            JObject json = JObject.Parse(response);
+
+            if (json["error"] != null)
+            {
+                return json["error"]!["info"]!.ToString();
+            }
+
+            string html = json["parse"]!["text"]!["*"]!.ToString();
+
+            string? redirectTopic = GetRedirectTopic(html);
+
+            if (redirectTopic != null)
+            {
+                return await GetWikipediaFirstSectionAsync(redirectTopic);
+            }
+
+            string? firstSection = ExtractFirstSection(html);
+            string? infobox = ExtractInfobox(html);
+
+            if (firstSection == null)
+            {
+                return "Topic not found";
+            }
+
+            return firstSection + "Facts:\n" + infobox;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+            return "Topic not found";
+        }
+    }
+
+    private static string? GetRedirectTopic(string html)
+    {
+        var document = new HtmlDocument();
+        document.LoadHtml(html);
+        var redirectNode = document.DocumentNode.SelectSingleNode("//div[@class='redirectMsg']");
+        if (redirectNode != null)
+        {
+            var anchorNode = redirectNode.SelectSingleNode(".//a");
+            if (anchorNode != null)
+            {
+                return anchorNode.InnerText;
+            }
+        }
+        return null;
+    }
+
+    private static string? ExtractFirstSection(string html)
+    {
+        // Find the end of the infobox
+        var infoboxEnd = html.IndexOf("</table>");
+        if (infoboxEnd == -1)
+        {
+            Console.WriteLine("Infobox end not found.");
+            return null;
+        }
+        // Find the first <p> tag after the infobox
+        var firstParagraphStart = html.IndexOf("<p>", infoboxEnd);
+        if (firstParagraphStart == -1)
+        {
+            Console.WriteLine("First paragraph start not found.");
+            return null;
+        }
+        // Find the end of the first section using the <h2> tag
+        var firstSectionEnd = html.IndexOf("<h2", firstParagraphStart);
+        if (firstSectionEnd == -1)
+        {
+            Console.WriteLine("First section end not found.");
+            return null;
+        }
+        // Extract the HTML for the first section
+        string firstSectionHtml = html.Substring(firstParagraphStart, firstSectionEnd - firstParagraphStart);
+        // Strip HTML tags to get plain text
+        return StripHtmlTags(firstSectionHtml);
+    }
+
+    private static string? ExtractInfobox(string html)
+    {
+        var infoboxStart = html.IndexOf("infobox");
+        if (infoboxStart == -1) return null;
+        var infoboxEnd = html.IndexOf("</table>", infoboxStart);
+        if (infoboxEnd == -1) return null;
+        string infoboxHtml = html.Substring(infoboxStart - 10, infoboxEnd - infoboxStart + 10);
+        //return infoboxHtml;
+        return ExtractAndFormatInfobox(infoboxHtml);
+    }
+
+    private static string? ExtractAndFormatInfobox(string infoboxHtml)
+    {
+        var document = new HtmlAgilityPack.HtmlDocument();
+        document.LoadHtml(infoboxHtml);
+        var rows = document.DocumentNode.SelectNodes("//tr");
+        if (rows == null) return null;
+        var result = new System.Text.StringBuilder();
+        foreach (var row in rows)
+        {
+            var headerNode = row.SelectSingleNode(".//th");
+            var dataNode = row.SelectSingleNode(".//td");
+            if (headerNode != null && dataNode != null)
+            {
+                var headerText = HtmlEntity.DeEntitize(headerNode.InnerText.Trim());
+                // Remove <sup> elements (citations) from the data node
+                foreach (var sup in dataNode.SelectNodes(".//sup") ?? Enumerable.Empty<HtmlNode>())
+                {
+                    sup.Remove();
+                }
+                var dataText = HtmlEntity.DeEntitize(dataNode.InnerText.Trim());
+                // Check for nested tables
+                var nestedTable = dataNode.SelectSingleNode(".//table");
+                if (nestedTable != null)
+                {
+                    var nestedRows = nestedTable.SelectNodes(".//tr");
+                    if (nestedRows != null && nestedRows.Count > 1)
+                    {
+                        var subHeaders = nestedRows[0].SelectNodes(".//th");
+                        var subData = nestedRows[1].SelectNodes(".//td");
+                        if (subHeaders != null && subData != null)
+                        {
+                            var subHeaderText = string.Join(", ", subHeaders.Skip(1).Select(sh => HtmlEntity.DeEntitize(sh.InnerText.Trim())));
+                            var subDataText = string.Join(", ", subData.Select(sd => HtmlEntity.DeEntitize(sd.InnerText.Trim())));
+                            dataText = subDataText;
+                            headerText = $"{HtmlEntity.DeEntitize(subHeaders[0].InnerText.Trim())} ({subHeaderText})";
+                        }
+                    }
+                }
+                else
+                {
+                    // Handle list items within a single data cell
+                    var listItems = dataNode.SelectNodes(".//li");
+                    if (listItems != null)
+                    {
+                        var formattedItems = listItems.Select(li => HtmlEntity.DeEntitize(li.InnerText.Trim()));
+                        dataText = string.Join("; ", formattedItems);
+                    }
+                }
+                // Only append if the header is meaningful and not a citation or similar
+                if (!string.IsNullOrWhiteSpace(headerText) && !headerText.StartsWith(" ["))
+                {
+                    result.AppendLine($"{headerText}: {dataText}");
+                }
+            }
+        }
+        return result.ToString();
+    }
+
+    private static string StripHtmlTags(string html)
+    {
+        // Use a regular expression to remove HTML tags
+        var noHtml = System.Text.RegularExpressions.Regex.Replace(html, "<.*?>", string.Empty);
+        // Use a regular expression to remove citation markers like [7]
+        var noCitations = System.Text.RegularExpressions.Regex.Replace(noHtml, @"\[\d+\]", string.Empty);
+        // Decode HTML entities
+        var decoded = System.Net.WebUtility.HtmlDecode(noCitations);
+        // Remove any remaining square brackets that might not have been caught
+        var cleanText = System.Text.RegularExpressions.Regex.Replace(decoded, @"\[\d+\]", string.Empty);
+        return cleanText;
     }
 }

@@ -49,7 +49,7 @@ builder.Services.AddMudServices();
 builder.Services.AddMudMarkdownServices();
 
 // Singleton services
-builder.Services.AddSingleton<IConfigService, ConfigService>();
+builder.Services.AddSingleton<ISettingsService, SettingsService>();
 builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IKeyVaultService, KeyVaultService>();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();

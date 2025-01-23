@@ -12,14 +12,19 @@ namespace ChatUiT2.Services;
 public class ChatService : IChatService
 {
     private IUserService _userService { get; set; }
-    private IConfigService _configService { get; set; }
+    private ISettingsService _configService { get; set; }
     private ILogger _logger { get; set; }
 
-    public ChatService(IUserService userService, IConfigService configService, ILogger logger)
+    // Testing:
+    private NewChatService _newChatService { get; set; }
+
+    public ChatService(IUserService userService, ISettingsService configService, ILogger logger)
     {
         _userService = userService;
         _configService = configService;
         _logger = logger;
+
+        _newChatService = new NewChatService(userService, configService, logger);
 
 
         //Console.WriteLine("ChatService created");
@@ -27,6 +32,11 @@ public class ChatService : IChatService
 
     public async Task GetChatResponse(WorkItemChat chat)
     {
+        await _newChatService.GetChatResponse(chat);
+        return;
+
+
+
         ChatMessage userMessage = chat.Messages.Last();
 
         ChatMessage responseMessage = new ChatMessage { Content = "", Role = ChatMessageRole.Assistant, Status = ChatMessageStatus.Working };

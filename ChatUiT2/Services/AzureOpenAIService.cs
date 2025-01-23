@@ -16,7 +16,7 @@ namespace ChatUiT2.Services;
 
 public static class AzureOpenAIService
 {
-    public static async Task<string> GetResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
+    public static async Task<string> GetResponse(WorkItemChat chat, AiModel model, ModelEndpoint endpoint)
     {
         // Get the response from the OpenAI API
         var response = GetStreamingResponse(chat, model, endpoint);
@@ -32,7 +32,7 @@ public static class AzureOpenAIService
         return content;
     }
 
-    public static AsyncCollectionResult<StreamingChatCompletionUpdate> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint, bool allowFiles = false)
+    public static AsyncCollectionResult<StreamingChatCompletionUpdate> GetStreamingResponse(WorkItemChat chat, AiModel model, ModelEndpoint endpoint, bool allowFiles = false)
     {
         var client = new AzureOpenAIClient(new Uri(endpoint.Url), new ApiKeyCredential(endpoint.Key)).GetChatClient(model.DeploymentName);
 
@@ -268,7 +268,7 @@ public static class AzureOpenAIService
         return tokens;
     }
 
-    public static int GetChatTokens(WorkItemChat chat, Model model)
+    public static int GetChatTokens(WorkItemChat chat, AiModel model)
     {
         int tokens = 0;
         foreach (var message in chat.Messages)

@@ -26,8 +26,9 @@
     public async void Testing()
     {
 
-        debug_text = await ChatToolService.GetWikipediaEntry("Elvis_Presley");
+        // debug_text = await ChatToolService.GetWikipediaEntry("Elvis_Presley");
 
+        await Task.Delay(1);
         StateHasChanged();
     }
 }

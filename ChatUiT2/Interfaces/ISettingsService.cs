@@ -3,7 +3,7 @@ using ChatUiT2.Services;
 
 namespace ChatUiT2.Interfaces;
 
-public interface IConfigService
+public interface ISettingsService
 {
     List<Model> GetModels();
     Model GetDefaultModel();

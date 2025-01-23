@@ -47,7 +47,7 @@ public class UserService : IUserService
     private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
     private IChatService _chatService { get; set; }
-    public IConfigService _configService { get; set; }
+    public ISettingsService _configService { get; set; }
     private IAuthUserService _authUserService { get; set; }
     private IDatabaseService _databaseService { get; set; }
     private IKeyVaultService _keyVaultService { get; set; }
@@ -76,7 +76,7 @@ public class UserService : IUserService
     SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
 
     public UserService( IConfiguration configuration, 
-                        IConfigService configService, 
+                        ISettingsService configService, 
                         IAuthUserService authUserService, 
                         IDatabaseService databaseService,
                         IKeyVaultService keyVaultService,

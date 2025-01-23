@@ -29,7 +29,7 @@
 @code {
 
     [Inject] private IUserService UserService { get; set; } = null!;
-    [Inject] private IConfigService ConfigService { get; set; } = null!;
+    [Inject] private ISettingsService ConfigService { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
     [Parameter] public Color Color { get; set; } = Color.Tertiary;
