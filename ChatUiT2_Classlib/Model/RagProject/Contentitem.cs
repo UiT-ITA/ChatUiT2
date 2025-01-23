@@ -1,12 +1,21 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace ChatUiT2_Classlib.Model.RagProject;
 
 /// <summary>
 /// Describes an item of content in a RAG project
 /// </summary>
-public class Contentitem
+public class ContentItem
 {
+    /// <summary>
+    /// MongoDB Id
+    /// </summary>
+    [BsonId]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string? Id { get; set; }
+    [BsonElement("SystemName")]
+    public string SystemName { get; set; } = string.Empty;
     [BsonElement("Type")]
     public string Type { get; set; } = string.Empty;
     [BsonElement("Title")]
@@ -22,5 +31,11 @@ public class Contentitem
     [BsonElement("SourceSystemId")]
     public string SourceSystemId { get; set; } = string.Empty;
     [BsonElement("SourceSystemAltId")]
-    public string SourceSystemAltId { get; set; } = string.Empty;    
+    public string SourceSystemAltId { get; set; } = string.Empty;
+    [BsonElement("Created")]
+    public DateTimeOffset Created { get; set; } = DateTimeOffset.MinValue;
+    [BsonElement("Updated")]
+    public DateTimeOffset Updated { get; set; } = DateTimeOffset.MinValue;
+    [BsonElement("RagProjectId")]
+    public string RagProjectId { get; set; } = string.Empty;
 }

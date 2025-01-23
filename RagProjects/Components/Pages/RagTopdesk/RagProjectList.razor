@@ -84,7 +84,7 @@
                 @context.RagProject.Description
             </MudTd>
             <MudTd>
-                @context.RagProject.Sources.Count
+                @context.RagProject.ContentItems.Count
             </MudTd>
         </RowTemplate>
         <PagerContent>
@@ -168,17 +168,9 @@
     {
         try
         {
-            using var stream = new MemoryStream();
-            await file.OpenReadStream().CopyToAsync(stream);
-            var fileContent = Encoding.UTF8.GetString(stream.ToArray());
-            JsonSerializerOptions options = new()
+            var uploadResult = await ragDatabaseService.HandleRagProjectUpload(file);
+            if(uploadResult != null)
             {
-                PropertyNameCaseInsensitive = true
-            };
-            var ragProject = JsonSerializer.Deserialize<RagProject>(fileContent, options);
-            if(ragProject != null)
-            {
-                await ragDatabaseService.SaveRagProject(ragProject);
                 Snackbar.Add("Nytt RAG prosjekt lagret i database", Severity.Success, config => { });
                 await LoadRagProjectsFromRagDb();
             } else
@@ -193,16 +185,16 @@
     }
 
     private async Task DeleteRagProject(RagProjectViewClass project)
+    {
+        try
         {
-            try
-            {
-                await ragDatabaseService.DeleteRagProject(project.RagProject.Id);
-                Snackbar.Add("RAG prosjekt slettet i db", Severity.Success, config => { });
-                await LoadRagProjectsFromRagDb();
-            }
-            catch (Exception e)
-            {
-                Snackbar.Add($"Noe feilet i sletting av RAG prosjekt {e.Message}", Severity.Error, config => { });
-            }
+            await ragDatabaseService.DeleteRagProject(project.RagProject);
+            Snackbar.Add("RAG prosjekt slettet i db", Severity.Success, config => { });
+            await LoadRagProjectsFromRagDb();
         }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet i sletting av RAG prosjekt {e.Message}", Severity.Error, config => { });
+        }
+    }
 }

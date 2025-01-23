@@ -15,12 +15,17 @@ using UiT.RestClientTopdesk.Model;
 using System.Numerics.Tensors;
 using System.Text.Json;
 using ChatUiT2_Classlib.Model.RagProject;
+using Microsoft.AspNetCore.Components.Forms;
+using MudBlazor;
+using System.Text;
 namespace ChatUiT2.Services;
 
 public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 {
     private readonly IConfiguration _configuration;
 
+    // Client
+    private MongoClient _mongoClient;
     // Services
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IConfigService _configService;
@@ -40,6 +45,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         var connectionString = configuration.GetConnectionString("MongoDbRagTopdesk");
 
         var client = new MongoClient(connectionString);
+        _mongoClient = client;
 
         var userDatabase = client.GetDatabase("RagTopdesk");
 
@@ -210,7 +216,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     public async Task SetAllEmbeddingVectorsToNull()
     {
         var update = Builders<BsonDocument>.Update.Set("Embedding", BsonNull.Value);
-        await _topdeskKnowledgeItemEmbeddingCollection.UpdateManyAsync(FilterDefinition<BsonDocument>.Empty, update);
+        await _topdeskKnowledgeItemEmbeddingCollection.UpdateManyAsync(MongoDB.Driver.FilterDefinition<BsonDocument>.Empty, update);
     }
 
     public async Task<List<TopdeskTextEmbedding>> GetAllEmbeddings()
@@ -306,14 +312,29 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 
     public async Task SaveRagProject(RagProject ragProject)
     {
+        if(string.IsNullOrEmpty(ragProject.Configuration?.DbName))
+        {
+            throw new ArgumentException("RagProject.Configuration.DbName must be set to save project");
+        }
+        if (string.IsNullOrEmpty(ragProject.Configuration?.ItemCollectionName))
+        {
+            throw new ArgumentException("RagProject.Configuration.ItemCollectionName must be set to save project");
+        }
+        var ragDatabase = _mongoClient.GetDatabase(ragProject.Configuration.DbName);
+
+        var itemCollection = ragDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+
+        // Save the project definition
         if (string.IsNullOrEmpty(ragProject.Id))
         {
             ragProject.Created = _dateTimeProvider.OffsetUtcNow;
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
             var document = ragProject.ToBsonDocument();
             // This is new document, generate new id
-            document["_id"] = ObjectId.GenerateNewId().ToString();
+            var newId = ObjectId.GenerateNewId().ToString();
+            document["_id"] = newId;
             await _ragProjectItemCollection.InsertOneAsync(document);
+            ragProject.Id = newId;
         }
         else
         {
@@ -323,6 +344,35 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             var filter = Builders<BsonDocument>.Filter.Eq("_id", ragProject.Id);
             document.Remove("_id");
             await _ragProjectItemCollection.ReplaceOneAsync(filter, document);
+        }
+
+        // Save the items in the specific db for this rag project
+        foreach (var item in ragProject.ContentItems)
+        {
+            item.RagProjectId = ragProject.Id ?? string.Empty;
+            await SaveRagProjectItem(item, itemCollection);
+        }
+    }
+
+    private async Task SaveRagProjectItem(ContentItem item, IMongoCollection<BsonDocument> itemCollection)
+    {
+        if (string.IsNullOrEmpty(item.Id))
+        {
+            item.Created = _dateTimeProvider.OffsetUtcNow;
+            item.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = item.ToBsonDocument();
+            // This is new document, generate new id
+            document["_id"] = ObjectId.GenerateNewId().ToString();
+            await itemCollection.InsertOneAsync(document);
+        }
+        else
+        {
+            item.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = item.ToBsonDocument();
+            // This is an existing document, do update
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", item.Id);
+            document.Remove("_id");
+            await itemCollection.ReplaceOneAsync(filter, document);
         }
     }
 
@@ -370,14 +420,41 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         }   
     }
 
-    public async Task DeleteRagProject(string ragProjectId)
+    public async Task DeleteRagProject(RagProject ragProject)
     {
-        if (string.IsNullOrEmpty(ragProjectId))
+        if (string.IsNullOrEmpty(ragProject.Id))
         {
             throw new ArgumentException("Embedding.Id must be set to delete embedding");
         }
-        var filter = Builders<BsonDocument>.Filter.Eq("_id", ragProjectId);
+        if (string.IsNullOrEmpty(ragProject.Configuration?.DbName))
+        {
+            throw new ArgumentException("RagProject.Configuration.DbName must be set to save project");
+        }
+        
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", ragProject.Id);
         await _ragProjectItemCollection.DeleteOneAsync(filter);
-    }
 
+        // Drop the specific rag database
+        _mongoClient.DropDatabase(ragProject.Configuration.DbName);
+    }
+    public async Task<RagProject?> HandleRagProjectUpload(IBrowserFile file)
+    {
+        using var stream = new MemoryStream();
+        await file.OpenReadStream().CopyToAsync(stream);
+        var fileContent = Encoding.UTF8.GetString(stream.ToArray());
+        JsonSerializerOptions options = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+        var ragProject = JsonSerializer.Deserialize<RagProject>(fileContent, options);
+        if (ragProject != null)
+        {
+            await SaveRagProject(ragProject);
+            return ragProject;
+        }
+        else
+        {
+            return null;
+        }
+    }
 }

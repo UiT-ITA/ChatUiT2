@@ -1,12 +1,10 @@
 ﻿@using ChatUiT2_Classlib.Model.RagProject
 
-@foreach (var source in RagProject?.Sources ?? new List<RagSource>())
+@if(RagProject != null)
 {
-    <MudText Typo="Typo.h5">Kildesystem: @source.SystemName</MudText>
-
-    <MudTable Items="@source.ContentItems"
+    <MudTable Items="@RagProject.ContentItems"
               Class="mt-4"
-              T="Contentitem"
+              T="ContentItem"
               Dense="false"
               Hover="true"
               Bordered="true"
@@ -37,8 +35,12 @@
         <PagerContent>
             <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
         </PagerContent>
-    </MudTable>    
+    </MudTable>
+} else
+{
+    <MudText>Ingen content items funnet</MudText>
 }
+    
 
 @code {
     [Inject] ISnackbar Snackbar { get; set; } = null!;

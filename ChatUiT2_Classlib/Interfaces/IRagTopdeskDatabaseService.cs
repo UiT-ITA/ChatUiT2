@@ -2,6 +2,7 @@
 using ChatUiT2_Classlib.Model;
 using ChatUiT2_Classlib.Model.RagProject;
 using ChatUiT2_Classlib.Model.Topdesk;
+using Microsoft.AspNetCore.Components.Forms;
 using MongoDB.Bson;
 using OpenAI.Embeddings;
 
@@ -26,5 +27,6 @@ public interface IRagTopdeskDatabaseService
     Task<List<RagProject>> GetAllRagProjects();
     Task DeleteKnowledgeItem(TopdeskKnowledgeItem knowledgeItem);
     Task DeleteOrphanEmbeddings();
-    Task DeleteRagProject(string ragProjectId);
+    Task DeleteRagProject(RagProject ragProject);
+    Task<RagProject?> HandleRagProjectUpload(IBrowserFile file);
 }

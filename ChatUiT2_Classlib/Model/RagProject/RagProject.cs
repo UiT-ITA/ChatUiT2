@@ -6,14 +6,15 @@ namespace ChatUiT2_Classlib.Model.RagProject;
 /// <summary>
 /// Model class for a generic rag project
 /// </summary>
-public partial class RagProject
+[BsonIgnoreExtraElements]
+public class RagProject
 {
     /// <summary>
     /// MongoDB Id
     /// </summary>
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
-    public string Id { get; set; }
+    public string? Id { get; set; }
     [BsonElement("Name")]
     public string Name { get; set; } = string.Empty;
     [BsonElement("Description")]
@@ -33,8 +34,8 @@ public partial class RagProject
     /// </summary>
     [BsonElement("Configuration")]
     public RagConfiguration? Configuration { get; set; }
-    [BsonElement("Sources")]
-    public List<RagSource> Sources { get; set; } = [];    
+    [BsonIgnore]
+    public List<ContentItem> ContentItems { get; set; } = [];    
     [BsonElement("Created")]
     public DateTimeOffset Created { get; set; } = DateTimeOffset.MinValue;
     [BsonElement("Updated")]
