@@ -93,6 +93,10 @@
     </MudTable>
 </MudPaper>
 
+<MudOverlay Visible="pageIsWorking" DarkBackground="true">
+    <MudProgressCircular Color="Color.Secondary" Indeterminate="true" />
+</MudOverlay>
+
 @code {
     [Inject] private IRagTopdeskDatabaseService ragDatabaseService { get; set; } = null!;
     [Inject] ISnackbar Snackbar { get; set; } = null!;
@@ -102,7 +106,7 @@
     private bool tableIsLoading = true;
     private MudTable<RagProjectViewClass>? table;
     private string nameSearch = string.Empty;
-
+    private bool pageIsWorking = false;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -166,14 +170,17 @@
 
     private async Task UploadFiles(IBrowserFile file)
     {
+        pageIsWorking = true;
+        StateHasChanged();
         try
         {
             var uploadResult = await ragDatabaseService.HandleRagProjectUpload(file);
-            if(uploadResult != null)
+            if (uploadResult != null)
             {
                 Snackbar.Add("Nytt RAG prosjekt lagret i database", Severity.Success, config => { });
                 await LoadRagProjectsFromRagDb();
-            } else
+            }
+            else
             {
                 Snackbar.Add("Klarte ikke å få ut data for nytt RAG prosjekt", Severity.Error, config => { });
             }
@@ -182,6 +189,8 @@
         {
             Snackbar.Add($"Noe feilet i opprettelse av nytt RAG prosjekt {e.Message}", Severity.Error, config => { });
         }
+        pageIsWorking = false;
+        StateHasChanged();
     }
 
     private async Task DeleteRagProject(RagProjectViewClass project)

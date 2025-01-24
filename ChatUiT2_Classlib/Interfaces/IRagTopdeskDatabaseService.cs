@@ -14,6 +14,7 @@ public interface IRagTopdeskDatabaseService
     Task<List<TopdeskKnowledgeItem>> GetAllTopdeskKnowledgeItems(bool includeEmbeddings = false);
     Task<TopdeskKnowledgeItem> GetByTopdeskId(string topdeskId);
     Task<List<TopdeskTextEmbedding>> GetEmbeddingsByTopdeskKnowledgeItemId(string knowledgeItemId);
+    Task<List<RagTextEmbedding>> GetEmbeddingsByItemId(RagProject ragProject, string itemId);
     Task SaveTopdeskKnowledgeItem(TopdeskKnowledgeItem topdeskKnowledgeItem);
     Task SaveTopdeskKnowledgeItemEmbedding(TopdeskTextEmbedding embedding);
     Task<string> GetTextResponseForChat(WorkItemChat chat);
@@ -29,4 +30,7 @@ public interface IRagTopdeskDatabaseService
     Task DeleteOrphanEmbeddings();
     Task DeleteRagProject(RagProject ragProject);
     Task<RagProject?> HandleRagProjectUpload(IBrowserFile file);
+    Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject);
+    Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
+    Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
 }

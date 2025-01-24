@@ -18,6 +18,7 @@ using ChatUiT2_Classlib.Model.RagProject;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using System.Text;
+using Microsoft.IdentityModel.Tokens;
 namespace ChatUiT2.Services;
 
 public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
@@ -233,13 +234,13 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         return result;
     }
 
-    public async Task<List<TopdeskTextEmbedding>> GetAllEmbeddingsMissingKnowledgeItem()
+    public async Task<List<RagTextEmbedding>> GetAllEmbeddingsMissingKnowledgeItem()
     {
-        List<TopdeskTextEmbedding> result = [];
+        List<RagTextEmbedding> result = [];
         var documents = await _topdeskKnowledgeItemEmbeddingCollection.FindAsync(new BsonDocument());
         foreach (var doc in documents.ToList())
         {
-            var embedding = BsonSerializer.Deserialize<TopdeskTextEmbedding>(doc.AsBsonDocument);
+            var embedding = BsonSerializer.Deserialize<RagTextEmbedding>(doc.AsBsonDocument);
             result.Add(embedding);
         }
         return result;
@@ -478,5 +479,104 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         {
             return null;
         }
+    }
+
+    /// <summary>
+    /// Get embeddings for an item in a rag project db
+    /// </summary>
+    /// <param name="topdeskId">The knowledgeItem id in topdesk</param>
+    /// <returns></returns>
+    public async Task<List<RagTextEmbedding>> GetEmbeddingsByItemId(RagProject ragProject, string itemId)
+    {
+        if(string.IsNullOrEmpty(itemId))
+        {
+            throw new ArgumentException("itemId must be set to get embeddings");
+        }
+        List<RagTextEmbedding> result = [];
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var itemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+
+        var filter = Builders<BsonDocument>.Filter.Eq("SourceItemId", itemId);
+        var documents = await itemCollection.FindAsync(filter);
+
+        foreach (var doc in documents.ToList())
+        {
+            var knowledgeItem = BsonSerializer.Deserialize<RagTextEmbedding>(doc.AsBsonDocument);
+            result.Add(knowledgeItem);
+        }
+
+        return result;
+    }
+
+
+    /// <summary>
+    /// Get all embeddings for a rag project db
+    /// </summary>
+    /// <param name="ragProject">The project to get for</param>
+    /// <returns></returns>
+    public async Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("Project id must be set to get embeddings");
+        }
+        List<RagTextEmbedding> result = [];
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+
+        var documents = await embeddingCollection.FindAsync(new BsonDocument());
+
+        foreach (var doc in documents.ToList())
+        {
+            var knowledgeItem = BsonSerializer.Deserialize<RagTextEmbedding>(doc.AsBsonDocument);
+            result.Add(knowledgeItem);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Save a rag embedding to the rag project db
+    /// </summary>
+    /// <param name="ragProject">The project the embedding belongs to</param>
+    /// <param name="embedding">The embedding to save</param>
+    /// <returns></returns>
+    public async Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
+    {
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+
+        if (string.IsNullOrEmpty(embedding.Id))
+        {
+            embedding.Created = _dateTimeProvider.OffsetUtcNow;
+            embedding.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = embedding.ToBsonDocument();
+            // This is new document, generate new id
+            document["_id"] = ObjectId.GenerateNewId().ToString();
+            await embeddingCollection.InsertOneAsync(document);
+            embedding.Id = document["_id"].AsString;
+        }
+        else
+        {
+            embedding.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = embedding.ToBsonDocument();
+            // This is an existing document, do update
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", embedding.Id);
+            document.Remove("_id");
+            await embeddingCollection.ReplaceOneAsync(filter, document);
+        }
+    }
+
+    public async Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
+    {
+        if (string.IsNullOrEmpty(embedding.Id))
+        {
+            throw new ArgumentException("Embedding.Id must be set to delete embedding");
+        }
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", embedding.Id);
+        await embeddingCollection.DeleteOneAsync(filter);
     }
 }
