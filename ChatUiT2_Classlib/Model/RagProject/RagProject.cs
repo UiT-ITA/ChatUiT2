@@ -28,7 +28,7 @@ public class RagProject
     /// Who are the participants in this project
     /// </summary>
     [BsonElement("Participants")]
-    public Participant[] Participants { get; set; } = [];
+    public List<Participant> Participants { get; set; } = [];
     /// <summary>
     /// Configuration for the project
     /// </summary>

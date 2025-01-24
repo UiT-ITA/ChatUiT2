@@ -1,0 +1,118 @@
+﻿@page "/ragtopdesk/generate-project-file"
+@using ChatUiT2_Classlib.Model.RagProject
+@using UiT.RestClientTopdesk.Services
+@using System.Text.Json
+@using ChatUiT2.Interfaces
+
+<PageTitle>Topdesk project file</PageTitle>
+
+<MudText Typo="Typo.h3">
+    Her kan du få generert en topdesk RAG project file
+</MudText>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="DownloadJsonFile" Disabled="isDownloading">Get project json file</MudButton>
+    @if (isDownloading)
+    {
+        <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+
+    }
+</MudPaper>
+
+@code {
+    [Inject] private IKnowledgeItemService knowledgeItemService { get; set; } = null!;
+    [Inject] private IRagTopdeskDatabaseService ragDatabaseService { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; }
+    [Inject] IJSRuntime jsRuntime { get; set; }
+
+    private bool isDownloading = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved lasting av data {e.Message}", Severity.Error, config => { });
+            }
+        }
+    }
+
+    private async Task DownloadJsonFile()
+    {
+        isDownloading = true;
+        string fileData = await GenerateProjectJsonString();
+        await jsRuntime.InvokeVoidAsync("BlazorDownloadFile", "TopdeskRagProjectDefinition.json", "text/json", fileData);
+        isDownloading = false;
+    }
+
+    private async Task<string> GenerateProjectJsonString()
+    {
+        var knowledgeItems = await knowledgeItemService.GetOpen();
+        RagProject ragProject = new()
+        {
+            Name = "TopdeskKnowledgeItems",
+            Description = "Index all open knowledge items in topdesk using embeddings. This enables search in helpdesk articles",
+            Participants = new List<Participant> {
+                new() {
+                    UitUsername = "eje003@uit.no",
+                    Displayname = "Espen Rivedal",
+                    Role = "Developer"
+                }
+            },
+            Configuration = new RagConfiguration
+            {
+                MinNumberOfQuestionsPerItem = 5,
+                MaxNumberOfQuestionsPerItem = 20,
+                ModelForQuestionGeneration = "GPT-4o-Mini",
+                ModelForEmbeddings = "text-embedding-ada-002",
+                DbName = "RagTopdesk",
+                ItemCollectionName = "KnowledgeItems",
+                EmbeddingCollectioName = "KnowledgeItemEmbeddings",
+            },
+            RequestorDepartments = new List<Department>
+        {
+                new()
+                {
+                    Name = "IT-avdelingen",
+                    Stedkode = "262600"
+                }
+            },
+            ContentItems = []
+        };
+
+        foreach (var item in knowledgeItems.Items)
+        {
+            if (item.Id == null)
+            {
+                Snackbar.Add($"Knowledge item {item.Translation?.Content?.Title} does not have an id", Severity.Error, config => { });
+                continue;
+            }
+            var itemFull = await knowledgeItemService.GetById(item.Id);
+            ragProject.ContentItems.Add(new ContentItem
+            {
+                SystemName = "Topdesk",
+                DataType = "KnowledgeItem",
+                ContentType = "INLINE",
+                Title = itemFull.Translation?.Content?.Title ?? string.Empty,
+                Description = itemFull.Translation?.Content?.Description ?? string.Empty,
+                ContentText = itemFull.Translation?.Content?.Content ?? string.Empty,
+                ContentUrl = $"https://uit.topdesk.net/{itemFull.Urls?.Open ?? string.Empty}",
+                ViewUrl = $"https://uit.topdesk.net/{itemFull.Urls?.Open ?? string.Empty}",
+                Language = itemFull.Translation?.Language ?? string.Empty,
+                SourceSystemId = itemFull.Id,
+                SourceSystemAltId = itemFull.Number ?? string.Empty,
+            });
+        }
+
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true
+        };
+
+        return JsonSerializer.Serialize(ragProject, options);
+    }
+}
