@@ -16,16 +16,20 @@ public class ContentItem
     public string? Id { get; set; }
     [BsonElement("SystemName")]
     public string SystemName { get; set; } = string.Empty;
-    [BsonElement("Type")]
-    public string Type { get; set; } = string.Empty;
+    [BsonElement("DataType")]
+    public string DataType { get; set; } = string.Empty;
+    [BsonElement("ContentType")]
+    public string ContentType { get; set; } = string.Empty;
     [BsonElement("Title")]
     public string Title { get; set; } = string.Empty;
     [BsonElement("Description")]
     public string Description { get; set; } = string.Empty;
-    [BsonElement("Content")]
-    public string Content { get; set; } = string.Empty;
+    [BsonElement("ContentText")]
+    public string ContentText { get; set; } = string.Empty;
     [BsonElement("ContentUrl")]
     public string ContentUrl { get; set; } = string.Empty;
+    [BsonElement("ViewUrl")]
+    public string ViewUrl { get; set; } = string.Empty;
     [BsonElement("Language")]
     public string Language { get; set; } = string.Empty;
     [BsonElement("SourceSystemId")]
