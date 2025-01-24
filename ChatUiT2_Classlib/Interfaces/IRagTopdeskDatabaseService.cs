@@ -23,7 +23,7 @@ public interface IRagTopdeskDatabaseService
     Task<List<RagSearchResult>> DoRagSearch(string searchTerm, int numResults = 3, double minMatchScore = 0.8);
     Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerateMin = 5, int numToGenerateMax = 20);
     Task SaveRagProject(RagProject ragProject);
-    Task<RagProject> GetRagProjectById(string projectId);
+    Task<RagProject> GetRagProjectById(string projectId, bool loadItems = false);
     Task<List<RagProject>> GetAllRagProjects();
     Task DeleteKnowledgeItem(TopdeskKnowledgeItem knowledgeItem);
     Task DeleteOrphanEmbeddings();

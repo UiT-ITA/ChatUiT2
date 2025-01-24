@@ -376,11 +376,31 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         }
     }
 
-    public async Task<RagProject> GetRagProjectById(string projectId)
+    public async Task<RagProject> GetRagProjectById(string projectId, bool loadItems = false)
     {
+        if(string.IsNullOrEmpty(projectId))
+        {
+            throw new ArgumentException("projectId must be set to get project");
+        }
         var filter = Builders<BsonDocument>.Filter.Eq("_id", projectId);
         var documents = await _ragProjectItemCollection.FindAsync(filter);
         var ragProject = BsonSerializer.Deserialize<RagProject>(documents.FirstOrDefault().AsBsonDocument);
+
+        // Get the items for the project
+        if(loadItems)
+        {
+            var ragDatabase = _mongoClient.GetDatabase(ragProject.Configuration?.DbName);
+            var itemCollection = ragDatabase.GetCollection<BsonDocument>(ragProject.Configuration?.ItemCollectionName);
+            var itemFilter = Builders<BsonDocument>.Filter.Eq("RagProjectId", projectId);
+            var itemDocuments = await itemCollection.FindAsync(new BsonDocument());
+            ragProject.ContentItems = new List<ContentItem>();
+            foreach (var doc in itemDocuments.ToList())
+            {
+                var item = BsonSerializer.Deserialize<ContentItem>(doc.AsBsonDocument);
+                ragProject.ContentItems.Add(item);
+            }
+        }
+
         return ragProject;
     }
 
