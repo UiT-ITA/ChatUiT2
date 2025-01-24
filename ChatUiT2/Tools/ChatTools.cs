@@ -8,20 +8,20 @@ using static System.Net.WebRequestMethods;
 
 namespace ChatUiT2.Tools;
 
-public class ChatTools
+public static class ChatTools
 {
 
-    public static ChatTool getCurrentLocationTool = ChatTool.CreateFunctionTool(
+    private static ChatTool getCurrentLocationTool = ChatTool.CreateFunctionTool(
         functionName: "getCurrentLocation",
         functionDescription: "Get the current location of the user"
     );
 
-    public static ChatTool getCurrentDateTimeTool = ChatTool.CreateFunctionTool(
+    private static ChatTool getCurrentDateTimeTool = ChatTool.CreateFunctionTool(
         functionName: "getCurrentDateTime",
         functionDescription: "Get the current date and time"
     );
 
-    public static ChatTool getWeatherTool = ChatTool.CreateFunctionTool(
+    private static ChatTool getWeatherTool = ChatTool.CreateFunctionTool(
         functionName: "getWeather",
         functionDescription: "Get the weather for a given location and date",
         functionParameters: BinaryData.FromString("""
@@ -43,8 +43,8 @@ public class ChatTools
             """)
     );
 
-    public static ChatTool getWikiEntryTool = ChatTool.CreateFunctionTool(
-        functionName: "getWikiEntry",
+    private static ChatTool getWikiEntryTool = ChatTool.CreateFunctionTool(
+        functionName: "GetWikipediaEntry",
         functionDescription: "Get the first section of a Wikipedia article",
         functionParameters: BinaryData.FromString("""
             {
@@ -60,36 +60,60 @@ public class ChatTools
             """)
     );
 
-    public static ChatToolDescription LocationTool = new ChatToolDescription
-    {
-        DisplayName = "Location",
-        Description = "Allow the AI to access your location if needed",
-        Icon = Icons.Material.Filled.LocationOn,
-        Tool = getCurrentLocationTool
-    };
+    private static ChatTool getWebpageTool = ChatTool.CreateFunctionTool(
+        functionName: "GetWebpage",
+        functionDescription: "Get the content of a webpage",
+        functionParameters: BinaryData.FromString("""
+            {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL of the webpage to fetch"
+                    }
+                },
+                "required": [ "url" ]
+            }
+            """)
+    );
 
-    public static ChatToolDescription DateTimeTool = new ChatToolDescription
+    public static List<ChatToolDescription> Tools = new List<ChatToolDescription>
     {
-        DisplayName = "Date & Time",
-        Description = "Get the current date and time",
-        Icon = Icons.Material.Filled.Schedule,
-        Tool = getCurrentDateTimeTool
-    };
-
-    public static ChatToolDescription WeatherTool = new ChatToolDescription
-    {
-        DisplayName = "Weather",
-        Description = "Get the weather for a location",
-        Icon = Icons.Material.Filled.WbSunny,
-        Tool = getWeatherTool
-    };
-
-    public static ChatToolDescription WikiEntryTool = new ChatToolDescription
-    {
-        DisplayName = "Wikipedia",
-        Description = "Get the first section and the infobox of a Wikipedia article",
-        Icon = Icons.Material.Filled.MenuBook,
-        Tool = getWikiEntryTool
+        new ChatToolDescription
+        {
+            DisplayName = "Location",
+            Description = "Allow the AI to access your location if needed",
+            Icon = Icons.Material.Filled.LocationOn,
+            Tool = getCurrentLocationTool,
+        },
+        new ChatToolDescription
+        {
+            DisplayName = "DateTime",
+            Description = "Get the current date and time",
+            Icon = Icons.Material.Filled.Schedule,
+            Tool = getCurrentDateTimeTool
+        },
+        new ChatToolDescription
+        {
+            DisplayName = "Weather",
+            Description = "Get the weather for a location",
+            Icon = Icons.Material.Filled.WbSunny,
+            Tool = getWeatherTool
+        },
+        new ChatToolDescription
+        {
+            DisplayName = "Wikipedia",
+            Description = "Get the first section and the infobox of a Wikipedia article",
+            Icon = Icons.Material.Filled.MenuBook,
+            Tool = getWikiEntryTool
+        },
+        new ChatToolDescription
+        {
+            DisplayName = "Webpage",
+            Description = "Get the content of a webpage",
+            Icon = Icons.Material.Filled.Web,
+            Tool = getWebpageTool
+        }
     };
 
     public static string GetLocation()
@@ -124,12 +148,28 @@ public class ChatTools
         return await WikipeidaHelper.GetWikipediaFirstSectionAsync(topic);
     }
 
+    public static async Task<string> GetWebpage(string url)
+    {
+        Console.WriteLine($"GetWebpage: {url}");
+
+        HttpClient client = new HttpClient();
+        try
+        {
+            string response = await client.GetStringAsync(url);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");
+            return "An error occurred while fetching the webpage";
+        }
+    }
+
 
 
 
     public static async Task<string> HandleToolCall(ChatToolCall toolCall)
     {
-        Console.WriteLine(toolCall.FunctionName);
         try
         {
             using JsonDocument argumentsDocument = JsonDocument.Parse(toolCall.FunctionArguments);
@@ -156,7 +196,7 @@ public class ChatTools
                             return GetWeather(location);
                         }
                     }
-                case "getWikiEntry":
+                case "GetWikipediaEntry":
                     if (!argumentsDocument.RootElement.TryGetProperty("topic", out JsonElement topicElement))
                     {
                         return "This tool needs a valid topic";
@@ -164,6 +204,15 @@ public class ChatTools
                     else
                     {
                         return await GetWikipedia(topicElement.GetString()!);
+                    }
+                case "GetWebpage":
+                    if (!argumentsDocument.RootElement.TryGetProperty("url", out JsonElement urlElement))
+                    {
+                        return "This tool needs a valid URL";
+                    }
+                    else
+                    {
+                        return await GetWebpage(urlElement.GetString()!);
                     }
                 default:
                     return "Sorry, I don't know how to handle this tool.";

@@ -11,12 +11,12 @@
         {
             <MudMenuItem OnClick="@(() => SelectModel(model))">
                 <div class="d-flex align-items-center" style="width: 300px;">
-                    <MudIcon Icon="@GetIcon(model.Name)" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
+                    <MudIcon Icon="@model.Icon" Size="Size.Large" Class="me-2" Style="margin-top: auto; margin-bottom: auto;" />
                     <div class="flex-grow-1 d-flex flex-column justify-content-center">
-                        <MudText Typo="Typo.h4" Class="m-0">@model.Name</MudText>
+                        <MudText Typo="Typo.h4" Class="m-0">@model.DisplayName</MudText>
                         <MudText Typo="Typo.body2" Class="m-0">@model.Description</MudText>
                     </div>
-                    @if (UserService.CurrentChat.Settings.Model == model.Name)
+                    @if (UserService.CurrentChat.Settings.Model == model.DisplayName)
                     {
                         <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                     }
@@ -29,7 +29,7 @@
 @code {
 
     [Inject] private IUserService UserService { get; set; } = null!;
-    [Inject] private ISettingsService ConfigService { get; set; } = null!;
+    [Inject] private ISettingsService SettingsService { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
 
     [Parameter] public Color Color { get; set; } = Color.Tertiary;
@@ -37,7 +37,7 @@
     [Parameter] public bool AnchorRight { get; set; } = false;
 
 
-    private List<Model> Models { get; set; } = new List<Model>();
+    private List<AiModel> Models { get; set; } = new List<AiModel>();
 
     private Origin AnchorOrigin => AnchorRight ? Origin.BottomRight : Origin.BottomLeft;
     private Origin TransformOrigin => AnchorRight ? Origin.TopRight : Origin.TopLeft;
@@ -46,7 +46,7 @@
     {
         if (Models.Count == 0)
         {
-            Models = ConfigService.GetModels();
+            Models = SettingsService.Models;
             StateHasChanged();
         }
     }
@@ -80,9 +80,9 @@
     }
 
 
-    private void SelectModel(Model model)
+    private void SelectModel(AiModel model)
     {
-        UserService.CurrentChat.Settings.Model = model.Name;
+        UserService.CurrentChat.Settings.Model = model.DisplayName;
 
         if (UserService.CurrentChat.Settings.MaxTokens > model.MaxTokens)
         {

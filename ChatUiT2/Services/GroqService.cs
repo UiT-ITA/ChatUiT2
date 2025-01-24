@@ -39,7 +39,7 @@ public static class GroqService
         return response;
     }
 
-    public static IAsyncEnumerable<JsonObject?> GetStreamingResponse(WorkItemChat chat, Model model, ModelEndpoint endpoint)
+    public static IAsyncEnumerable<JsonObject?> GetStreamingResponse(WorkItemChat chat, AiModel model, ModelEndpoint endpoint)
     {
         GroqApiClient client = new(endpoint.Key);
 

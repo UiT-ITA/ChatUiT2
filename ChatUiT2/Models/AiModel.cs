@@ -112,8 +112,8 @@ public static class ModelServiceExtensions
             ModelName.gpt4turbo => new ModelCapabilities    { MaxContext = 16_276, MaxTokens = 4096, Chat = true },
             ModelName.gpt4o => new ModelCapabilities        { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
             ModelName.gpt4omini => new ModelCapabilities    { MaxContext = 128_000, MaxTokens = 16_276, Chat = true, Vision = true },
-            ModelName.gpt4o1 => new ModelCapabilities       { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
-            ModelName.gpt4o1mini => new ModelCapabilities   { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
+            ModelName.o1 => new ModelCapabilities       { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
+            ModelName.o1mini => new ModelCapabilities   { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
 
             // OpenAI DALL-E
             ModelName.dalle2 => new ModelCapabilities { Vision = true, ImageGeneration = true },
@@ -122,4 +122,23 @@ public static class ModelServiceExtensions
             _ => throw new NotImplementedException(),
         };
     }
+}
+
+public class ModelConfig
+{
+    public string DisplayName { get; set; } = null!;
+    public string Description { get; set; } = null!;
+    public string? Icon { get; set; }
+    public string DeploymentName { get; set; } = null!;
+    public string DeploymentType { get; set; } = null!;
+    public string ModelName { get; set; } = null!;
+    public string DeploymentEndpoint { get; set; } = null!;
+    public List<string> OptionalTools { get; set; } = new List<string>();
+    public List<string> RequiredTools { get; set; } = new List<string>();
+    public List<string> AllowedRoles { get; set; } = new List<string>();
+    public int MaxContext { get; set; } = 0;
+    public int MaxTokens { get; set; } = 0;
+    public bool AllowCustomPrompt { get; set; } = true;
+
+    // Add other properties as needed
 }

@@ -47,7 +47,7 @@ public class UserService : IUserService
     private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
     private IChatService _chatService { get; set; }
-    public ISettingsService _configService { get; set; }
+    public ISettingsService _settingsService { get; set; }
     private IAuthUserService _authUserService { get; set; }
     private IDatabaseService _databaseService { get; set; }
     private IKeyVaultService _keyVaultService { get; set; }
@@ -87,7 +87,7 @@ public class UserService : IUserService
                         NavigationManager navigationManager)
     {
         _configuration = configuration;
-        _configService = configService;
+        _settingsService = configService;
         _authUserService = authUserService;
         _databaseService = databaseService;
         _keyVaultService = keyVaultService;
@@ -231,9 +231,9 @@ public class UserService : IUserService
 
     }
 
-    public List<Model> GetModelList()
+    public List<AiModel> GetModelList()
     {
-        return _configService.GetModels();
+        return _settingsService.Models;
     }
 
     public async void SetPreferredModel(string model)
@@ -248,7 +248,7 @@ public class UserService : IUserService
     }
     public int GetMaxTokens(WorkItemChat chat)
     {
-        var model = _configService.GetModel(chat.Settings.Model);
+        var model = _settingsService.GetModel(chat.Settings.Model);
         return model.MaxTokens;
     }
     public List<IWorkItem> GetWorkItems()
