@@ -33,4 +33,6 @@ public interface IRagTopdeskDatabaseService
     Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject);
     Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
     Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
+    Task AddRagTextEmbedding(RagProject ragProject, string itemId, string originalText = "");
+    Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item);
 }

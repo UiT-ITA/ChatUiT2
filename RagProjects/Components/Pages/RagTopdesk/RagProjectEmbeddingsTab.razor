@@ -4,6 +4,8 @@
 @using ChatUiT2_Classlib.Model.RagProject
 @using RagProjects.Model
 
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
+
 <MudTable Items="embeddings"
           Class="mt-4"
           T="RagTextEmbeddingViewItem"
@@ -97,7 +99,7 @@
         isLoading = true;
         embeddings = [];
         StateHasChanged();
-        if(RagProject == null)
+        if (RagProject == null)
         {
             return;
         }
@@ -170,11 +172,31 @@
         try
         {
             await ragTopdeskService.DeleteRagEmbedding(RagProject, item.RagTextEmbedding);
+            Snackbar.Add($"Embedding slettet", Severity.Success, config => { });
             await LoadDbEmbeddings();
+            StateHasChanged();
         }
         catch (Exception e)
         {
             Snackbar.Add($"Noe feilet ved sletting av embedding {e.Message}", Severity.Error, config => { });
         }
+    }
+
+    private async Task CreateEmbeddingsForAllSourceItems()
+    {
+        foreach(var item in RagProject.ContentItems)
+        {
+            try
+            {
+                await ragTopdeskService.GenerateRagQuestionsFromContent(RagProject, item);
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved generering av spørsmål for item {item.Id} {e.Message}", Severity.Error, config => { });
+            }
+        }
+        Snackbar.Add($"Ferdig med generering av embeddings", Severity.Success, config => { });
+        await LoadDbEmbeddings();
+        StateHasChanged();
     }
 }
