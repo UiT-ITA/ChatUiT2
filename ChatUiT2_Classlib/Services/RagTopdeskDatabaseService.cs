@@ -25,7 +25,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     private readonly IConfiguration _configuration;
 
     // Client
-    private MongoClient _mongoClient;
+    private MongoClient _mongoClientRagDb;
     // Services
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IConfigService _configService;
@@ -33,7 +33,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     // Collections
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemCollection;
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemEmbeddingCollection;
-    private readonly IMongoCollection<BsonDocument> _ragProjectItemCollection;
+    private readonly IMongoCollection<BsonDocument> _ragProjectDefinitionsItemCollection;
 
     public RagTopdeskDatabaseService(IConfiguration configuration,
                                      IDateTimeProvider dateTimeProvider,
@@ -42,16 +42,18 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
         this._configService = configService;
-        var connectionString = configuration.GetConnectionString("MongoDbRagTopdesk");
 
+        // Init RAG database client
+        var connectionString = configuration.GetConnectionString("MongoDbRagProjectDef");
         var client = new MongoClient(connectionString);
-        _mongoClient = client;
+        _mongoClientRagDb = client;
+        var ragDatabase = client.GetDatabase("RagProjectDefDatabaseName");
+        // Old refactor and delete
+        _topdeskKnowledgeItemCollection = ragDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItems");
+        _topdeskKnowledgeItemEmbeddingCollection = ragDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItemEmbeddings");
+        // Old end
 
-        var userDatabase = client.GetDatabase("RagTopdesk");
-
-        _topdeskKnowledgeItemCollection = userDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItems");
-        _topdeskKnowledgeItemEmbeddingCollection = userDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItemEmbeddings");
-        _ragProjectItemCollection = userDatabase.GetCollection<BsonDocument>("RagProjectDescriptions");
+        _ragProjectDefinitionsItemCollection = ragDatabase.GetCollection<BsonDocument>(configuration["RagProjectDefCollection"]);
     }
 
 
@@ -320,7 +322,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         {
             throw new ArgumentException("RagProject.Configuration.ItemCollectionName must be set to save project");
         }
-        var ragDatabase = _mongoClient.GetDatabase(ragProject.Configuration.DbName);
+        var ragDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
 
         var itemCollection = ragDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
 
@@ -333,7 +335,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             // This is new document, generate new id
             var newId = ObjectId.GenerateNewId().ToString();
             document["_id"] = newId;
-            await _ragProjectItemCollection.InsertOneAsync(document);
+            await _ragProjectDefinitionsItemCollection.InsertOneAsync(document);
             ragProject.Id = newId;
         }
         else
@@ -343,7 +345,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             // This is an existing document, do update
             var filter = Builders<BsonDocument>.Filter.Eq("_id", ragProject.Id);
             document.Remove("_id");
-            await _ragProjectItemCollection.ReplaceOneAsync(filter, document);
+            await _ragProjectDefinitionsItemCollection.ReplaceOneAsync(filter, document);
         }
 
         // Save the items in the specific db for this rag project
@@ -383,13 +385,13 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             throw new ArgumentException("projectId must be set to get project");
         }
         var filter = Builders<BsonDocument>.Filter.Eq("_id", projectId);
-        var documents = await _ragProjectItemCollection.FindAsync(filter);
+        var documents = await _ragProjectDefinitionsItemCollection.FindAsync(filter);
         var ragProject = BsonSerializer.Deserialize<RagProject>(documents.FirstOrDefault().AsBsonDocument);
 
         // Get the items for the project
         if(loadItems)
         {
-            var ragDatabase = _mongoClient.GetDatabase(ragProject.Configuration?.DbName);
+            var ragDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration?.DbName);
             var itemCollection = ragDatabase.GetCollection<BsonDocument>(ragProject.Configuration?.ItemCollectionName);
             var itemFilter = Builders<BsonDocument>.Filter.Eq("RagProjectId", projectId);
             var itemDocuments = await itemCollection.FindAsync(new BsonDocument());
@@ -407,7 +409,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     public async Task<List<RagProject>> GetAllRagProjects()
     {
         List<RagProject> result = [];
-        var documents = await _ragProjectItemCollection.FindAsync(new BsonDocument());
+        var documents = await _ragProjectDefinitionsItemCollection.FindAsync(new BsonDocument());
         foreach (var doc in documents.ToList())
         {
             var ragProject = BsonSerializer.Deserialize<RagProject>(doc.AsBsonDocument);
@@ -452,10 +454,10 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         }
         
         var filter = Builders<BsonDocument>.Filter.Eq("_id", ragProject.Id);
-        await _ragProjectItemCollection.DeleteOneAsync(filter);
+        await _ragProjectDefinitionsItemCollection.DeleteOneAsync(filter);
 
         // Drop the specific rag database
-        _mongoClient.DropDatabase(ragProject.Configuration.DbName);
+        _mongoClientRagDb.DropDatabase(ragProject.Configuration.DbName);
     }
     public async Task<RagProject?> HandleRagProjectUpload(IBrowserFile file)
     {

@@ -41,10 +41,10 @@ else
         {
             if (!string.IsNullOrEmpty(RagProjectId))
             {
-                ragProject = await ragDatabaseService.GetRagProjectById(RagProjectId);
-                isLoading = false;
-                StateHasChanged();
+                ragProject = await ragDatabaseService.GetRagProjectById(RagProjectId, true);
             }
+            isLoading = false;
+            StateHasChanged();
         }
     }
 }
