@@ -19,6 +19,8 @@ using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using ChatMessage = ChatUiT2.Models.ChatMessage;
+
 namespace ChatUiT2.Services;
 
 public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
@@ -606,19 +608,25 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         await SaveRagEmbedding(ragProject, newEmbedding);
     }
 
+    public string GetItemContentString(ContentItem item)
+    {
+        string textContent = string.Empty;
+        switch (item.ContentType)
+        {
+            case "INLINE":
+                textContent = item.ContentText;
+                break;
+            default:
+                break;
+        }
+        return textContent;
+    }
+
     public async Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item)
     {
         try
         {
-            string textContent = string.Empty;
-            switch (item.ContentType)
-            {
-                case "INLINE":
-                    textContent = item.ContentText;
-                    break;
-                default:
-                    break;
-            }
+            string textContent = GetItemContentString(item);
             var questionsFromLlm = await GenerateQuestionsFromContent(textContent,
                                                                       ragProject.Configuration?.MinNumberOfQuestionsPerItem ?? 5,
                                                                       ragProject.Configuration?.MaxNumberOfQuestionsPerItem ?? 20);
@@ -638,5 +646,100 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         {
             throw new Exception($"Noe feilet ved generering av spørsmål for item {item.Id} {e.Message}");
         }
+    }
+
+    public async Task<string> SendRagSearchToLlm(List<RagSearchResult> ragSearchResults, string searchTerm)
+    {
+        Model defaultModel = _configService.GetDefaultModel();
+        WorkItemChat chat = new();
+        chat.Settings = new ChatSettings()
+        {
+            MaxTokens = defaultModel.MaxTokens,
+            Model = defaultModel.Name,
+            Temperature = 0.5f
+        };
+        chat.Type = WorkItemType.Chat;
+        chat.Settings.Prompt = $"Use the information in the knowledge articles the user provides to answer the user question. Answer in the same language as the user is asking in.\n\n";
+        for (int i = 0; i < ragSearchResults.Count(); i++)
+        {
+            chat.Messages.Add(new ChatMessage()
+            {
+                Role = ChatMessageRole.User,
+                Content = $"## Knowledge article {i}\n\n{ragSearchResults.ElementAt(i).SourceContent}\n\n"
+            });
+        }
+
+        chat.Messages.Add(new ChatMessage()
+        {
+            Role = ChatMessageRole.User,
+            Content = $"My question is {searchTerm}"
+        });
+
+        return await GetTextResponseForChat(chat);
+    }
+
+    public async Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8d)
+    {
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+
+        List<RagSearchResult> result = [];
+        var userPhraseEmbedding = await GetEmbeddingForText(searchTerm);
+
+        var embeddings = await GetEmbeddingsByProject(ragProject);
+        foreach (var embedding in embeddings)
+        {
+            var floatsUser = userPhraseEmbedding.ToFloats().ToArray();
+            var floatsText = embedding.Embedding;
+            if (floatsUser != null &&
+                floatsText != null &&
+                floatsUser.Length == floatsText.Length)
+            {
+                var matchScore = TensorPrimitives.CosineSimilarity(floatsUser, floatsText);
+                RagSearchResult ragResult = new()
+                {
+                    MatchScore = matchScore,
+                    SourceId = embedding.SourceItemId,
+                    Source = ragProject.Name,
+                    EmbeddingText = embedding.Originaltext
+                    
+                };
+                result.Add(ragResult);
+            }
+        }
+        result = result.Where(x => x.MatchScore >= minMatchScore).ToList();
+        if (result.Count() >= numResults)
+        {
+            result = result.OrderByDescending(x => x.MatchScore).Take(numResults).ToList();
+        }
+        else
+        {
+            result = result.OrderByDescending(x => x.MatchScore).ToList();
+        }
+
+        foreach (var res in result)
+        {
+            var contentItem = await GetContentItemById(ragProject, res.SourceId);
+            res.ContentUrl = contentItem.ViewUrl;
+            res.SourceAltId = contentItem.SourceSystemAltId;
+            res.SourceContent = GetItemContentString(contentItem);
+        }
+        return result;
+    }
+
+    public async Task<ContentItem> GetContentItemById(RagProject ragProject, string itemId)
+    {
+        if (string.IsNullOrEmpty(itemId))
+        {
+            throw new ArgumentException("itemId must be set to get source item");
+        }
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var itemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", itemId);
+        var documents = await itemCollection.FindAsync(filter);
+        var sourceItem = BsonSerializer.Deserialize<ContentItem>(documents.FirstOrDefault().AsBsonDocument);
+
+        return sourceItem;
     }
 }

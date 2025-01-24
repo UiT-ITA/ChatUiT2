@@ -35,4 +35,8 @@ public interface IRagTopdeskDatabaseService
     Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
     Task AddRagTextEmbedding(RagProject ragProject, string itemId, string originalText = "");
     Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item);
+    Task<string> SendRagSearchToLlm(List<RagSearchResult> ragSearchResults, string searchTerm);
+    Task<ContentItem> GetContentItemById(RagProject ragProject, string itemId);
+    string GetItemContentString(ContentItem item);
+    Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8);
 }
