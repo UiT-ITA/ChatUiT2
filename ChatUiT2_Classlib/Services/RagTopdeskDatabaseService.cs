@@ -322,9 +322,9 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         {
             throw new ArgumentException("RagProject.Configuration.ItemCollectionName must be set to save project");
         }
-        var ragDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
 
-        var itemCollection = ragDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+        var itemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
 
         // Save the project definition
         if (string.IsNullOrEmpty(ragProject.Id))
