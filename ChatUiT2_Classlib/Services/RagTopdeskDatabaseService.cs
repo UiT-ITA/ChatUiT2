@@ -47,7 +47,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         var connectionString = configuration.GetConnectionString("MongoDbRagProjectDef");
         var client = new MongoClient(connectionString);
         _mongoClientRagDb = client;
-        var ragDatabase = client.GetDatabase("RagProjectDefDatabaseName");
+        var ragDatabase = client.GetDatabase(configuration["RagProjectDefDatabaseName"]);
         // Old refactor and delete
         _topdeskKnowledgeItemCollection = ragDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItems");
         _topdeskKnowledgeItemEmbeddingCollection = ragDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItemEmbeddings");
