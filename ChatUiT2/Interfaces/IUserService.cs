@@ -15,7 +15,7 @@ public interface IUserService
     bool IsAdmin { get; set; }
     bool IsTester { get; set; }
     bool EnableFileUpload { get; set; }
-    IConfigService _configService { get; set; }
+    ISettingsService _settingsService { get; set; }
     WorkItemChat CurrentChat { get; }
     ChatWidth ChatWidth { get; set; }
 
@@ -25,7 +25,7 @@ public interface IUserService
     bool GetSaveHistory();
     Task SetSaveHistory(IWorkItem workItem, bool value);
     Task SetDefaultChatSettings();
-    List<Model> GetModelList();
+    List<AiModel> GetModelList();
     void SetPreferredModel(string model);
     int GetMaxTokens();
     int GetMaxTokens(WorkItemChat chat);
