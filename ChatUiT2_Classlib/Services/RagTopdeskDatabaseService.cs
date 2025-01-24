@@ -465,7 +465,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     public async Task<RagProject?> HandleRagProjectUpload(IBrowserFile file)
     {
         using var stream = new MemoryStream();
-        await file.OpenReadStream().CopyToAsync(stream);
+        await file.OpenReadStream(50 * 1024 * 1024).CopyToAsync(stream);
         var fileContent = Encoding.UTF8.GetString(stream.ToArray());
         JsonSerializerOptions options = new()
         {
