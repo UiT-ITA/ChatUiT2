@@ -23,7 +23,7 @@ public interface IRagTopdeskDatabaseService
     public Task AddRagTextEmbedding(RagProject ragProject, string itemId, string originalText = "");
     public Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item);
     public Task<string> SendRagSearchToLlm(List<RagSearchResult> ragSearchResults, string searchTerm);
-    public Task<ContentItem> GetContentItemById(RagProject ragProject, string itemId);
+    public Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId);
     public string GetItemContentString(ContentItem item);
     public Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8);
 }

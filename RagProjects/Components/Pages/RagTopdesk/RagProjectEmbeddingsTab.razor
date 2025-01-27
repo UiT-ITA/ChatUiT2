@@ -4,6 +4,11 @@
 @using ChatUiT2_Classlib.Model.RagProject
 @using RagProjects.Model
 
+<MudText>
+    Her er informasjon om alle embeddings som er lagt inn i embeddings collection for dette RAG prosjektet.
+    Du kan bruke denne siden til å redigere texter eller slette tekster som ikke er aktuell.
+</MudText>
+
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
 
 <MudTable Items="embeddings"
@@ -29,9 +34,12 @@
         <MudSpacer />
     </ToolBarContent>
     <HeaderContent>
+        <MudTh></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Nummer_field">Text</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Tittel_field">Provider</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Tittel_field">Model</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Tittel_field">Source system id</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Tittel_field">Source system alt id</MudTableSortLabel></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>
@@ -40,6 +48,8 @@
         <MudTd>@context.RagTextEmbedding?.Originaltext</MudTd>
         <MudTd>@context.RagTextEmbedding?.ModelProvider</MudTd>
         <MudTd>@context.RagTextEmbedding?.Model</MudTd>
+        <MudTd>@context.ContentItem?.SourceSystemId</MudTd>
+        <MudTd>@context.ContentItem?.SourceSystemAltId</MudTd>
     </RowTemplate>
     <RowEditingTemplate>
         <MudTd>
@@ -54,6 +64,8 @@
         </MudTextField>
         <MudTd>@context.RagTextEmbedding?.ModelProvider</MudTd>
         <MudTd>@context.RagTextEmbedding?.Model</MudTd>
+        <MudTd>@context.ContentItem?.SourceSystemId</MudTd>
+        <MudTd>@context.ContentItem?.SourceSystemAltId</MudTd>
     </RowEditingTemplate>
     <PagerContent>
         <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
@@ -106,10 +118,12 @@
         var embeddingsFromDb = await ragTopdeskService.GetEmbeddingsByProject(RagProject);
         foreach (var embedding in embeddingsFromDb)
         {
+            var sourceItem = await ragTopdeskService.GetContentItemById(RagProject, embedding.SourceItemId);
             embeddings.Add(new RagTextEmbeddingViewItem()
             {
                 RagTextEmbedding = embedding,
-                IsEditing = false
+                IsEditing = false,
+                ContentItem = sourceItem
             });
         }
         isLoading = false;

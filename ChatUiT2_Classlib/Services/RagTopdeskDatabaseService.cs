@@ -20,6 +20,7 @@ using MudBlazor;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using ChatMessage = ChatUiT2.Models.ChatMessage;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace ChatUiT2.Services;
 
@@ -32,6 +33,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     // Services
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IConfigService _configService;
+    private readonly IMemoryCache _memoryCache;
 
     // Collections
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemCollection;
@@ -40,11 +42,13 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 
     public RagTopdeskDatabaseService(IConfiguration configuration,
                                      IDateTimeProvider dateTimeProvider,
-                                     IConfigService configService)
+                                     IConfigService configService,
+                                     IMemoryCache memoryCache)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
         this._configService = configService;
+        this._memoryCache = memoryCache;
 
         // Init RAG database client
         var connectionString = configuration.GetConnectionString("MongoDbRagProjectDef");
@@ -504,19 +508,31 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         return result;
     }
 
-    public async Task<ContentItem> GetContentItemById(RagProject ragProject, string itemId)
+    public async Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId)
     {
         if (string.IsNullOrEmpty(itemId))
         {
             throw new ArgumentException("itemId must be set to get source item");
         }
-        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
-        var itemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+        string cacheKey = $"SourceItem_{itemId}";
+        if (!_memoryCache.TryGetValue(cacheKey, out ContentItem? cachedValue))
+        {
+            // Key not in cache, so get data.
+            var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+            var itemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
 
-        var filter = Builders<BsonDocument>.Filter.Eq("_id", itemId);
-        var documents = await itemCollection.FindAsync(filter);
-        var sourceItem = BsonSerializer.Deserialize<ContentItem>(documents.FirstOrDefault().AsBsonDocument);
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", itemId);
+            var documents = await itemCollection.FindAsync(filter);
+            cachedValue = BsonSerializer.Deserialize<ContentItem>(documents.FirstOrDefault().AsBsonDocument);
 
-        return sourceItem;
+            // Set cache options.
+            var cacheEntryOptions = new MemoryCacheEntryOptions()
+                .SetSlidingExpiration(TimeSpan.FromMinutes(5));
+
+            // Save data in cache.
+            _memoryCache.Set(cacheKey, cachedValue, cacheEntryOptions);
+        }
+
+        return cachedValue;
     }
 }

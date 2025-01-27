@@ -42,6 +42,8 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
 });
 
+builder.Services.AddMemoryCache();
+
 builder.Services.AddMudServices();
 
 builder.Services.AddScoped<MyUIManager>();

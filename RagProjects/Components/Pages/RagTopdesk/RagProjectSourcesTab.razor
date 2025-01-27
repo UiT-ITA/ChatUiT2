@@ -1,5 +1,11 @@
 ﻿@using ChatUiT2_Classlib.Model.RagProject
 
+<MudText>
+    Her er alle kilde artikler som RAG databasen inneholder.
+    Dette er tekstene som det vil bli generert spørsmål og 
+    embeddings for.
+</MudText>
+
 @if(RagProject != null)
 {
     <MudTable Items="@RagProject.ContentItems"
