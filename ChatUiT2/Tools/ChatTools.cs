@@ -8,6 +8,7 @@ using static System.Net.WebRequestMethods;
 using Tiktoken.Encodings;
 using System.Text.RegularExpressions;
 using System.Reflection.Metadata;
+using System.Text;
 
 namespace ChatUiT2.Tools;
 
@@ -148,7 +149,7 @@ public static class ChatTools
     public static async Task<string> GetWikipedia(string topic)
     {
         Console.WriteLine($"GetWikipedia: {topic}");
-        return await WikipeidaHelper.GetWikipediaFirstSectionAsync(topic);
+        return await WikipeidaHelper.GetWikipediaSectionAsync(topic);
     }
 
     public static async Task<string> GetWebpage(string url)
@@ -172,11 +173,6 @@ public static class ChatTools
     {
 
         var content1 = StripHTML(content);
-
-        Console.WriteLine($"Content length: {content.Length}");
-        Console.WriteLine($"Content1 length: {content1.Length}");
-
-        Console.WriteLine(content1);
 
         content = content1;
 
@@ -317,7 +313,7 @@ public class GenerateImage
 
 public static class WikipeidaHelper
 {
-    public static async Task<string> GetWikipediaFirstSectionAsync(string topic)
+    public static async Task<string> GetWikipediaSectionAsync(string topic, string? section = null)
     {
         HttpClient client = new HttpClient();
         try
@@ -325,6 +321,8 @@ public static class WikipeidaHelper
             string url = $"https://en.wikipedia.org/w/api.php?action=parse&page={Uri.EscapeDataString(topic)}&prop=text&format=json";
             string response = await client.GetStringAsync(url);
             JObject json = JObject.Parse(response);
+
+            Console.WriteLine(json);
 
             if (json["error"] != null)
             {
@@ -337,18 +335,30 @@ public static class WikipeidaHelper
 
             if (redirectTopic != null)
             {
-                return await GetWikipediaFirstSectionAsync(redirectTopic);
+                return await GetWikipediaSectionAsync(redirectTopic);
             }
 
-            string? firstSection = ExtractFirstSection(html);
-            string? infobox = ExtractInfobox(html);
-
-            if (firstSection == null)
+            if (string.IsNullOrEmpty(section))
             {
-                return "Topic not found";
-            }
+                var sectionArray = json["parse"]?["sections"] as JArray;
+                string? firstSection = ExtractFirstSection(html);
+                string? infobox = ExtractInfobox(html);
+                string? sections = ExtractSections(sectionArray);
+                Console.WriteLine($"Sections: {sections}");
 
-            return firstSection + "Facts:\n" + infobox;
+                if (firstSection == null)
+                {
+                    return "Topic not found";
+                }
+
+                return firstSection + "Facts:\n" + infobox + "\n\nSections for further reading:\n" + sections;
+            }
+            else
+            {
+                //Please handle this here
+                var sectionContent = ExtractSection(html, section);
+                return sectionContent ?? "Section or topic not found";
+            }
         }
         catch (Exception ex)
         {
@@ -357,11 +367,6 @@ public static class WikipeidaHelper
         }
     }
 
-    public static async Task<string> GetWikipediaSectionAsync(string topic, string section)
-    {
-
-        return "";
-    }
 
     private static string? GetRedirectTopic(string html)
     {
@@ -377,6 +382,29 @@ public static class WikipeidaHelper
             }
         }
         return null;
+    }
+
+    private static string? ExtractSections(JArray? sections)
+    {
+        if (sections == null) return null;
+
+        var skipSections = new[] { "Notes", "References", "Further reading", "External links", "Bibliography" };
+        var result = new StringBuilder();
+
+        foreach (var section in sections)
+        {
+            string line = section["line"]?.ToString() ?? "";
+            if (skipSections.Contains(line)) continue;
+
+            string number = section["number"]?.ToString() ?? "";
+            string anchor = section["anchor"]?.ToString() ?? "";
+            int level = int.Parse(section["toclevel"]?.ToString() ?? "1");
+
+            string indent = new string(' ', (level - 1) * 2);
+            result.AppendLine($"{indent}{number}: {line} (anchor: {anchor})");
+        }
+
+        return result.ToString().TrimEnd();
     }
 
     private static string? ExtractFirstSection(string html)
@@ -406,6 +434,33 @@ public static class WikipeidaHelper
         string firstSectionHtml = html.Substring(firstParagraphStart, firstSectionEnd - firstParagraphStart);
         // Strip HTML tags to get plain text
         return StripHtmlTags(firstSectionHtml);
+    }
+
+    private static string? ExtractSection(string html, string sectionTitle)
+    {
+        var document = new HtmlDocument();
+        document.LoadHtml(html);
+
+        var sectionNode = document.DocumentNode.SelectNodes($"//span[@class='mw-headline']")
+            ?.FirstOrDefault(n => n.InnerText.Trim().Equals(sectionTitle, StringComparison.OrdinalIgnoreCase));
+
+        if (sectionNode == null) return null;
+
+        var headingNode = sectionNode.ParentNode;
+        if (headingNode == null) return null;
+
+        var content = new StringBuilder();
+        var node = headingNode.NextSibling;
+        while (node != null && !node.Name.StartsWith("h"))
+        {
+            if (node.Name == "p" || node.Name == "ul" || node.Name == "ol")
+            {
+                content.AppendLine(StripHtmlTags(node.OuterHtml));
+            }
+            node = node.NextSibling;
+        }
+
+        return content.ToString().Trim();
     }
 
     private static string? ExtractInfobox(string html)
