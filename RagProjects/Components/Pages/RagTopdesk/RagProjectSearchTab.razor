@@ -50,9 +50,10 @@
             <MudSpacer />
         </ToolBarContent>
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Text_field">Text</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="MatchScore_field">MatchScore</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Number_field">Kunnskapsartikkel</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="RagSearchResult" SortBy="new Func<RagSearchResult, object>(x=>x.EmbeddingText)">Text</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="RagSearchResult" SortBy="new Func<RagSearchResult, object>(x=>x.MatchScore)">MatchScore</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="RagSearchResult" SortBy="new Func<RagSearchResult, object>(x=>x.SourceId)">Kilde id</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="RagSearchResult" SortBy="new Func<RagSearchResult, object>(x=>x.SourceAltId)">Kilde alt id</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
@@ -60,6 +61,12 @@
             </MudTd>
             <MudTd>
                 @context.MatchScore
+            </MudTd>
+            <MudTd>
+                <MudLink Href="@(context.ContentUrl)"
+                         Target="_new">
+                    @context.SourceId
+                </MudLink>
             </MudTd>
             <MudTd>
                 <MudLink Href="@(context.ContentUrl)"
