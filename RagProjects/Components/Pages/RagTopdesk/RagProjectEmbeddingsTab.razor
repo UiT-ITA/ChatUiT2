@@ -68,11 +68,11 @@
     </ToolBarContent>
     <HeaderContent>
         <MudTh></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Nummer_field">Text</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Tittel_field">Provider</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Tittel_field">Model</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Tittel_field">Source system id</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortLabel="Tittel_field">Source system alt id</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.Originaltext)">Text</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ModelProvider)">Provider</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.Model)">Model</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ContentItem.SourceSystemId)">Source system id</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ContentItem.SourceSystemAltId)">Source system alt id</MudTableSortLabel></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>
@@ -280,34 +280,7 @@
         finally
         {
             isLoading = false;
-        }
-        DoSort();
-        StateHasChanged();
-    }
-
-    private void DoSort()
-    {
-        try
-        {
-            isLoading = true;
-            switch(sortField)
-            {
-                case "SourceSystemId":
-                    tableEmbeddings = tableEmbeddings.OrderBy(x => x.ContentItem.SourceSystemId).ToList();
-                    break;
-                default:
-                    tableEmbeddings = tableEmbeddings.OrderBy(x => x.ContentItem.SourceSystemId).ToList();
-                    break;
-            };
-        }
-        catch (Exception e)
-        {
-            Snackbar.Add($"Noe feilet ved sortering {e.Message}", Severity.Error, config => { });
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        }       
         StateHasChanged();
     }
 }
