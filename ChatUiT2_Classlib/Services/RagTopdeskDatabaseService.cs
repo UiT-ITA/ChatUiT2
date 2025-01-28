@@ -297,7 +297,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     /// </summary>
     /// <param name="ragProject">The project to get for</param>
     /// <returns></returns>
-    public async Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject)
+    public async Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject, bool withSourceItem = false)
     {
         if (string.IsNullOrEmpty(ragProject.Id))
         {
@@ -315,6 +315,14 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             result.Add(knowledgeItem);
         }
 
+        if (withSourceItem)
+        {
+            foreach (var embedding in result)
+            {
+                var contentItem = await GetContentItemById(ragProject, embedding.SourceItemId);
+                embedding.ContentItem = contentItem;
+            }
+        }
         return result;
     }
 

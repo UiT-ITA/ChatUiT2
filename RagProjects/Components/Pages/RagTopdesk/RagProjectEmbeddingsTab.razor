@@ -21,7 +21,30 @@
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
 
-<MudTable Items="embeddings"
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudText Typo="Typo.h6">Filtere</MudText>
+    <MudGrid Class="mt-1">
+        <MudItem xs="12">
+            <MudTextField T="string"
+                          @bind-Value="sourceIdSearch"
+                          Immediate="true"
+                          Placeholder="Source id"
+                          Adornment="Adornment.Start"
+                          IconSize="Size.Medium"
+                          Class="mt-0"
+                          OnKeyDown="CheckIfEnterPressed">
+            </MudTextField>
+        </MudItem>        
+        <MudItem xs="2">
+            <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
+        </MudItem>
+        <MudItem xs="10">
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+<MudTable Items="tableEmbeddings"
           Class="mt-4"
           T="RagTextEmbeddingViewItem"
           Dense="false"
@@ -92,13 +115,15 @@
     [Parameter]
     public RagProject? RagProject { get; set; }
 
-    private List<RagTextEmbeddingViewItem> embeddings = [];
+    private List<RagTextEmbeddingViewItem> tableEmbeddings = [];
+    private List<RagTextEmbeddingViewItem> allEmbeddings = [];
     private MudTable<RagTextEmbeddingViewItem> table;
     private RagTextEmbeddingViewItem selectedItem1 = null;
     private RagTextEmbeddingViewItem elementBeforeEdit;
     private int numToGenerate = 20;
     private KnowledgeItem? knowledgeItem;
-
+    private string sourceIdSearch = string.Empty;
+    private string sortField = "SourceSystemId";
     private bool isLoading = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -119,23 +144,24 @@
     private async Task LoadDbEmbeddings()
     {
         isLoading = true;
-        embeddings = [];
+        allEmbeddings = [];
         StateHasChanged();
         if (RagProject == null)
         {
             return;
         }
-        var embeddingsFromDb = await ragTopdeskService.GetEmbeddingsByProject(RagProject);
+        var embeddingsFromDb = await ragTopdeskService.GetEmbeddingsByProject(RagProject, true);
         foreach (var embedding in embeddingsFromDb)
         {
             var sourceItem = await ragTopdeskService.GetContentItemById(RagProject, embedding.SourceItemId);
-            embeddings.Add(new RagTextEmbeddingViewItem()
+            allEmbeddings.Add(new RagTextEmbeddingViewItem()
             {
                 RagTextEmbedding = embedding,
                 IsEditing = false,
                 ContentItem = sourceItem
             });
         }
+        tableEmbeddings = allEmbeddings.ToList();
         isLoading = false;
         StateHasChanged();
     }
@@ -221,6 +247,67 @@
         }
         Snackbar.Add($"Ferdig med generering av embeddings", Severity.Success, config => { });
         await LoadDbEmbeddings();
+        StateHasChanged();
+    }
+
+    private void CheckIfEnterPressed(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Call your function here
+            DoSearch();
+        }
+    }
+
+    private void DoSearch()
+    {
+        try
+        {
+            isLoading = true;
+            tableEmbeddings = [];
+            IQueryable<RagTextEmbeddingViewItem>? query = allEmbeddings.AsQueryable();
+            if(string.IsNullOrEmpty(sourceIdSearch) == false)
+            {
+                query = query?.Where(x => x.RagTextEmbedding.ContentItem.SourceSystemId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase) ||
+                                          x.RagTextEmbedding.ContentItem.SourceSystemAltId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase));
+            }
+            tableEmbeddings = query.ToList();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved søk {e.Message}", Severity.Error, config => { });
+        }
+        finally
+        {
+            isLoading = false;
+        }
+        DoSort();
+        StateHasChanged();
+    }
+
+    private void DoSort()
+    {
+        try
+        {
+            isLoading = true;
+            switch(sortField)
+            {
+                case "SourceSystemId":
+                    tableEmbeddings = tableEmbeddings.OrderBy(x => x.ContentItem.SourceSystemId).ToList();
+                    break;
+                default:
+                    tableEmbeddings = tableEmbeddings.OrderBy(x => x.ContentItem.SourceSystemId).ToList();
+                    break;
+            };
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sortering {e.Message}", Severity.Error, config => { });
+        }
+        finally
+        {
+            isLoading = false;
+        }
         StateHasChanged();
     }
 }

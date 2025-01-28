@@ -17,7 +17,7 @@ public interface IRagTopdeskDatabaseService
     public Task DeleteOrphanEmbeddings(RagProject ragProject);
     public Task DeleteRagProject(RagProject ragProject);
     public Task<RagProject?> HandleRagProjectUpload(IBrowserFile file);
-    public Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject);
+    public Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject, bool withSourceItem = false);
     public Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
     public Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
     public Task AddRagTextEmbedding(RagProject ragProject, string itemId, string originalText = "");
