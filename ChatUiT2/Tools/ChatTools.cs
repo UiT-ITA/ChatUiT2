@@ -318,11 +318,10 @@ public static class WikipeidaHelper
         HttpClient client = new HttpClient();
         try
         {
-            string url = $"https://en.wikipedia.org/w/api.php?action=parse&page={Uri.EscapeDataString(topic)}&prop=text&format=json";
+            string url = $"https://en.wikipedia.org/w/api.php?action=parse&page={Uri.EscapeDataString(topic)}&prop=text|sections&format=json";
             string response = await client.GetStringAsync(url);
             JObject json = JObject.Parse(response);
 
-            Console.WriteLine(json);
 
             if (json["error"] != null)
             {
@@ -436,23 +435,24 @@ public static class WikipeidaHelper
         return StripHtmlTags(firstSectionHtml);
     }
 
-    private static string? ExtractSection(string html, string sectionTitle)
+    private static string? ExtractSection(string html, string anchor)
     {
         var document = new HtmlDocument();
         document.LoadHtml(html);
 
-        var sectionNode = document.DocumentNode.SelectNodes($"//span[@class='mw-headline']")
-            ?.FirstOrDefault(n => n.InnerText.Trim().Equals(sectionTitle, StringComparison.OrdinalIgnoreCase));
-
+        // Find section heading by id
+        var sectionNode = document.DocumentNode.SelectSingleNode($"//h2[@id='{anchor}'] | //h3[@id='{anchor}'] | //h4[@id='{anchor}']");
         if (sectionNode == null) return null;
 
-        var headingNode = sectionNode.ParentNode;
-        if (headingNode == null) return null;
-
         var content = new StringBuilder();
-        var node = headingNode.NextSibling;
-        while (node != null && !node.Name.StartsWith("h"))
+        var node = sectionNode.NextSibling;
+        var headingLevel = int.Parse(sectionNode.Name.Substring(1));
+
+        while (node != null)
         {
+            if (node.Name.StartsWith("h") && int.Parse(node.Name.Substring(1)) <= headingLevel)
+                break;
+
             if (node.Name == "p" || node.Name == "ul" || node.Name == "ol")
             {
                 content.AppendLine(StripHtmlTags(node.OuterHtml));
