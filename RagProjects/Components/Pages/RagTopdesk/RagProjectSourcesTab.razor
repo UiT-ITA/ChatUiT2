@@ -48,8 +48,8 @@
               Hover="true"
               Bordered="true"
               Striped="true"
-              SortLabel="Sort By"
-              AllowUnsorted="false"
+              SortLabel="Sort By"              
+              AllowUnsorted="false"              
               Loading="isLoading"
               RowsPerPage="50">
         <ToolBarContent>
@@ -57,10 +57,10 @@
             <MudSpacer />
         </ToolBarContent>
         <HeaderContent>
-            <MudTh>Type</MudTh>
-            <MudTh>Tittel</MudTh>
-            <MudTh>KildesystemId</MudTh>
-            <MudTh>KildesystemAltId</MudTh>
+            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.DataType)">Type</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.Title)">Tittel</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.SourceSystemId)">KildesystemId</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.SourceSystemAltId)">KildesystemAltId</MudTableSortLabel></MudTh>
             <MudTh></MudTh>
             <MudTh></MudTh>
         </HeaderContent>
@@ -127,7 +127,6 @@
     private bool openContentDrawer = false;
     private ContentItem? selectedContentItem;
     private string sourceIdSearch = string.Empty;
-    private string sortField = "SourceSystemId";
     private bool isLoading = true;
 
     protected override void OnAfterRender(bool firstRender)
@@ -182,34 +181,7 @@
         finally
         {
             isLoading = false;
-        }
-        DoSort();
-        StateHasChanged();
-    }
-
-    private void DoSort()
-    {
-        try
-        {
-            isLoading = true;
-            switch (sortField)
-            {
-                case "SourceSystemId":
-                    tableItems = tableItems.OrderBy(x => x.SourceSystemId).ToList();
-                    break;
-                default:
-                    tableItems = tableItems.OrderBy(x => x.SourceSystemId).ToList();
-                    break;
-            };
-        }
-        catch (Exception e)
-        {
-            Snackbar.Add($"Noe feilet ved sortering {e.Message}", Severity.Error, config => { });
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        }        
         StateHasChanged();
     }
 }
