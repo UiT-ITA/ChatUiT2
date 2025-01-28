@@ -5,6 +5,9 @@ using Newtonsoft.Json.Linq;
 using OpenAI.Chat;
 using System.Text.Json;
 using static System.Net.WebRequestMethods;
+using Tiktoken.Encodings;
+using System.Text.RegularExpressions;
+using System.Reflection.Metadata;
 
 namespace ChatUiT2.Tools;
 
@@ -156,7 +159,7 @@ public static class ChatTools
         try
         {
             string response = await client.GetStringAsync(url);
-            return response;
+            return TrimContent(response);
         }
         catch (Exception ex)
         {
@@ -165,7 +168,80 @@ public static class ChatTools
         }
     }
 
+    private static string TrimContent(string content, int tokens = 20_000, ModelName model = ModelName.gpt4omini)
+    {
 
+        var content1 = StripHTML(content);
+
+        Console.WriteLine($"Content length: {content.Length}");
+        Console.WriteLine($"Content1 length: {content1.Length}");
+
+        Console.WriteLine(content1);
+
+        content = content1;
+
+        Tiktoken.Encoder encoder;
+        
+        if (model == ModelName.gpt4omini)
+        {
+            encoder = new Tiktoken.Encoder(new O200KBase());
+        }
+        else
+        {
+            throw new NotImplementedException();
+        }
+
+        var encoded = encoder.Encode(content);
+
+        if (encoded.Count <= tokens)
+        {
+            return content;
+        }
+
+        var trimmed = encoder.Decode(encoded.Take(tokens).ToList());
+
+        return trimmed;
+    }
+
+    private static string StripHTML(string htmlContent)
+    {
+        var doc = new HtmlAgilityPack.HtmlDocument();
+        doc.LoadHtml(htmlContent);
+
+        // Remove unwanted elements but preserve links
+        var nodesToRemove = doc.DocumentNode.SelectNodes(
+            "//script|//style|//iframe|//comment()|//head|//meta");
+        if (nodesToRemove != null)
+        {
+            foreach (var node in nodesToRemove)
+            {
+                node.Remove();
+            }
+        }
+
+        // Replace links with a compact format [text](url)
+        var links = doc.DocumentNode.SelectNodes("//a[@href]");
+        if (links != null)
+        {
+            foreach (var link in links)
+            {
+                var href = link.GetAttributeValue("href", "");
+                var text = link.InnerText.Trim();
+                if (!string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(text))
+                {
+                    var newNode = doc.CreateTextNode($"[{text}]({href}) ");
+                    link.ParentNode.ReplaceChild(newNode, link);
+                }
+            }
+        }
+
+        // Get text and clean it up
+        string innerText = doc.DocumentNode.InnerText;
+        innerText = Regex.Replace(innerText, @"\s+", " ");
+        innerText = Regex.Replace(innerText, @"[\r\n]+", "\n");
+
+        return innerText.Trim();
+    }
 
 
     public static async Task<string> HandleToolCall(ChatToolCall toolCall)
@@ -279,6 +355,12 @@ public static class WikipeidaHelper
             Console.WriteLine($"An error occurred: {ex.Message}");
             return "Topic not found";
         }
+    }
+
+    public static async Task<string> GetWikipediaSectionAsync(string topic, string section)
+    {
+
+        return "";
     }
 
     private static string? GetRedirectTopic(string html)

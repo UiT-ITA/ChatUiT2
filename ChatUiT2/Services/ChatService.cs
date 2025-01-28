@@ -31,50 +31,100 @@ public class ChatService : IChatService
     public async Task GetChatResponse(WorkItemChat chat)
     {
         Models.ChatMessage userMessage = chat.Messages.Last();
-
-        Models.ChatMessage responseMessage = new Models.ChatMessage
-        {
-            Content = "",
-            Role = Models.ChatMessageRole.Assistant,
-            Status = ChatMessageStatus.Working
-        };
-
-        if (responseMessage.Created <= userMessage.Created)
-        {
-            responseMessage.Created = userMessage.Created.AddMilliseconds(1);
-        }
-
-        chat.Messages.Add(responseMessage);
-        _userService.StreamUpdated();
-
-        chat.Updated = DateTimeTools.GetTimestamp();
-        await _userService.UpdateWorkItem(chat);
-
+        Models.ChatMessage responseMessage;
         AiModel model = _settingsService.GetModel(chat.Settings.Model);
 
-        //_logger.LogInformation("Type: {LogType} User: {User} WorkItem {ChatId} Model: {Model}",
-        //    "ChatRequest",
-        //    _userService.UserName,
-        //    chat.Id,
-        //    model.Name);
+        _logger.LogInformation("Type: {LogType} User: {User} WorkItem {ChatId} Model: {Model}",
+            "ChatRequest",
+            _userService.UserName,
+            chat.Id,
+            model.DeploymentName);
 
-        if (model.DeploymentType == DeploymentType.AzureOpenAI)
+        if (userMessage.Role == Models.ChatMessageRole.User)
         {
-            await HandleAzureOpenai(chat, model, responseMessage);
+
+            responseMessage = new Models.ChatMessage
+            {
+                Content = "",
+                Role = Models.ChatMessageRole.Assistant,
+                Status = ChatMessageStatus.Working
+            };
+
+            if (responseMessage.Created <= userMessage.Created)
+            {
+                responseMessage.Created = userMessage.Created.AddMilliseconds(1);
+            }
+
+            chat.Messages.Add(responseMessage);
+            chat.Updated = DateTimeTools.GetTimestamp();
+            await _userService.UpdateWorkItem(chat);
+
+            if (model.DeploymentType == DeploymentType.AzureOpenAI)
+            {
+                await HandleAzureOpenai(chat, model, responseMessage);
+            }
+            else
+            {
+                throw new ArgumentException("Model is not an AzureOpenAI model");
+            }
+
+            if (chat.Name == "New chat")
+            {
+
+
+                chat.Name = await GetName(chat);
+                _userService.StreamUpdated();
+
+            }
         }
         else
         {
-            throw new ArgumentException("Model is not an AzureOpenAI model");
-        }
+            Console.WriteLine("Continuing chat");
 
-        if (chat.Name == "New chat")
-        {
-
-
-            chat.Name = await GetName(chat);
+            responseMessage = userMessage;
+            responseMessage.Status = ChatMessageStatus.Working;
             _userService.StreamUpdated();
 
+            var tempMessages = new List<Models.ChatMessage>();
+            foreach (var message in chat.Messages)
+            {
+                tempMessages.Add(new Models.ChatMessage
+                {
+                    Content = message.Content,
+                    Role = message.Role,
+                    Status = message.Status
+                });
+            }
+
+            tempMessages.Add(new Models.ChatMessage { Role = Models.ChatMessageRole.System, Content = "The last message was cut of. Coptinue the last message from *EXACTLY* where it left off. Do **NOT** introduce new formating if not needed. Do not start a new codeblock if you are not starting a new block of code. Continue with the next token in the message." });
+
+
+            var tempChat = new WorkItemChat
+            {
+                Settings = new ChatSettings
+                {
+                    Model = chat.Settings.Model,
+                    Prompt = chat.Settings.Prompt + "\n\nWhen continuing a message:\n1. **Continuation of Responses:**\n   - **Seamless Continuation:** When continuing from a previous message, continue directly from where the last message left off. Do not introduce new formatting or code blocks.\n   - **Mid-Code Continuation:** If the previous message was a code block that was not closed, continue writing the code without starting a new code block. Simply continue the existing code.\n\n2. **Code Formatting:**\n   - **New Code Sections:** Use code blocks only when starting a completely new code section.\n   - **Avoid Mid-Continuation Blocks:** Do not start new code blocks in the middle of a continuation if the previous message did not close a code block.\n\n3. **Handling Incomplete Messages:**\n   - **Direct Continuation:** If a message is resubmitted for continuation, directly continue from the last point without altering the format.\n   - **No New Blocks:** Ensure no new code blocks are started unless the previous section was explicitly closed.\n\n4. **Adherence to Instructions:**\n   - **Follow Instructions Precisely:** Adhere strictly to the instructions provided in this prompt without expecting further clarification from the user during the task.\n   - **Consistency:** Maintain consistency in response format based on these guidelines.",
+                    MaxTokens = chat.Settings.MaxTokens,
+                    Temperature = chat.Settings.Temperature
+                },
+                // Copy all messages into a NEW list
+                Messages = tempMessages
+            };
+
+            if (model.DeploymentType == DeploymentType.AzureOpenAI)
+            {
+                await HandleAzureOpenai(tempChat, model, responseMessage);
+            }
+            else
+            {
+                throw new ArgumentException("Model is not an AzureOpenAI model");
+
+            }
         }
+
+
+
 
         chat.Updated = DateTimeTools.GetTimestamp();
         await _userService.UpdateWorkItem(chat);
@@ -84,7 +134,7 @@ public class ChatService : IChatService
     {
         try
         {
-            var openAIService = new OpenAIService(model, _userService);
+            var openAIService = new OpenAIService(model, _userService, _logger);
 
             int inputTokens = openAIService.GetTokens(chat);
             await openAIService.GetStreamingResponse(chat, responseMessage);
@@ -117,7 +167,7 @@ public class ChatService : IChatService
 
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _userService);
+            var openAIService = new OpenAIService(model, _userService, _logger);
             
             name = await openAIService.GetResponse(namingChat);
         }
@@ -147,9 +197,10 @@ public class OpenAIService
 {
     private AiModel _model { get; set; }
     private IUserService _userService { get; set; }
+    private ILogger _logger { get; set; }
     private List<ChatTool> _tools { get; set; } = new List<ChatTool>();
     private ChatClient _client { get; set; }
-    public OpenAIService(AiModel model, IUserService userService)
+    public OpenAIService(AiModel model, IUserService userService, ILogger logger)
     {
         if (model.DeploymentType != DeploymentType.AzureOpenAI)
         {
@@ -158,6 +209,7 @@ public class OpenAIService
         _client = new AzureOpenAIClient(new Uri(model.Endpoint), new ApiKeyCredential(model.ApiKey)).GetChatClient(model.DeploymentName);
         _model = model;
         _userService = userService;
+        _logger = logger;
     }
 
     public async Task<string> GetResponse(WorkItemChat chat, bool allowFiles = false)
@@ -202,8 +254,16 @@ public class OpenAIService
         int availableTokens = _model.MaxContext - (int)options.MaxOutputTokenCount;
         List<OpenAI.Chat.ChatMessage> messages = GetOpenAiMessages(chat, availableTokens, allowFiles);
 
+        int inputTokens = GetTokens(chat);
 
         await CompleteChatStreamingAsync(messages, options, responseMessage);
+
+        int outputTokens = GetTokens(responseMessage.Content);
+
+        _logger.LogInformation("Type: {LogType}, User: {User}, Model: {Model} Input: {Input}, Output: {Output}",
+                            "ChatRequest", _userService.UserName, _model.DeploymentName, inputTokens, outputTokens);
+
+
 
     }
 
@@ -269,8 +329,10 @@ public class OpenAIService
                         responseMessage.Content += "\n" + GetToolNotice(toolCall);
                     }
 
+                    ToolChatMessage toolMessage = new(toolCall.Id, await ChatTools.HandleToolCall(toolCall));
 
-                    messages.Add(new ToolChatMessage(toolCall.Id, await ChatTools.HandleToolCall(toolCall)));
+                    messages.Add(toolMessage);
+                    
                 }
                 await CompleteChatStreamingAsync(messages, options, responseMessage);
 
@@ -283,6 +345,8 @@ public class OpenAIService
             }
         }
     }
+
+
 
     private string GetToolNotice(ChatToolCall toolCall)
     {

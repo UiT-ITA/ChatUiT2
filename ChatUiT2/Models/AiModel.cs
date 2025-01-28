@@ -109,9 +109,9 @@ public static class ModelServiceExtensions
             ModelName.gpt35 => new ModelCapabilities        { MaxContext = 4096, MaxTokens = 4096, Chat = true },
             ModelName.gpt35turbo => new ModelCapabilities   { MaxContext = 4096, MaxTokens = 4096, Chat = true },
             ModelName.gpt4 => new ModelCapabilities         { MaxContext = 8138, MaxTokens = 4096, Chat = true },
-            ModelName.gpt4turbo => new ModelCapabilities    { MaxContext = 16_276, MaxTokens = 4096, Chat = true },
+            ModelName.gpt4turbo => new ModelCapabilities    { MaxContext = 16_384, MaxTokens = 4096, Chat = true },
             ModelName.gpt4o => new ModelCapabilities        { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
-            ModelName.gpt4omini => new ModelCapabilities    { MaxContext = 128_000, MaxTokens = 16_276, Chat = true, Vision = true },
+            ModelName.gpt4omini => new ModelCapabilities    { MaxContext = 128_000, MaxTokens = 16_384, Chat = true, Vision = true },
             ModelName.o1 => new ModelCapabilities       { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
             ModelName.o1mini => new ModelCapabilities   { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
 
