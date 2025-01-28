@@ -7,6 +7,16 @@
 <MudText>
     Her er informasjon om alle embeddings som er lagt inn i embeddings collection for dette RAG prosjektet.
     Du kan bruke denne siden til å redigere texter eller slette tekster som ikke er aktuell.
+    <br/><br/>
+    @if (RagProject != null)
+    {
+        <MudText>
+            Database: @(RagProject.Configuration?.DbName)
+        </MudText>
+        <MudText>
+            Collection: @(RagProject.Configuration?.EmbeddingCollectioName)
+        </MudText>
+    }
 </MudText>
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>

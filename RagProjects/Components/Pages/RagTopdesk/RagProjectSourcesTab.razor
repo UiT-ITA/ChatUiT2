@@ -2,8 +2,18 @@
 
 <MudText>
     Her er alle kilde artikler som RAG databasen inneholder.
-    Dette er tekstene som det vil bli generert spørsmål og 
+    Dette er tekstene som det vil bli generert spørsmål og
     embeddings for.
+    <br /><br />
+    @if (RagProject != null)
+    {
+        <MudText>
+            Database: @(RagProject.Configuration?.DbName)
+        </MudText>
+        <MudText>
+            Collection: @(RagProject.Configuration?.ItemCollectionName)
+        </MudText>
+    }
 </MudText>
 
 @if(RagProject != null)
@@ -26,6 +36,9 @@
             <MudTh>Type</MudTh>
             <MudTh>Tittel</MudTh>
             <MudTh>KildesystemId</MudTh>
+            <MudTh>KildesystemAltId</MudTh>
+            <MudTh></MudTh>
+            <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
@@ -37,6 +50,25 @@
             <MudTd>
                 @context.SourceSystemId
             </MudTd>
+            <MudTd>
+                @context.SourceSystemAltId
+            </MudTd>
+            <MudTd>
+                @if (string.IsNullOrEmpty(context.ViewUrl) == false)
+                {
+                    <MudTooltip Text="Gå til nettside">
+                        <MudLink Href="@(context.ViewUrl)" Target="_blank">
+                            <MudIcon Icon="@Icons.Material.Filled.Language"></MudIcon>
+                        </MudLink>
+                    </MudTooltip>
+                }
+                @if(string.IsNullOrEmpty(context.ContentText) == false)
+                {
+                    <MudTooltip Text="Vis innhold">
+                        <MudIconButton Icon="@Icons.Material.Outlined.TextSnippet" OnClick="@(() => OpenDrawer(context))"></MudIconButton>
+                    </MudTooltip>
+                }
+            </MudTd>
         </RowTemplate>
         <PagerContent>
             <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
@@ -46,11 +78,34 @@
 {
     <MudText>Ingen content items funnet</MudText>
 }
-    
+
+<MudDrawer @bind-Open="@openContentDrawer" 
+           Anchor="Anchor.Start" 
+           Elevation="1" 
+           Variant="@DrawerVariant.Temporary" 
+           OverlayAutoClose="true"
+           Width="50%">
+    <MudDrawerHeader>
+        <MudText Typo="Typo.h6">Innhold i artikkel/dokument</MudText>
+    </MudDrawerHeader>
+    <MudText>
+        @selectedContentItem?.ContentText
+    </MudText>
+</MudDrawer>    
 
 @code {
     [Inject] ISnackbar Snackbar { get; set; } = null!;
 
     [Parameter]
     public RagProject? RagProject { get; set; }
+
+    private bool openContentDrawer = false;
+    private ContentItem? selectedContentItem;
+
+    private void OpenDrawer(ContentItem item)
+    {
+        selectedContentItem = item;
+        openContentDrawer = true;
+        StateHasChanged();
+    }
 }
