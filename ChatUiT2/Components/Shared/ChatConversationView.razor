@@ -5,6 +5,11 @@
         {
             <ChatMessageView Message="message" />
         }
+
+        @if (UserService.CurrentChat.Messages.Last().Status == ChatMessageStatus.TokenLimit)
+        {
+            <MudButton FullWidth Variant="Variant.Outlined" OnClick="ContinueMessage" >Continue</MudButton>
+        }
     }
     else
     {
@@ -54,6 +59,12 @@
             await JS.InvokeVoidAsync("updateScroll", "chatContainer");
         }
 
+    }
+
+    private async Task ContinueMessage()
+    {
+        await UserService.SendMessage();
+        StateHasChanged();
     }
 
 }
