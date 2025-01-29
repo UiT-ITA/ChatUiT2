@@ -1,4 +1,5 @@
 ﻿@using ChatUiT2_Classlib.Model.RagProject
+@using ChatUiT2.Interfaces
 
 <MudText>
     Her er alle kilde artikler som RAG databasen inneholder.
@@ -39,7 +40,7 @@
     </MudGrid>
 </MudPaper>
 
-@if(RagProject != null)
+@if (RagProject != null)
 {
     <MudTable Items="@tableItems"
               Class="mt-4"
@@ -48,8 +49,8 @@
               Hover="true"
               Bordered="true"
               Striped="true"
-              SortLabel="Sort By"              
-              AllowUnsorted="false"              
+              SortLabel="Sort By"
+              AllowUnsorted="false"
               Loading="isLoading"
               RowsPerPage="50">
         <ToolBarContent>
@@ -57,6 +58,7 @@
             <MudSpacer />
         </ToolBarContent>
         <HeaderContent>
+            <MudTh></MudTh>
             <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.DataType)">Type</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.Title)">Tittel</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.SourceSystemId)">KildesystemId</MudTableSortLabel></MudTh>
@@ -65,6 +67,9 @@
             <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Class="pa-0" OnClick="@(async () => await DeleteSourceItem(context))" />
+            </MudTd>
             <MudTd>
                 @context?.DataType
             </MudTd>
@@ -86,7 +91,7 @@
                         </MudLink>
                     </MudTooltip>
                 }
-                @if(string.IsNullOrEmpty(context.ContentText) == false)
+                @if (string.IsNullOrEmpty(context.ContentText) == false)
                 {
                     <MudTooltip Text="Vis innhold">
                         <MudIconButton Icon="@Icons.Material.Outlined.TextSnippet" OnClick="@(() => OpenDrawer(context))"></MudIconButton>
@@ -98,15 +103,16 @@
             <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
         </PagerContent>
     </MudTable>
-} else
+}
+else
 {
     <MudText>Ingen content items funnet</MudText>
 }
 
-<MudDrawer @bind-Open="@openContentDrawer" 
-           Anchor="Anchor.Start" 
-           Elevation="1" 
-           Variant="@DrawerVariant.Temporary" 
+<MudDrawer @bind-Open="@openContentDrawer"
+           Anchor="Anchor.Start"
+           Elevation="1"
+           Variant="@DrawerVariant.Temporary"
            OverlayAutoClose="true"
            Width="50%">
     <MudDrawerHeader>
@@ -115,9 +121,10 @@
     <MudText>
         @selectedContentItem?.ContentText
     </MudText>
-</MudDrawer>    
+</MudDrawer>
 
 @code {
+    [Inject] IRagTopdeskDatabaseService ragTopdeskService { get; set; }
     [Inject] ISnackbar Snackbar { get; set; } = null!;
 
     [Parameter]
@@ -181,7 +188,22 @@
         finally
         {
             isLoading = false;
-        }        
+        }
         StateHasChanged();
+    }
+
+    private async Task DeleteSourceItem(ContentItem item)
+    {
+        try
+        {
+            await ragTopdeskService.DeleteContentItem(RagProject, item);
+            RagProject.ContentItems.RemoveAll(x => x.Id == item.Id);
+            Snackbar.Add($"Embedding slettet", Severity.Success, config => { });
+            DoSearch();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sletting av embedding {e.Message}", Severity.Error, config => { });
+        }
     }
 }

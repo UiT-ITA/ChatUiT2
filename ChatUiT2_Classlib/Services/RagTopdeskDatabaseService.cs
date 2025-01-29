@@ -271,6 +271,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         // Drop the specific rag database
         _mongoClientRagDb.DropDatabase(ragProject.Configuration.DbName);
     }
+
     public async Task<RagProject?> HandleRagProjectUpload(IBrowserFile file)
     {
         using var stream = new MemoryStream();
@@ -542,5 +543,17 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         }
 
         return cachedValue;
+    }
+    public async Task DeleteContentItem(RagProject ragProject, ContentItem item)
+    {
+        if (string.IsNullOrEmpty(item.Id))
+        {
+            throw new ArgumentException("Item.Id must be set to delete contentItem");
+        }
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", item.Id);
+        await embeddingCollection.DeleteOneAsync(filter);
     }
 }

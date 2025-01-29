@@ -26,4 +26,5 @@ public interface IRagTopdeskDatabaseService
     public Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId);
     public string GetItemContentString(ContentItem item);
     public Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8);
+    Task DeleteContentItem(RagProject ragProject, ContentItem item);
 }

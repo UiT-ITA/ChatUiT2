@@ -6,7 +6,7 @@
 <PageTitle>Detaljer om RAG prosjekt</PageTitle>
 
 <MudText Typo="Typo.h3">
-    Detaljer om et rag projekt. Dette er detaljer fra en rag prosjektbeskrivelse som er lagret i rag MongoDb.
+    Detaljer om rag projekt @(ragProject?.Name ?? string.Empty)
 </MudText>
 
 @if (isLoading)
