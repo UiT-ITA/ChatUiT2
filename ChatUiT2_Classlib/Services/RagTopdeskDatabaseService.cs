@@ -560,29 +560,12 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
         var contentItemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
 
-        using (var session = await _mongoClientRagDb.StartSessionAsync())
-        {
-            session.StartTransaction();
-            try
-            {
-                // Perform delete operations
-                // Delete the content item
-                var filter = Builders<BsonDocument>.Filter.Eq("_id", item.Id);
-                await contentItemCollection.DeleteOneAsync(filter);
+        // Delete the content item
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", item.Id);
+        await contentItemCollection.DeleteOneAsync(filter);
 
-                // Delete related embeddings
-                filter = Builders<BsonDocument>.Filter.Eq("SourceItemId", item.Id);
-                await contentItemCollection.DeleteManyAsync(filter);
-
-                // Commit the transaction
-                await session.CommitTransactionAsync();
-            }
-            catch (Exception)
-            {
-                // Abort the transaction in case of an error
-                await session.AbortTransactionAsync();
-                throw;
-            }
-        }
+        // Delete related embeddings
+        filter = Builders<BsonDocument>.Filter.Eq("SourceItemId", item.Id);
+        await contentItemCollection.DeleteManyAsync(filter);
     }
 }
