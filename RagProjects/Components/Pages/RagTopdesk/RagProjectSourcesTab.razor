@@ -31,12 +31,22 @@
                           OnKeyDown="CheckIfEnterPressed">
             </MudTextField>
         </MudItem>
+        <MudItem xs="12">
+            <MudTextField T="string"
+                          @bind-Value="titleSearch"
+                          Immediate="true"
+                          Placeholder="Tittel"
+                          Adornment="Adornment.Start"
+                          IconSize="Size.Medium"
+                          Class="mt-0"
+                          OnKeyDown="CheckIfEnterPressed">
+            </MudTextField>
+        </MudItem>
         <MudItem xs="2">
             <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
         </MudItem>
         <MudItem xs="10">
         </MudItem>
-
     </MudGrid>
 </MudPaper>
 
@@ -134,6 +144,7 @@ else
     private bool openContentDrawer = false;
     private ContentItem? selectedContentItem;
     private string sourceIdSearch = string.Empty;
+    private string titleSearch = string.Empty;
     private bool isLoading = true;
 
     protected override void OnAfterRender(bool firstRender)
@@ -178,6 +189,11 @@ else
             {
                 query = query?.Where(x => x.SourceSystemId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase) ||
                                           x.SourceSystemAltId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase));
+            }
+            if (string.IsNullOrEmpty(titleSearch) == false)
+            {
+                query = query?.Where(x => x.Title.Contains(titleSearch, StringComparison.OrdinalIgnoreCase) ||
+                                          x.Title.Contains(titleSearch, StringComparison.OrdinalIgnoreCase));
             }
             tableItems = query.ToList();
         }
