@@ -29,6 +29,7 @@ var host = new HostBuilder()
     {
         builder.AddJsonFile(Path.Combine(context.HostingEnvironment.ContentRootPath, "appsettings.json"), optional: true, reloadOnChange: false)
                .AddJsonFile(Path.Combine(context.HostingEnvironment.ContentRootPath, $"appsettings.{context.HostingEnvironment.EnvironmentName}.json"), optional: true, reloadOnChange: false)
+               .AddUserSecrets<Program>()
                .AddEnvironmentVariables();
     })
     .ConfigureServices((context, services) =>
@@ -46,7 +47,9 @@ var host = new HostBuilder()
         services.AddSingleton<IKeyVaultService, KeyVaultService>();
         services.AddSingleton<IEncryptionService, EncryptionService>();
         services.AddSingleton<AdminService>();
-
+        services.AddSingleton<IRabbitMqService, RabbitMqService>();
+        services.AddSingleton<IRagTopdeskDatabaseService, RagTopdeskDatabaseService>();
+        
         // Scoped services
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IAuthUserService, AuthUserService>();
