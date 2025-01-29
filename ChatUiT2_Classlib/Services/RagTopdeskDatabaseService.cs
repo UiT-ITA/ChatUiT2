@@ -321,7 +321,10 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             foreach (var embedding in result)
             {
                 var contentItem = await GetContentItemById(ragProject, embedding.SourceItemId);
-                embedding.ContentItem = contentItem;
+                if (contentItem != null)
+                {
+                    embedding.ContentItem = contentItem;
+                }
             }
         }
         return result;
@@ -532,14 +535,17 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 
             var filter = Builders<BsonDocument>.Filter.Eq("_id", itemId);
             var documents = await itemCollection.FindAsync(filter);
-            cachedValue = BsonSerializer.Deserialize<ContentItem>(documents.FirstOrDefault().AsBsonDocument);
+            var doc = documents.FirstOrDefault()?.AsBsonDocument;
+            if(doc != null)
+            {
+                cachedValue = BsonSerializer.Deserialize<ContentItem>(doc);
+                // Set cache options.
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetSlidingExpiration(TimeSpan.FromMinutes(5));
 
-            // Set cache options.
-            var cacheEntryOptions = new MemoryCacheEntryOptions()
-                .SetSlidingExpiration(TimeSpan.FromMinutes(5));
-
-            // Save data in cache.
-            _memoryCache.Set(cacheKey, cachedValue, cacheEntryOptions);
+                // Save data in cache.
+                _memoryCache.Set(cacheKey, cachedValue, cacheEntryOptions);
+            }
         }
 
         return cachedValue;
@@ -551,9 +557,32 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             throw new ArgumentException("Item.Id must be set to delete contentItem");
         }
         var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
-        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+        var contentItemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
 
-        var filter = Builders<BsonDocument>.Filter.Eq("_id", item.Id);
-        await embeddingCollection.DeleteOneAsync(filter);
+        using (var session = await _mongoClientRagDb.StartSessionAsync())
+        {
+            session.StartTransaction();
+            try
+            {
+                // Perform delete operations
+                // Delete the content item
+                var filter = Builders<BsonDocument>.Filter.Eq("_id", item.Id);
+                await contentItemCollection.DeleteOneAsync(filter);
+
+                // Delete related embeddings
+                filter = Builders<BsonDocument>.Filter.Eq("SourceItemId", item.Id);
+                await contentItemCollection.DeleteManyAsync(filter);
+
+                // Commit the transaction
+                await session.CommitTransactionAsync();
+            }
+            catch (Exception)
+            {
+                // Abort the transaction in case of an error
+                await session.AbortTransactionAsync();
+                throw;
+            }
+        }
     }
 }
