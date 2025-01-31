@@ -29,9 +29,9 @@ public class SendRagTestMessage
     {
         RagMqMessage message = new()
         {
-            Operation = RagMqMessageOperations.GenerateQuestionEmbeddings,
+            Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
             RagProjectId = "679379f33f0858dbff7b58d4",
-            SourceItemMongoDbId = "67937a0b3f0858dbff7b58d6"
+            SourceItemMongoDbId = string.Empty
         };
         _rabbitMqService.SendRagMessage(message);
         return new OkObjectResult("Welcome to Azure Functions!");

@@ -165,7 +165,24 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         }
     }
 
-    private async Task SaveRagProjectItem(ContentItem item, IMongoCollection<BsonDocument> itemCollection)
+    public async Task SaveRagProjectItem(RagProject ragProject, ContentItem item)
+    {
+        if (string.IsNullOrEmpty(ragProject.Configuration?.DbName))
+        {
+            throw new ArgumentException("RagProject.Configuration.DbName must be set to save project");
+        }
+        if (string.IsNullOrEmpty(ragProject.Configuration?.ItemCollectionName))
+        {
+            throw new ArgumentException("RagProject.Configuration.ItemCollectionName must be set to save project");
+        }
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+
+        var itemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+
+        await SaveRagProjectItem(item, itemCollection);
+    }
+
+    public async Task SaveRagProjectItem(ContentItem item, IMongoCollection<BsonDocument> itemCollection)
     {
         if (string.IsNullOrEmpty(item.Id))
         {
@@ -567,5 +584,34 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         // Delete related embeddings
         filter = Builders<BsonDocument>.Filter.Eq("SourceItemId", item.Id);
         await contentItemCollection.DeleteManyAsync(filter);
+    }
+
+    public async Task<List<ContentItem>> GetContentItemsWithNoEmbeddings(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to delete contentItem");
+        }
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+        var contentItemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+
+        var pipeline = new[]
+        {
+            new BsonDocument("$lookup", new BsonDocument
+            {
+                { "from", ragProject.Configuration.ItemCollectionName },
+                { "localField", "_id" },
+                { "foreignField", "SourceItemId" },
+                { "as", "Embeddings" }
+            }),
+            new BsonDocument("$match", new BsonDocument
+            {
+                { "Embeddings", new BsonDocument("$eq", new BsonArray()) }
+            })
+        };
+
+        var result = await contentItemCollection.Aggregate<ContentItem>(pipeline).ToListAsync();
+        return result;
     }
 }

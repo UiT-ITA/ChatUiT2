@@ -2,6 +2,8 @@
 using ChatUiT2_Classlib.Model;
 using ChatUiT2_Classlib.Model.RagProject;
 using Microsoft.AspNetCore.Components.Forms;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using OpenAI.Embeddings;
 
 namespace ChatUiT2.Interfaces;
@@ -26,5 +28,7 @@ public interface IRagTopdeskDatabaseService
     public Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId);
     public string GetItemContentString(ContentItem item);
     public Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8);
-    Task DeleteContentItem(RagProject ragProject, ContentItem item);
+    public Task DeleteContentItem(RagProject ragProject, ContentItem item);
+    public Task<List<ContentItem>> GetContentItemsWithNoEmbeddings(RagProject ragProject);
+    public Task SaveRagProjectItem(RagProject ragProject, ContentItem item);
 }

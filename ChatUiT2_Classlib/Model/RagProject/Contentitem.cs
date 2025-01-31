@@ -5,7 +5,9 @@ namespace ChatUiT2_Classlib.Model.RagProject;
 
 /// <summary>
 /// Describes an item of content in a RAG project
+/// This is an article or a document or piece of text
 /// </summary>
+[BsonIgnoreExtraElements]
 public class ContentItem
 {
     /// <summary>
@@ -40,6 +42,11 @@ public class ContentItem
     public DateTimeOffset Created { get; set; } = DateTimeOffset.MinValue;
     [BsonElement("Updated")]
     public DateTimeOffset Updated { get; set; } = DateTimeOffset.MinValue;
+    /// <summary>
+    /// Added when storing to RAG database
+    /// </summary>
     [BsonElement("RagProjectId")]
     public string RagProjectId { get; set; } = string.Empty;
+    [BsonElement("EmbeddingsCreationInProgress")]
+    public bool EmbeddingsCreationInProgress { get; set; } = false;
 }
