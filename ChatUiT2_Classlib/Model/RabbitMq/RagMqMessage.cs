@@ -1,6 +1,4 @@
-﻿using ChatUiT2_Classlib.Model.RabbitMq;
-
-namespace UiT.ChatUiT2.MaintenanceFunctions.Model;
+﻿namespace ChatUiT2_Classlib.Model.RabbitMq;
 
 public class RagMqMessage
 {

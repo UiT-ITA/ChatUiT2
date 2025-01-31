@@ -1,4 +1,4 @@
-﻿using UiT.ChatUiT2.MaintenanceFunctions.Model;
+﻿using ChatUiT2_Classlib.Model.RabbitMq;
 
 namespace ChatUiT2.Interfaces;
 public interface IRabbitMqService

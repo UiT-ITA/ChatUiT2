@@ -6,7 +6,6 @@ using RabbitMQ.Client;
 using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
-using UiT.ChatUiT2.MaintenanceFunctions.Model;
 
 namespace ChatUiT2.Services;
 

@@ -644,4 +644,25 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         var result = await contentItemCollection.Aggregate<BsonDocument>(pipeline).FirstOrDefaultAsync();
         return result != null ? result["count"].AsInt32 : 0;
     }
+
+    /// <summary>
+    /// Find out how many content items currently are marked as processing embeddings
+    /// These are most likely waiting in the RabbitMq queue
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async Task<long> GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to delete contentItem");
+        }
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+        var filter = Builders<BsonDocument>.Filter.Eq("EmbeddingsCreationInProgress", true);
+        var count = await embeddingCollection.CountDocumentsAsync(filter);
+        return count;
+
+    }
 }

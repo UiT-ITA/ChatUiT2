@@ -3,6 +3,7 @@
 @using UiT.RestClientTopdesk.Model
 @using ChatUiT2_Classlib.Model.RagProject
 @using RagProjects.Model
+@using ChatUiT2_Classlib.Model.RabbitMq
 
 <MudText>
     Her er informasjon om alle embeddings som er lagt inn i embeddings collection for dette RAG prosjektet.
@@ -19,7 +20,13 @@
         <MudText>
             Antall items uten embeddings: @numberOfItemsMissingEmbeddings
         </MudText>
-     }
+        <MudText>
+            Antall items merket some processing (venter i kø): @nrOfContentItemsMarkedAsProcessingEmbeddings
+            <MudTooltip Text="Hent ny status fra database">
+                <MudIconButton OnClick="RefreshCounts" Icon="@Icons.Material.Filled.Refresh"></MudIconButton>
+            </MudTooltip>
+        </MudText>
+    }
 </MudText>
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
@@ -114,6 +121,7 @@
     [Inject] ISnackbar Snackbar { get; set; }
     [Inject] IConfigService configService { get; set; }
     [Inject] IKnowledgeItemService knowledgeItemService { get; set; } = null!;
+    [Inject] IRabbitMqService rabbitMqService { get; set; } = null!;
 
     [Parameter]
     public RagProject? RagProject { get; set; }
@@ -129,6 +137,7 @@
     private string sortField = "SourceSystemId";
     private bool isLoading = true;
     private int numberOfItemsMissingEmbeddings = 0;
+    private long nrOfContentItemsMarkedAsProcessingEmbeddings = 0;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -136,7 +145,7 @@
         {
             try
             {
-                numberOfItemsMissingEmbeddings = await ragTopdeskService.GetNrOfContentItemsWithNoEmbeddings(RagProject);
+                await RefreshCounts();
                 await LoadDbEmbeddings();
             }
             catch (Exception e)
@@ -239,18 +248,21 @@
 
     private async Task CreateEmbeddingsForAllSourceItems()
     {
-        foreach(var item in RagProject.ContentItems)
+
+        try
         {
-            try
+            RagMqMessage message = new()
             {
-                await ragTopdeskService.GenerateRagQuestionsFromContent(RagProject, item);
-            }
-            catch (Exception e)
-            {
-                Snackbar.Add($"Noe feilet ved generering av spørsmål for item {item.Id} {e.Message}", Severity.Error, config => { });
-            }
+                Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
+                RagProjectId = "679379f33f0858dbff7b58d4",
+                SourceItemMongoDbId = string.Empty
+            };
+            rabbitMqService.SendRagMessage(message);
         }
-        Snackbar.Add($"Ferdig med generering av embeddings", Severity.Success, config => { });
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject.Id} {e.Message}", Severity.Error, config => { });
+        }
         await LoadDbEmbeddings();
         StateHasChanged();
     }
@@ -286,6 +298,24 @@
         {
             isLoading = false;
         }
+        StateHasChanged();
+    }
+
+    private async Task RefreshCounts()
+    {
+        await RefreshItemsWithoutEmbeddingsCount();
+        await RefreshProcessingCount();
+    }
+
+    private async Task RefreshProcessingCount()
+    {
+        nrOfContentItemsMarkedAsProcessingEmbeddings = await ragTopdeskService.GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject);
+        StateHasChanged();
+    }
+
+    private async Task RefreshItemsWithoutEmbeddingsCount()
+    {
+        numberOfItemsMissingEmbeddings = await ragTopdeskService.GetNrOfContentItemsWithNoEmbeddings(RagProject);
         StateHasChanged();
     }
 }

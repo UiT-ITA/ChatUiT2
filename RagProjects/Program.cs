@@ -11,6 +11,7 @@ using UiT.RestClientTopdesk.Extension;
 using ChatUiT2.Interfaces;
 using ChatUiT2.Services;
 using UiT.CommonToolsLib.Services;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -63,8 +64,10 @@ builder.Services.AddUitTopdeskClient(new()
 }
 );
 
+builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
+builder.Services.AddSingleton<IRagTopdeskDatabaseService, RagTopdeskDatabaseService>();
+
 builder.Services.AddTransient<IKnowledgeItemService, KnowledgeItemService>();
-builder.Services.AddTransient<IRagTopdeskDatabaseService, RagTopdeskDatabaseService>();
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 builder.Services.AddTransient<IConfigService, ConfigService>();
 builder.Services.AddTransient<IKnowledgeItemService, KnowledgeItemService>();
