@@ -92,6 +92,15 @@ public class ProcessItemEmbeddings
                              Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
             return;
         }
+        if (sourceItem.EmbeddingsCreationInProgress == false)
+        {
+            _logger.LogWarning("{functionName} error processing message for resource type {itemMongoDbId}, embeddings creation flag is false, maybe old message that is already processed. Rag project {ragProjectId}. operation {operation} ",
+                             nameof(ProcessItemEmbeddings),
+                             myQueueItem.SourceItemMongoDbId,
+                             myQueueItem.RagProjectId,
+                             Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
+            return;
+        }
         await _ragTopdeskDatabaseService.GenerateRagQuestionsFromContent(ragProject, sourceItem);
         sourceItem.EmbeddingsCreationInProgress = false;
         await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, sourceItem);
