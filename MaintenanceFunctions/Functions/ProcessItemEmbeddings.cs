@@ -59,6 +59,9 @@ public class ProcessItemEmbeddings
                 case RagMqMessageOperations.ScanForItemsMissingEmbeddings:
                     await AddItemsMissingEmbeddingsToQueue(ragProject);
                     break;
+                case RagMqMessageOperations.CancelAllEmbeddingsProcessing:
+                    await CancelAllEmbeddingsProcessing(ragProject);
+                    break;
                 default:
                     _logger.LogWarning("{functionName} error processing message for resource type {itemMongoDbId} operation {operation}: Unknown operation.",
                     nameof(ProcessItemEmbeddings),
@@ -153,5 +156,15 @@ public class ProcessItemEmbeddings
                                  e.InnerException?.StackTrace);
             }
         }
+    }
+
+    private async Task CancelAllEmbeddingsProcessing(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            _logger.LogWarning("CancelAllEmbeddingsProcessing: Missing rag project id or source item id");
+            return;
+        }
+        await _ragTopdeskDatabaseService.CancelAllEmbeddingProcessing(ragProject);
     }
 }
