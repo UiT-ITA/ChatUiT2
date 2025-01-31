@@ -600,7 +600,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         {
             new BsonDocument("$lookup", new BsonDocument
             {
-                { "from", ragProject.Configuration.ItemCollectionName },
+                { "from", ragProject.Configuration.EmbeddingCollectioName },
                 { "localField", "_id" },
                 { "foreignField", "SourceItemId" },
                 { "as", "Embeddings" }
@@ -629,7 +629,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         {
             new BsonDocument("$lookup", new BsonDocument
             {
-                { "from", ragProject.Configuration.ItemCollectionName },
+                { "from", ragProject.Configuration.EmbeddingCollectioName },
                 { "localField", "_id" },
                 { "foreignField", "SourceItemId" },
                 { "as", "Embeddings" }
@@ -659,9 +659,9 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             throw new ArgumentException("ragProject.Id must be set to delete contentItem");
         }
         var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
-        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+        var contentItemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
         var filter = Builders<BsonDocument>.Filter.Eq("EmbeddingsCreationInProgress", true);
-        var count = await embeddingCollection.CountDocumentsAsync(filter);
+        var count = await contentItemCollection.CountDocumentsAsync(filter);
         return count;
 
     }
