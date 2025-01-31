@@ -33,4 +33,5 @@ public interface IRagTopdeskDatabaseService
     public Task SaveRagProjectItem(RagProject ragProject, ContentItem item);
     Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject);
     Task<long> GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject ragProject);
+    Task CancelAllEmbeddingProcessing(RagProject ragProject);
 }
