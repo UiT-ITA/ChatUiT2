@@ -614,4 +614,34 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         var result = await contentItemCollection.Aggregate<ContentItem>(pipeline).ToListAsync();
         return result;
     }
+
+    public async Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to delete contentItem");
+        }
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+        var contentItemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
+
+        var pipeline = new[]
+        {
+            new BsonDocument("$lookup", new BsonDocument
+            {
+                { "from", ragProject.Configuration.ItemCollectionName },
+                { "localField", "_id" },
+                { "foreignField", "SourceItemId" },
+                { "as", "Embeddings" }
+            }),
+            new BsonDocument("$match", new BsonDocument
+            {
+                { "Embeddings", new BsonDocument("$eq", new BsonArray()) }
+            }),
+            new BsonDocument("$count", "count")
+        };
+
+        var result = await contentItemCollection.Aggregate<BsonDocument>(pipeline).FirstOrDefaultAsync();
+        return result != null ? result["count"].AsInt32 : 0;
+    }
 }

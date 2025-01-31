@@ -31,4 +31,5 @@ public interface IRagTopdeskDatabaseService
     public Task DeleteContentItem(RagProject ragProject, ContentItem item);
     public Task<List<ContentItem>> GetContentItemsWithNoEmbeddings(RagProject ragProject);
     public Task SaveRagProjectItem(RagProject ragProject, ContentItem item);
+    Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject);
 }

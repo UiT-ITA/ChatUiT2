@@ -7,7 +7,7 @@
 <MudText>
     Her er informasjon om alle embeddings som er lagt inn i embeddings collection for dette RAG prosjektet.
     Du kan bruke denne siden til å redigere texter eller slette tekster som ikke er aktuell.
-    <br/><br/>
+    <br /><br />
     @if (RagProject != null)
     {
         <MudText>
@@ -16,7 +16,10 @@
         <MudText>
             Collection: @(RagProject.Configuration?.EmbeddingCollectioName)
         </MudText>
-    }
+        <MudText>
+            Antall items uten embeddings: @numberOfItemsMissingEmbeddings
+        </MudText>
+     }
 </MudText>
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
@@ -125,6 +128,7 @@
     private string sourceIdSearch = string.Empty;
     private string sortField = "SourceSystemId";
     private bool isLoading = true;
+    private int numberOfItemsMissingEmbeddings = 0;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -132,6 +136,7 @@
         {
             try
             {
+                numberOfItemsMissingEmbeddings = await ragTopdeskService.GetNrOfContentItemsWithNoEmbeddings(RagProject);
                 await LoadDbEmbeddings();
             }
             catch (Exception e)
@@ -280,7 +285,7 @@
         finally
         {
             isLoading = false;
-        }       
+        }
         StateHasChanged();
     }
 }
