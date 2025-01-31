@@ -116,8 +116,7 @@ public class ProcessItemEmbeddings
             _logger.LogWarning("AddItemsMissingEmbeddingsToQueue: Missing rag project id or source item id");
             return;
         }
-        var itemsMissingEmbeddings = await _ragTopdeskDatabaseService.GetContentItemsWithNoEmbeddings(ragProject);
-        itemsMissingEmbeddings = itemsMissingEmbeddings.Take(3).ToList();
+        var itemsMissingEmbeddings = await _ragTopdeskDatabaseService.GetContentItemsWithNoEmbeddings(ragProject);        
         foreach (var item in itemsMissingEmbeddings)
         {
             if(string.IsNullOrEmpty(item.Id))
