@@ -1,4 +1,4 @@
-{
+  {
   "version": "2.0",
   "logging": {
     "applicationInsights": {
@@ -10,8 +10,8 @@
     }
   },
   "extensions": {
-    "queues": {
-      "maxConcurrentCalls": 3
+    "rabbitMQ": {
+      "prefetchCount": 1
     }
   }
 }
