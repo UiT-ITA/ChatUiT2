@@ -8,4 +8,6 @@ public enum RagMqMessageOperations
     // Used to trigger scan for items missing embeddings and add them
     // to generate embeddings queue.
     ScanForItemsMissingEmbeddings = 1,
+    // Used to cancel all embeddings processing in queue.
+    CancelAllEmbeddingsProcessing = 2,
 }

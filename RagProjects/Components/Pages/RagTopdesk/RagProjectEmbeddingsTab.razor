@@ -30,6 +30,7 @@
 </MudText>
 
 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
+<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CancelCreateEmbeddingsForAllSourceItems()" Class="mt-4">Cancel all embedding generation in queue</MudButton>
 
 <MudPaper Elevation="3" Class="mt-4 pa-4">
     <MudText Typo="Typo.h6">Filtere</MudText>
@@ -44,13 +45,12 @@
                           Class="mt-0"
                           OnKeyDown="CheckIfEnterPressed">
             </MudTextField>
-        </MudItem>        
+        </MudItem>
         <MudItem xs="2">
             <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
         </MudItem>
         <MudItem xs="10">
         </MudItem>
-
     </MudGrid>
 </MudPaper>
 
@@ -267,6 +267,26 @@
         StateHasChanged();
     }
 
+    private async Task CancelCreateEmbeddingsForAllSourceItems()
+    {
+        try
+        {
+            RagMqMessage message = new()
+            {
+                Operation = RagMqMessageOperations.CancelAllEmbeddingsProcessing,
+                RagProjectId = RagProject.Id,
+                SourceItemMongoDbId = string.Empty
+            };
+            rabbitMqService.SendRagMessage(message);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject.Id} {e.Message}", Severity.Error, config => { });
+        }
+        await LoadDbEmbeddings();
+        StateHasChanged();
+    }
+
     private void CheckIfEnterPressed(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
@@ -283,7 +303,7 @@
             isLoading = true;
             tableEmbeddings = [];
             IQueryable<RagTextEmbeddingViewItem>? query = allEmbeddings.AsQueryable();
-            if(string.IsNullOrEmpty(sourceIdSearch) == false)
+            if (string.IsNullOrEmpty(sourceIdSearch) == false)
             {
                 query = query?.Where(x => x.RagTextEmbedding.ContentItem.SourceSystemId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase) ||
                                           x.RagTextEmbedding.ContentItem.SourceSystemAltId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase));
