@@ -59,8 +59,8 @@ builder.Services.AddSingleton<AdminService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthUserService, AuthUserService>();
 builder.Services.AddScoped<IUpdateService, UpdateService>();
-builder.Services.AddScoped<SpeechService>();
 builder.Services.AddScoped<LocalStorageService>();
+//builder.Services.AddScoped<SpeechService>();
 
 // Transient services
 

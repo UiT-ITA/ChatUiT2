@@ -86,6 +86,9 @@ public enum ModelName
     gpt4omini,
     o1,
     o1mini,
+    o3minilow,
+    o3minimedium,
+    o3minihigh,
     dalle2,
     dalle3,
 }
@@ -110,10 +113,14 @@ public static class ModelServiceExtensions
             ModelName.gpt35turbo => new ModelCapabilities   { MaxContext = 4096, MaxTokens = 4096, Chat = true },
             ModelName.gpt4 => new ModelCapabilities         { MaxContext = 8138, MaxTokens = 4096, Chat = true },
             ModelName.gpt4turbo => new ModelCapabilities    { MaxContext = 16_384, MaxTokens = 4096, Chat = true },
-            ModelName.gpt4o => new ModelCapabilities        { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
+            ModelName.gpt4o => new ModelCapabilities        { MaxContext = 128_000, MaxTokens = 16_384, Chat = true, Vision = true },
             ModelName.gpt4omini => new ModelCapabilities    { MaxContext = 128_000, MaxTokens = 16_384, Chat = true, Vision = true },
-            ModelName.o1 => new ModelCapabilities       { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
-            ModelName.o1mini => new ModelCapabilities   { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
+            ModelName.o1 => new ModelCapabilities           { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
+            ModelName.o1mini => new ModelCapabilities       { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
+            ModelName.o3minilow => new ModelCapabilities    { MaxContext = 200_000, MaxTokens = 100_000, Chat = true },
+            ModelName.o3minimedium => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true },
+            ModelName.o3minihigh => new ModelCapabilities   { MaxContext = 200_000, MaxTokens = 100_000, Chat = true },
+
 
             // OpenAI DALL-E
             ModelName.dalle2 => new ModelCapabilities { Vision = true, ImageGeneration = true },

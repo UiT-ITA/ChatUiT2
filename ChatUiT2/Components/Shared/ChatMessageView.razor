@@ -15,10 +15,10 @@
 
             @if (!isEditing)
             {
-                <div class="fade-in-button" style="width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
+                @* <div class="fade-in-button" style="width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink:0;"> 
                     @if (audioState == AudioState.Idle)
                     {
-                        @* <MudIconButton Style="width: 40px; height: 40px;" Icon="@Icons.Material.Filled.Hearing" Size="Size.Medium" OnClick="PlayMessage" /> *@
+                        <MudIconButton Style="width: 40px; height: 40px;" Icon="@Icons.Material.Filled.Hearing" Size="Size.Medium" OnClick="PlayMessage" />
                     }
                     else if (audioState == AudioState.Loading)
                     {
@@ -31,7 +31,7 @@
                     }
                 
                 
-                </div>
+                </div>*@
 
                 @if (isUserMessage)
                 {
@@ -104,7 +104,8 @@
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
-    [Inject] private SpeechService SpeechService { get; set; } = null!;
+
+    // [Inject] private SpeechService SpeechService { get; set; } = null!;
 
     [Parameter] public ChatMessage Message { get; set; } = null!;
 
@@ -219,6 +220,7 @@
         return norwegianTime.ToString("dd.mm.yy HH:mm");
     }
 
+    /*
     private async void PlayMessage()
     {
         if (string.IsNullOrEmpty(audioBase64))
@@ -249,5 +251,5 @@
     {
         audioState = AudioState.Idle;
         StateHasChanged();
-    }
+    }*/
 }

@@ -120,6 +120,9 @@ public class SettingsService : ISettingsService
             "gpt-4o-mini" => ModelName.gpt4omini,
             "o1" => ModelName.o1,
             "o1-mini" => ModelName.o1mini,
+            "o3-mini-low" => ModelName.o3minilow,
+            "o3-mini-medium" => ModelName.o3minimedium,
+            "o3-mini-high" => ModelName.o3minihigh,
             "dalle2" => ModelName.dalle2,
             "dalle3" => ModelName.dalle3,
             _ => throw new Exception($"Unknown model name {modelName}")

@@ -6,6 +6,7 @@ using OpenAI.Chat;
 using System.Buffers;
 using System.ClientModel;
 using System.Diagnostics;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -206,7 +207,16 @@ public class OpenAIService
         {
             throw new ArgumentException("Model is not an AzureOpenAI model");
         }
-        _client = new AzureOpenAIClient(new Uri(model.Endpoint), new ApiKeyCredential(model.ApiKey)).GetChatClient(model.DeploymentName);
+
+        AzureOpenAIClientOptions options = AzureOpenAIClientOptionsExtensions.CreateWithCustomVersion("2024-12-01-preview");
+
+        var testClient = new AzureOpenAIClient(new Uri(model.Endpoint), new ApiKeyCredential(model.ApiKey), options);
+        var testChatClient = testClient.GetChatClient(model.DeploymentName);
+        _client = testChatClient;
+
+
+
+        //_client = new AzureOpenAIClient(new Uri(model.Endpoint), new ApiKeyCredential(model.ApiKey)).GetChatClient(model.DeploymentName);
         _model = model;
         _userService = userService;
         _logger = logger;
@@ -534,6 +544,23 @@ public class OpenAIService
         return tokens;
     }
 
+}
+
+public static class AzureOpenAIClientOptionsExtensions
+{
+    public static AzureOpenAIClientOptions CreateWithCustomVersion(string customVersion)
+    {
+        // Create an instance using the default constructor with a valid ServiceVersion
+        var options = new AzureOpenAIClientOptions(AzureOpenAIClientOptions.ServiceVersion.V2024_10_21);
+        // Use reflection to set the internal Version property
+        var versionField = typeof(AzureOpenAIClientOptions).GetField("<Version>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);
+        if (versionField == null)
+        {
+            throw new InvalidOperationException("Could not find the 'Version' backing field.");
+        }
+        versionField.SetValue(options, customVersion);
+        return options;
+    }
 }
 
 
