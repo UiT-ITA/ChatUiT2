@@ -695,6 +695,7 @@ public class RagDatabaseService : IRagDatabaseService
     {
         var sanitizer = new HtmlSanitizer();
         sanitizer.AllowedTags.Clear();
+        sanitizer.KeepChildNodes = true;
         return sanitizer.Sanitize(text);
     }
 }
