@@ -21,4 +21,6 @@ public class RagConfiguration
     public string ItemCollectionName { get; set; } = string.Empty;
     [BsonElement("EmbeddingCollectioName")]
     public string EmbeddingCollectioName { get; set; } = string.Empty;
+    [BsonElement("EmbeddingTypes")]
+    public List<EmbeddingSourceType> EmbeddingTypes { get; set; } = [ EmbeddingSourceType.Question ];
 }
