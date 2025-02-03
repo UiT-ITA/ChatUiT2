@@ -15,11 +15,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
+    <ProjectReference Include="..\ChatUiT2_Classlib\ChatUiT2_Classlib.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Services\" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>
