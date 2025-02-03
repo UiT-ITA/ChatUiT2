@@ -1,30 +1,26 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2_Classlib.Model;
-using ChatUiT2_Classlib.Model.Topdesk;
-using DocumentFormat.OpenXml.Office2010.ExcelAc;
-using Microsoft.Azure.Cosmos;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using OpenAI.Embeddings;
 using UiT.CommonToolsLib.Services;
-using UiT.RestClientTopdesk.Model;
 using System.Numerics.Tensors;
 using System.Text.Json;
 using ChatUiT2_Classlib.Model.RagProject;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using System.Text;
-using Microsoft.IdentityModel.Tokens;
 using ChatMessage = ChatUiT2.Models.ChatMessage;
 using Microsoft.Extensions.Caching.Memory;
+using Ganss.Xss;
+using System.Text.RegularExpressions;
 
 namespace ChatUiT2.Services;
 
-public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
+public class RagDatabaseService : IRagDatabaseService
 {
     private readonly IConfiguration _configuration;
 
@@ -40,7 +36,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemEmbeddingCollection;
     private readonly IMongoCollection<BsonDocument> _ragProjectDefinitionsItemCollection;
 
-    public RagTopdeskDatabaseService(IConfiguration configuration,
+    public RagDatabaseService(IConfiguration configuration,
                                      IDateTimeProvider dateTimeProvider,
                                      IConfigService configService,
                                      IMemoryCache memoryCache)
@@ -123,7 +119,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 
     public async Task SaveRagProject(RagProject ragProject)
     {
-        if(string.IsNullOrEmpty(ragProject.Configuration?.DbName))
+        if (string.IsNullOrEmpty(ragProject.Configuration?.DbName))
         {
             throw new ArgumentException("RagProject.Configuration.DbName must be set to save project");
         }
@@ -206,7 +202,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 
     public async Task<RagProject> GetRagProjectById(string projectId, bool loadItems = false)
     {
-        if(string.IsNullOrEmpty(projectId))
+        if (string.IsNullOrEmpty(projectId))
         {
             throw new ArgumentException("projectId must be set to get project");
         }
@@ -215,7 +211,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         var ragProject = BsonSerializer.Deserialize<RagProject>(documents.FirstOrDefault().AsBsonDocument);
 
         // Get the items for the project
-        if(loadItems)
+        if (loadItems)
         {
             var ragDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration?.DbName);
             var itemCollection = ragDatabase.GetCollection<BsonDocument>(ragProject.Configuration?.ItemCollectionName);
@@ -268,7 +264,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         foreach (var orphan in orphans)
         {
             await DeleteRagEmbedding(ragProject, orphan);
-        }   
+        }
     }
 
     public async Task DeleteRagProject(RagProject ragProject)
@@ -281,7 +277,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         {
             throw new ArgumentException("RagProject.Configuration.DbName must be set to save project");
         }
-        
+
         var filter = Builders<BsonDocument>.Filter.Eq("_id", ragProject.Id);
         await _ragProjectDefinitionsItemCollection.DeleteOneAsync(filter);
 
@@ -394,11 +390,11 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
 
     public async Task AddRagTextEmbedding(RagProject ragProject, string itemId, string originalText = "")
     {
-        if(ragProject == null)
+        if (ragProject == null)
         {
             throw new ArgumentException("ragProject must be set to add embedding");
         }
-        if(string.IsNullOrEmpty(itemId))
+        if (string.IsNullOrEmpty(itemId))
         {
             throw new ArgumentException("itemId must be set to add embedding");
         }
@@ -512,7 +508,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
                     SourceId = embedding.SourceItemId,
                     Source = ragProject.Name,
                     EmbeddingText = embedding.Originaltext
-                    
+
                 };
                 result.Add(ragResult);
             }
@@ -553,7 +549,7 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
             var filter = Builders<BsonDocument>.Filter.Eq("_id", itemId);
             var documents = await itemCollection.FindAsync(filter);
             var doc = documents.FirstOrDefault()?.AsBsonDocument;
-            if(doc != null)
+            if (doc != null)
             {
                 cachedValue = BsonSerializer.Deserialize<ContentItem>(doc);
                 // Set cache options.
@@ -682,5 +678,20 @@ public class RagTopdeskDatabaseService : IRagTopdeskDatabaseService
         var filter = Builders<BsonDocument>.Filter.Eq("EmbeddingsCreationInProgress", true);
         var update = Builders<BsonDocument>.Update.Set("EmbeddingsCreationInProgress", false);
         await contentItemCollection.UpdateManyAsync(filter, update);
+    }
+
+    public string ReplaceHtmlLinebreaksWithNewline(string text)
+    {
+        // Regular expression to match all variants of <br> tags
+        string pattern = @"<br\s*/?>";
+        string result = Regex.Replace(text, pattern, "\n", RegexOptions.IgnoreCase);
+        return result;
+    }
+
+    public string RemoveAllHtmlTagsFromString(string text)
+    {
+        var sanitizer = new HtmlSanitizer();
+        sanitizer.AllowedTags.Clear();
+        return sanitizer.Sanitize(text);
     }
 }

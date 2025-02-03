@@ -117,7 +117,7 @@
 </MudTable>
 
 @code {
-    [Inject] IRagTopdeskDatabaseService ragTopdeskService { get; set; }
+    [Inject] IRagDatabaseService ragTopdeskService { get; set; }
     [Inject] ISnackbar Snackbar { get; set; }
     [Inject] IConfigService configService { get; set; }
     [Inject] IKnowledgeItemService knowledgeItemService { get; set; } = null!;

@@ -65,7 +65,7 @@ builder.Services.AddUitTopdeskClient(new()
 );
 
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
-builder.Services.AddSingleton<IRagTopdeskDatabaseService, RagTopdeskDatabaseService>();
+builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseService>();
 
 builder.Services.AddTransient<IKnowledgeItemService, KnowledgeItemService>();
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();

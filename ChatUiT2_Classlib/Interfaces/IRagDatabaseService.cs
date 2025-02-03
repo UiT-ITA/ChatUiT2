@@ -8,7 +8,7 @@ using OpenAI.Embeddings;
 
 namespace ChatUiT2.Interfaces;
 
-public interface IRagTopdeskDatabaseService
+public interface IRagDatabaseService
 {
     public Task<string> GetTextResponseForChat(WorkItemChat chat);
     public Task<OpenAIEmbedding> GetEmbeddingForText(string text);

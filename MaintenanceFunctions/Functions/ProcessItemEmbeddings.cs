@@ -19,11 +19,11 @@ namespace UiT.ChatUiT2.MaintenanceFunctions.Functions;
 public class ProcessItemEmbeddings
 {
     private readonly ILogger _logger;
-    private readonly IRagTopdeskDatabaseService _ragTopdeskDatabaseService;
+    private readonly IRagDatabaseService _ragTopdeskDatabaseService;
     private readonly IRabbitMqService _rabbitMqService;
 
     public ProcessItemEmbeddings(ILoggerFactory loggerFactory,
-                                 IRagTopdeskDatabaseService ragTopdeskDatabaseService,
+                                 IRagDatabaseService ragTopdeskDatabaseService,
                                  IRabbitMqService rabbitMqService)
     {
         _logger = loggerFactory.CreateLogger<ProcessItemEmbeddings>();

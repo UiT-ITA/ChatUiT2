@@ -48,7 +48,7 @@ var host = new HostBuilder()
         services.AddSingleton<IEncryptionService, EncryptionService>();
         services.AddSingleton<AdminService>();
         services.AddSingleton<IRabbitMqService, RabbitMqService>();
-        services.AddSingleton<IRagTopdeskDatabaseService, RagTopdeskDatabaseService>();
+        services.AddSingleton<IRagDatabaseService, RagDatabaseService>();
         
         // Scoped services
         services.AddScoped<IUserService, UserService>();
