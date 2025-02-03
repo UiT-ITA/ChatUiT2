@@ -37,9 +37,9 @@ public class RagDatabaseService : IRagDatabaseService
     private readonly IMongoCollection<BsonDocument> _ragProjectDefinitionsItemCollection;
 
     public RagDatabaseService(IConfiguration configuration,
-                                     IDateTimeProvider dateTimeProvider,
-                                     IConfigService configService,
-                                     IMemoryCache memoryCache)
+                              IDateTimeProvider dateTimeProvider,
+                              IConfigService configService,
+                              IMemoryCache memoryCache)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
@@ -48,15 +48,18 @@ public class RagDatabaseService : IRagDatabaseService
 
         // Init RAG database client
         var connectionString = configuration.GetConnectionString("MongoDbRagProjectDef");
-        var client = new MongoClient(connectionString);
-        _mongoClientRagDb = client;
-        var ragDatabase = client.GetDatabase(configuration["RagProjectDefDatabaseName"]);
-        // Old refactor and delete
-        _topdeskKnowledgeItemCollection = ragDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItems");
-        _topdeskKnowledgeItemEmbeddingCollection = ragDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItemEmbeddings");
-        // Old end
+        if(string.IsNullOrEmpty(connectionString) == false)
+        {
+            var client = new MongoClient(connectionString);
+            _mongoClientRagDb = client;
+            var ragDatabase = client.GetDatabase(configuration["RagProjectDefDatabaseName"]);
+            // Old refactor and delete
+            _topdeskKnowledgeItemCollection = ragDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItems");
+            _topdeskKnowledgeItemEmbeddingCollection = ragDatabase.GetCollection<BsonDocument>("TopdeskKnowledgeItemEmbeddings");
+            // Old end
 
-        _ragProjectDefinitionsItemCollection = ragDatabase.GetCollection<BsonDocument>(configuration["RagProjectDefCollection"]);
+            _ragProjectDefinitionsItemCollection = ragDatabase.GetCollection<BsonDocument>(configuration["RagProjectDefCollection"]);
+        }
     }
 
     /// <summary>
