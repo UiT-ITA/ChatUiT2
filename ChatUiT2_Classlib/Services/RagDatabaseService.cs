@@ -403,7 +403,7 @@ public class RagDatabaseService : IRagDatabaseService
         await embeddingCollection.DeleteManyAsync(new BsonDocument());
     }
 
-    public async Task AddRagTextEmbedding(RagProject ragProject, string itemId, string originalText = "")
+    public async Task AddRagTextEmbedding(RagProject ragProject, string itemId, EmbeddingSourceType embedType, string originalText = "")
     {
         if (ragProject == null)
         {
@@ -423,7 +423,8 @@ public class RagDatabaseService : IRagDatabaseService
             ModelProvider = _configService.GetEmbeddingModel().DeploymentType,
             Originaltext = originalText,
             SourceItemId = itemId,
-            RagProjectId = ragProject?.Id ?? string.Empty
+            RagProjectId = ragProject?.Id ?? string.Empty,
+            TextType = embedType
         };
         newEmbedding.Embedding = (await GetEmbeddingForText(newEmbedding.Originaltext)).ToFloats().ToArray();
         await SaveRagEmbedding(ragProject, newEmbedding);
@@ -455,7 +456,7 @@ public class RagDatabaseService : IRagDatabaseService
             {
                 foreach (var question in questionsFromLlm.Questions)
                 {
-                    await AddRagTextEmbedding(ragProject, item.Id, question);
+                    await AddRagTextEmbedding(ragProject, item.Id, EmbeddingSourceType.Question, question);
                 }
             }
             else
@@ -737,7 +738,7 @@ public class RagDatabaseService : IRagDatabaseService
                 {
                     continue;
                 }
-                await AddRagTextEmbedding(ragProject, item.Id, paragraph);
+                await AddRagTextEmbedding(ragProject, item.Id, EmbeddingSourceType.Paragraph, paragraph);
             }
         }
         catch (Exception e)

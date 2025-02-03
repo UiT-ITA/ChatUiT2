@@ -98,6 +98,7 @@
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.Originaltext)">Text</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ModelProvider)">Provider</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.Model)">Model</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.TextType)">Type</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ContentItem.SourceSystemId)">Source system id</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ContentItem.SourceSystemAltId)">Source system alt id</MudTableSortLabel></MudTh>
     </HeaderContent>
@@ -108,6 +109,7 @@
         <MudTd>@context.RagTextEmbedding?.Originaltext</MudTd>
         <MudTd>@context.RagTextEmbedding?.ModelProvider</MudTd>
         <MudTd>@context.RagTextEmbedding?.Model</MudTd>
+        <MudTd>@context.RagTextEmbedding?.TextType</MudTd>
         <MudTd>@context.ContentItem?.SourceSystemId</MudTd>
         <MudTd>@context.ContentItem?.SourceSystemAltId</MudTd>
     </RowTemplate>

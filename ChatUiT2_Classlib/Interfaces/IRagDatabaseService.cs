@@ -22,7 +22,7 @@ public interface IRagDatabaseService
     public Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject, bool withSourceItem = false);
     public Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
     public Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
-    public Task AddRagTextEmbedding(RagProject ragProject, string itemId, string originalText = "");
+    public Task AddRagTextEmbedding(RagProject ragProject, string itemId, EmbeddingSourceType embedType, string originalText = "");
     public Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item);
     public Task<string> SendRagSearchToLlm(List<RagSearchResult> ragSearchResults, string searchTerm);
     public Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId);
