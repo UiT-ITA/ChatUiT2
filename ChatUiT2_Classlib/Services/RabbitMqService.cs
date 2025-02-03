@@ -51,12 +51,26 @@ public class RabbitMqService : IRabbitMqService
 
     public string GetRoutingKey(RagMqMessage message)
     {
+        string opName = Enum.GetName(typeof(RagMqMessageOperations), message.Operation) ?? string.Empty;
+        string baseRoutingKey = _configuration["RabbitMq:BaseRoutingKey"];
+        if(string.IsNullOrEmpty(baseRoutingKey))
+        {
+            throw new ArgumentException("Missing operation in message");
+        }
+        if (string.IsNullOrEmpty(baseRoutingKey))
+        {
+            throw new ArgumentException("Base routing key not found in configuration");
+        }
         switch (message.Operation)
         {
             case RagMqMessageOperations.GenerateEmbeddings:
-                return "#";
+                return $"{baseRoutingKey}.{opName}";
+            case RagMqMessageOperations.ScanForItemsMissingEmbeddings:
+                return $"{baseRoutingKey}.{opName}";
+            case RagMqMessageOperations.CancelAllEmbeddingsProcessing:
+                return $"{baseRoutingKey}.{opName}";
             default:
-                return $"#";
+                throw new ArgumentException($"Unknown operation: {message.Operation}");
         }
     }
 }

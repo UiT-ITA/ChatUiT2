@@ -611,14 +611,14 @@ public class RagDatabaseService : IRagDatabaseService
         {
             new BsonDocument("$lookup", new BsonDocument
             {
-                { "from", ragProject.Configuration.ItemCollectionName },
+                { "from", ragProject.Configuration.EmbeddingCollectioName },
                 { "localField", "_id" },
                 { "foreignField", "SourceItemId" },
-                { "as", "Embeddings" }
+                { "as", "matchedItems" }
             }),
             new BsonDocument("$match", new BsonDocument
             {
-                { "Embeddings", new BsonDocument("$eq", new BsonArray()) }
+                { "matchedItems", new BsonDocument("$eq", new BsonArray()) }
             })
         };
 
@@ -643,11 +643,11 @@ public class RagDatabaseService : IRagDatabaseService
                 { "from", ragProject.Configuration.EmbeddingCollectioName },
                 { "localField", "_id" },
                 { "foreignField", "SourceItemId" },
-                { "as", "Embeddings" }
+                { "as", "matchedItems" }
             }),
             new BsonDocument("$match", new BsonDocument
             {
-                { "Embeddings", new BsonDocument("$eq", new BsonArray()) }
+                { "matchedItems", new BsonDocument("$eq", new BsonArray()) }
             }),
             new BsonDocument("$count", "count")
         };
@@ -674,7 +674,6 @@ public class RagDatabaseService : IRagDatabaseService
         var filter = Builders<BsonDocument>.Filter.Eq("EmbeddingsCreationInProgress", true);
         var count = await contentItemCollection.CountDocumentsAsync(filter);
         return count;
-
     }
 
     /// <summary>

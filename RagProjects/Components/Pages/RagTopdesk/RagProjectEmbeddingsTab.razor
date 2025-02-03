@@ -362,6 +362,8 @@
         try
         {
             await ragTopdeskService.DeleteEmbeddingsForProject(RagProject);
+            await LoadDbEmbeddings();
+            DoSearch();
             Snackbar.Add($"Alle embeddings for prosjekt er slettet", Severity.Success, config => { });
         }
         catch (Exception e)
