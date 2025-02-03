@@ -1,0 +1,13 @@
+﻿@using ChatUiT2_Classlib.Model.RagProject
+@using ChatUiT2_Classlib.Model
+@using ChatUiT2.Models
+@using ChatUiT2.Interfaces
+
+@foreach(var type in Enum.GetValues(typeof(EmbeddingSourceType)))
+{
+    <MudCheckBox T="EmbeddingSourceType" Value="type"></MudCheckBox>
+}
+
+@code {
+
+}
