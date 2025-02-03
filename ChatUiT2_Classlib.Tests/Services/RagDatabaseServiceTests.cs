@@ -272,4 +272,49 @@ public class RagDatabaseServiceTests
         // Assert
         Assert.Equal(expected, result);
     }
+
+    [Fact]
+    public void SplitTextIntoParagraphs_DoNotCleanHtmlTagsSet_ShouldNotRemoveHtmlTags()
+    {
+        // Arrange
+        var service = new RagDatabaseService(null, null, null, null);
+        string input = "Paragraph 1<div>123</div>\n\nParagraph 2";
+        var expected = new List<string> { "Paragraph 1<div>123</div>", "Paragraph 2" };
+
+        // Act
+        var result = service.SplitTextIntoParagraphs(input, false).ToList();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void SplitTextIntoParagraphs_StringWithBrTags_ShouldReplaceWithNewlineAndSplitCorrectly()
+    {
+        // Arrange
+        var service = new RagDatabaseService(null, null, null, null);
+        string input = "Paragraph 1<br/><br/>Paragraph 2";
+        var expected = new List<string> { "Paragraph 1", "Paragraph 2" };
+
+        // Act
+        var result = service.SplitTextIntoParagraphs(input).ToList();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void SplitTextIntoParagraphs_DoNotReplaceBrTagsSet_ShouldNotReplaceWithNewline()
+    {
+        // Arrange
+        var service = new RagDatabaseService(null, null, null, null);
+        string input = "Paragraph 1<br/><br/>Paragraph 2";
+        var expected = new List<string> { "Paragraph 1Paragraph 2" };
+
+        // Act
+        var result = service.SplitTextIntoParagraphs(input, true, false).ToList();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
 }

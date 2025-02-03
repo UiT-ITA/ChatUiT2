@@ -699,8 +699,16 @@ public class RagDatabaseService : IRagDatabaseService
         return sanitizer.Sanitize(text);
     }
 
-    public IEnumerable<string> SplitTextIntoParagraphs(string text)
+    public IEnumerable<string> SplitTextIntoParagraphs(string text, bool removeHtmlTags = true, bool convertBrTagsToNewlines = true)
     {
+        if (convertBrTagsToNewlines)
+        {
+            text = ReplaceHtmlLinebreaksWithNewline(text);
+        }
+        if (removeHtmlTags)
+        {
+            text = RemoveAllHtmlTagsFromString(text);
+        }        
         string pattern = @"\n\s*\n";
         string strWithNormalizedDoubleNewline = Regex.Replace(text, pattern, "\n\n", RegexOptions.IgnoreCase);
         return strWithNormalizedDoubleNewline.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
