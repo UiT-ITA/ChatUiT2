@@ -391,6 +391,18 @@ public class RagDatabaseService : IRagDatabaseService
         await embeddingCollection.DeleteOneAsync(filter);
     }
 
+    public async Task DeleteEmbeddingsForProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to delete embeddings");
+        }
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);
+
+        await embeddingCollection.DeleteManyAsync(new BsonDocument());
+    }
+
     public async Task AddRagTextEmbedding(RagProject ragProject, string itemId, string originalText = "")
     {
         if (ragProject == null)
@@ -599,7 +611,7 @@ public class RagDatabaseService : IRagDatabaseService
         {
             new BsonDocument("$lookup", new BsonDocument
             {
-                { "from", ragProject.Configuration.EmbeddingCollectioName },
+                { "from", ragProject.Configuration.ItemCollectionName },
                 { "localField", "_id" },
                 { "foreignField", "SourceItemId" },
                 { "as", "Embeddings" }
@@ -712,5 +724,26 @@ public class RagDatabaseService : IRagDatabaseService
         string pattern = @"\n\s*\n";
         string strWithNormalizedDoubleNewline = Regex.Replace(text, pattern, "\n\n", RegexOptions.IgnoreCase);
         return strWithNormalizedDoubleNewline.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+    }
+
+    public async Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150)
+    {
+        try
+        {
+            string textContent = GetItemContentString(item);
+            var paragraphs = SplitTextIntoParagraphs(textContent);
+            foreach (var paragraph in paragraphs)
+            {
+                if (paragraph.Length < minParagraphSize)
+                {
+                    continue;
+                }
+                await AddRagTextEmbedding(ragProject, item.Id, paragraph);
+            }
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Noe feilet ved generering av paragraph embeddings for item {item.Id} {e.Message}");
+        }
     }
 }

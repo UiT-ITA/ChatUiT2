@@ -29,8 +29,25 @@
     }
 </MudText>
 
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
-<MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CancelCreateEmbeddingsForAllSourceItems()" Class="mt-4">Cancel all embedding generation in queue</MudButton>
+<MudExpansionPanels>
+    <MudExpansionPanel Text="Admin tasks" MaxHeight="450" Expanded="false">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems(EmbeddingSourceType.Question)" Class="mt-4">Create embeddings from all source items (questions)</MudButton>
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems(EmbeddingSourceType.Paragraph)" Class="mt-4">Create embeddings from all source items (paragraphs)</MudButton>
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CancelCreateEmbeddingsForAllSourceItems()" Class="mt-4">Cancel all embedding generation in queue</MudButton>
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => DeleteAllEmbeddingsForAllSourceItems()" Class="mt-4">Delete all embeddings</MudButton>
+            </MudItem>
+
+        </MudGrid>
+    </MudExpansionPanel>
+</MudExpansionPanels>
 
 <MudPaper Elevation="3" Class="mt-4 pa-4">
     <MudText Typo="Typo.h6">Filtere</MudText>
@@ -246,7 +263,7 @@
         }
     }
 
-    private async Task CreateEmbeddingsForAllSourceItems()
+    private async Task CreateEmbeddingsForAllSourceItems(EmbeddingSourceType typeOfEmbedding)
     {
 
         try
@@ -254,8 +271,9 @@
             RagMqMessage message = new()
             {
                 Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
-                RagProjectId = "679379f33f0858dbff7b58d4",
-                SourceItemMongoDbId = string.Empty
+                RagProjectId = RagProject.Id,
+                SourceItemMongoDbId = string.Empty,
+                EmbeddingType = typeOfEmbedding
             };
             rabbitMqService.SendRagMessage(message);
         }
@@ -337,5 +355,18 @@
     {
         numberOfItemsMissingEmbeddings = await ragTopdeskService.GetNrOfContentItemsWithNoEmbeddings(RagProject);
         StateHasChanged();
+    }
+
+    private async Task DeleteAllEmbeddingsForAllSourceItems()
+    {
+        try
+        {
+            await ragTopdeskService.DeleteEmbeddingsForProject(RagProject);
+            Snackbar.Add($"Alle embeddings for prosjekt er slettet", Severity.Success, config => { });
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sletting {e.Message}", Severity.Error, config => { });
+        }
     }
 }

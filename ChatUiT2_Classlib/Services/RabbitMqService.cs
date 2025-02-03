@@ -53,9 +53,7 @@ public class RabbitMqService : IRabbitMqService
     {
         switch (message.Operation)
         {
-            case RagMqMessageOperations.GenerateQuestionEmbeddings:
-                string operationName = Enum.GetName(typeof(RagMqMessageOperations), message.Operation) ?? "Unknown";
-                //return $"{_configuration["RabbitMq:BaseRoutingKey"]}.{operationName}";
+            case RagMqMessageOperations.GenerateEmbeddings:
                 return "#";
             default:
                 return $"#";

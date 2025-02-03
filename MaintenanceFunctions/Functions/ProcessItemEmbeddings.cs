@@ -53,11 +53,11 @@ public class ProcessItemEmbeddings
             }
             switch(myQueueItem.Operation)
             {
-                case RagMqMessageOperations.GenerateQuestionEmbeddings:
+                case RagMqMessageOperations.GenerateEmbeddings:
                     await CreateItemEmbeddings(ragProject, myQueueItem);
                     break;
                 case RagMqMessageOperations.ScanForItemsMissingEmbeddings:
-                    await AddItemsMissingEmbeddingsToQueue(ragProject);
+                    await AddItemsMissingEmbeddingsToQueue(ragProject, myQueueItem);
                     break;
                 case RagMqMessageOperations.CancelAllEmbeddingsProcessing:
                     await CancelAllEmbeddingsProcessing(ragProject);
@@ -85,6 +85,25 @@ public class ProcessItemEmbeddings
 
     private async Task CreateItemEmbeddings(RagProject ragProject, RagMqMessage myQueueItem)
     {
+        switch (myQueueItem.EmbeddingType)
+        {
+            case EmbeddingSourceType.Question:
+                await CreateQuestionItemEmbeddings(ragProject, myQueueItem);
+                break;
+            case EmbeddingSourceType.Paragraph:
+                await CreateParagraphItemEmbeddings(ragProject, myQueueItem);
+                break;
+            default:
+                _logger.LogWarning("{functionName} error processing message for resource type {itemMongoDbId} operation {operation}: Unknown embedding type: {embeddingType}.",
+                                   nameof(ProcessItemEmbeddings),
+                                   myQueueItem.SourceItemMongoDbId,
+                                   Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation),
+                                   Enum.GetName(typeof(EmbeddingSourceType), myQueueItem.EmbeddingType));
+                break;
+        }
+    }
+    private async Task CreateQuestionItemEmbeddings(RagProject ragProject, RagMqMessage myQueueItem)
+    {
         var sourceItem = await _ragTopdeskDatabaseService.GetContentItemById(ragProject, myQueueItem.SourceItemMongoDbId);
         if (sourceItem == null)
         {
@@ -109,7 +128,33 @@ public class ProcessItemEmbeddings
         await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, sourceItem);
     }
 
-    private async Task AddItemsMissingEmbeddingsToQueue(RagProject ragProject)
+    private async Task CreateParagraphItemEmbeddings(RagProject ragProject, RagMqMessage myQueueItem)
+    {
+        var sourceItem = await _ragTopdeskDatabaseService.GetContentItemById(ragProject, myQueueItem.SourceItemMongoDbId);
+        if (sourceItem == null)
+        {
+            _logger.LogError("{functionName} error processing message for resource type {itemMongoDbId}, Source item not found. Rag project {ragProjectId}. operation {operation} ",
+                             nameof(ProcessItemEmbeddings),
+                             myQueueItem.SourceItemMongoDbId,
+                             myQueueItem.RagProjectId,
+                             Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
+            return;
+        }
+        if (sourceItem.EmbeddingsCreationInProgress == false)
+        {
+            _logger.LogWarning("{functionName} error processing message for resource type {itemMongoDbId}, embeddings creation flag is false, maybe old message that is already processed. Rag project {ragProjectId}. operation {operation} ",
+                             nameof(ProcessItemEmbeddings),
+                             myQueueItem.SourceItemMongoDbId,
+                             myQueueItem.RagProjectId,
+                             Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
+            return;
+        }
+        await _ragTopdeskDatabaseService.GenerateRagParagraphsFromContent(ragProject, sourceItem);
+        sourceItem.EmbeddingsCreationInProgress = false;
+        await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, sourceItem);
+    }
+
+    private async Task AddItemsMissingEmbeddingsToQueue(RagProject ragProject, RagMqMessage myQueueItem)
     {
         if(string.IsNullOrEmpty(ragProject.Id))
         {
@@ -138,7 +183,8 @@ public class ProcessItemEmbeddings
                 {
                     RagProjectId = ragProject.Id,
                     SourceItemMongoDbId = item.Id,
-                    Operation = RagMqMessageOperations.GenerateQuestionEmbeddings
+                    Operation = RagMqMessageOperations.GenerateEmbeddings,
+                    EmbeddingType = myQueueItem.EmbeddingType
                 };
                 _rabbitMqService.SendRagMessage(message);
                 item.EmbeddingsCreationInProgress = true;

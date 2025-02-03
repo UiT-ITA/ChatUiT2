@@ -34,4 +34,6 @@ public interface IRagDatabaseService
     Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject);
     Task<long> GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject ragProject);
     Task CancelAllEmbeddingProcessing(RagProject ragProject);
+    Task DeleteEmbeddingsForProject(RagProject ragProject);
+    Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150);
 }

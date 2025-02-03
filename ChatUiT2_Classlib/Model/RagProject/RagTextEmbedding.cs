@@ -47,6 +47,9 @@ public class RagTextEmbedding
     [BsonElement("RagProjectId")]
     public string RagProjectId { get; set; } = string.Empty;
 
+    [BsonElement("EmbeddingSourceType")]
+    public EmbeddingSourceType? TextType { get; set; }    
+
     [BsonIgnore]
     public ContentItem? ContentItem { get; set; }
 }
