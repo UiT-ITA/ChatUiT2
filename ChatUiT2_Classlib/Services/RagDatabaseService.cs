@@ -698,4 +698,11 @@ public class RagDatabaseService : IRagDatabaseService
         sanitizer.KeepChildNodes = true;
         return sanitizer.Sanitize(text);
     }
+
+    public IEnumerable<string> SplitTextIntoParagraphs(string text)
+    {
+        string pattern = @"\n\s*\n";
+        string strWithNormalizedDoubleNewline = Regex.Replace(text, pattern, "\n\n", RegexOptions.IgnoreCase);
+        return strWithNormalizedDoubleNewline.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+    }
 }

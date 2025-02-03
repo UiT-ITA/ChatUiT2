@@ -182,4 +182,94 @@ public class RagDatabaseServiceTests
         // Assert
         Assert.Equal(expected, result);
     }
+
+    [Fact]
+    public void SplitTextIntoParagraphs_StringWithMultipleDoubleNewlines_ShouldSplitAtDoubleNewline()
+    {
+        // Arrange
+        var service = new RagDatabaseService(null, null, null, null);
+        string input = "Paragraph 1\n\nParagraph 2\n\nParagraph 3";
+        var expected = new List<string> { "Paragraph 1", "Paragraph 2", "Paragraph 3" };
+
+        // Act
+        var result = service.SplitTextIntoParagraphs(input).ToList();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void SplitTextIntoParagraphs_SingleParagraph_ShouldReturnSingleChunk()
+    {
+        // Arrange
+        var service = new RagDatabaseService(null, null, null, null);
+        string input = "Single paragraph";
+        var expected = new List<string> { "Single paragraph" };
+
+        // Act
+        var result = service.SplitTextIntoParagraphs(input).ToList();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void SplitTextIntoParagraphs_EmptyString_ShouldReturnEmptyListOfChunks()
+    {
+        // Arrange
+        var service = new RagDatabaseService(null, null, null, null);
+        string input = "";
+        var expected = new List<string>();
+
+        // Act
+        var result = service.SplitTextIntoParagraphs(input).ToList();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void SplitTextIntoParagraphs_MultipleNewlines_ShouldSplitCorrectlyAndHaveNoEmptyChunks()
+    {
+        // Arrange
+        var service = new RagDatabaseService(null, null, null, null);
+        string input = "Paragraph 1\n\n\n\nParagraph 2";
+        var expected = new List<string> { "Paragraph 1", "Paragraph 2" };
+
+        // Act
+        var result = service.SplitTextIntoParagraphs(input).ToList();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void SplitTextIntoParagraphs_LeadingAndTrailingNewlines_ShouldSplitCorrectWithoutEmptyChunks()
+    {
+        // Arrange
+        var service = new RagDatabaseService(null, null, null, null);
+        string input = "\n\nParagraph 1\n\nParagraph 2\n\n";
+        var expected = new List<string> { "Paragraph 1", "Paragraph 2" };
+
+        // Act
+        var result = service.SplitTextIntoParagraphs(input).ToList();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
+
+    [Fact]
+    public void SplitTextIntoParagraphs_WhitespaceBetweenNewlines_ShouldSplitCorrectly()
+    {
+        // Arrange
+        var service = new RagDatabaseService(null, null, null, null);
+        string input = "Paragraph 1\n \nParagraph 2";
+        var expected = new List<string> { "Paragraph 1", "Paragraph 2" };
+
+        // Act
+        var result = service.SplitTextIntoParagraphs(input).ToList();
+
+        // Assert
+        Assert.Equal(expected, result);
+    }
 }
