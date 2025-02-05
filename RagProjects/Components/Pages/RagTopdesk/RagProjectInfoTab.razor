@@ -1,8 +1,9 @@
 ﻿@using ChatUiT2_Classlib.Model.RagProject
+@using ChatUiT2.Interfaces
 
-<MudText >
+<MudText>
     Project beskrivelse fra database RagProjects collection RagProjectDefinitions.
-    <br/><br />
+    <br /><br />
     Dette er generell informasjon om prosjektet
 </MudText>
 
@@ -53,13 +54,50 @@
         Embedding types
     </MudItem>
     <MudItem xs="10">
-        @RagProject?.Configuration?.EmbeddingCollectioName
+        <EmbeddingTypeChecklist RagProject="RagProject" 
+                                OnEnableEmbeddingType="EnableEmbeddingType" 
+                                OnDisableEmbeddingType="DisableEmbeddingType"></EmbeddingTypeChecklist>
     </MudItem>
 </MudGrid>
 
 @code {
     [Inject] ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IRagDatabaseService ragDatabaseService { get; set; } = null!;
 
     [Parameter]
     public RagProject? RagProject { get; set; }
+
+    private async Task EnableEmbeddingType(EmbeddingSourceType embeddingSourceType)
+    {
+        if (RagProject?.Configuration?.EmbeddingTypes.Contains(embeddingSourceType) == false)
+        {
+            try
+            {
+                RagProject?.Configuration.EmbeddingTypes.Add(embeddingSourceType);
+                await ragDatabaseService.SaveRagProject(RagProject);
+                Snackbar.Add($"Prosjekt endringer lagret", Severity.Success);
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Failed to save project: {e.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DisableEmbeddingType(EmbeddingSourceType embeddingSourceType)
+    {
+        if (RagProject?.Configuration?.EmbeddingTypes.Contains(embeddingSourceType) == true)
+        {
+            try
+            {
+                RagProject?.Configuration.EmbeddingTypes.Remove(embeddingSourceType);
+                await ragDatabaseService.SaveRagProject(RagProject);
+                Snackbar.Add($"Prosjekt endringer lagret", Severity.Success);
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Failed to save project: {e.Message}", Severity.Error);
+            }
+        }
+    }
 }
