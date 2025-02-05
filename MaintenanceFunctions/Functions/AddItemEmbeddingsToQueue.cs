@@ -106,14 +106,17 @@ public class AddItemEmbeddingsToQueue
             }
             try
             {
-                RagMqMessage message = new RagMqMessage
+                foreach (var embeddingType in ragProject.Configuration.EmbeddingTypes)
                 {
-                    RagProjectId = ragProject.Id,
-                    SourceItemMongoDbId = item.Id,
-                    Operation = RagMqMessageOperations.GenerateEmbeddings,
-                    EmbeddingType = myQueueItem.EmbeddingType
-                };
-                _rabbitMqService.SendRagMessage(message);
+                    RagMqMessage message = new RagMqMessage
+                    {
+                        RagProjectId = ragProject.Id,
+                        SourceItemMongoDbId = item.Id,
+                        Operation = RagMqMessageOperations.GenerateEmbeddings,
+                        EmbeddingType = embeddingType
+                    };
+                    _rabbitMqService.SendRagMessage(message);
+                }
                 item.EmbeddingsCreationInProgress = true;
                 await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, item);
             }

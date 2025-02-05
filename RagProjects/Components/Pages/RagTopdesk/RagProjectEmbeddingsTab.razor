@@ -33,10 +33,7 @@
     <MudExpansionPanel Text="Admin tasks" MaxHeight="450" Expanded="false">
         <MudGrid>
             <MudItem xs="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems(EmbeddingSourceType.Question)" Class="mt-4">Create embeddings from all source items (questions)</MudButton>
-            </MudItem>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems(EmbeddingSourceType.Paragraph)" Class="mt-4">Create embeddings from all source items (paragraphs)</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
             </MudItem>
             <MudItem xs="12">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CancelCreateEmbeddingsForAllSourceItems()" Class="mt-4">Cancel all embedding generation in queue</MudButton>
@@ -265,7 +262,7 @@
         }
     }
 
-    private async Task CreateEmbeddingsForAllSourceItems(EmbeddingSourceType typeOfEmbedding)
+    private async Task CreateEmbeddingsForAllSourceItems()
     {
 
         try
@@ -275,7 +272,7 @@
                 Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
                 RagProjectId = RagProject.Id,
                 SourceItemMongoDbId = string.Empty,
-                EmbeddingType = typeOfEmbedding
+                EmbeddingType = null
             };
             rabbitMqService.SendRagMessage(message);
         }
