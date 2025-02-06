@@ -64,7 +64,7 @@ public class AddItemEmbeddingsToQueue
                     _logger.LogWarning("{functionName} error processing message for resource type {itemMongoDbId} operation {operation}: Unknown operation.",
                     nameof(AddItemEmbeddingsToQueue),
                     myQueueItem.SourceItemMongoDbId,
-                    Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
+                    operation);
                     break;
             }
         }
