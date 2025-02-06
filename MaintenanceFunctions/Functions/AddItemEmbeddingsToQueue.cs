@@ -73,7 +73,7 @@ public class AddItemEmbeddingsToQueue
             _logger.LogError("{functionName} error processing message for resource type {itemMongoDbId} operation {operation} message {errorMessage} stackTrace {stackTrace} innerMessage {innerMessage} innerStackTrace {innerStackTrace}.",
                              nameof(AddItemEmbeddingsToQueue),
                              myQueueItem.SourceItemMongoDbId,
-                             Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation),
+                             operation,
                              e.Message,
                              e.StackTrace,
                              e.InnerException?.Message,
