@@ -27,25 +27,27 @@ public class RabbitMqService : IRabbitMqService
         _factory.Password = _configuration["RabbitMq:Password"];
         _factory.VirtualHost = _configuration["RabbitMq:VirtualHost"];
         _factory.HostName = _configuration["RabbitMq:HostName"];
-        _factory.Ssl.Version = SslProtocols.Tls12;
-        _factory.Ssl.ServerName = _configuration["RabbitMq:HostName"];
+        _factory.Port = _configuration.GetValue<int>("RabbitMq:Port");
+        _factory.Ssl.ServerName = _configuration["RabbitMq:HostName"];        
     }
-    public void SendRagMessage(RagMqMessage message)
+    public async Task SendRagMessage(RagMqMessage message)
     {
         if (message == null)
         {
             throw new ArgumentException("Message can not be null", "message");
         }
-        using (var connection = _factory.CreateConnection())
-        using (var channel = connection.CreateModel())
+        using (var connection = await _factory.CreateConnectionAsync())
+        using (var channel = await connection.CreateChannelAsync())
         {
             string jsonString = JsonSerializer.Serialize(message);
             var body = Encoding.UTF8.GetBytes(jsonString);
             var ex = _configuration["RabbitMq:ExchangeName"];
-            channel.BasicPublish(exchange: _configuration["RabbitMq:ExchangeName"],
-                                 routingKey: GetRoutingKey(message),
-                                 basicProperties: null,
-                                 body: body);
+            BasicProperties basicProperties = new();
+            await channel.BasicPublishAsync<BasicProperties>(exchange: _configuration["RabbitMq:ExchangeName"],
+                                                             routingKey: GetRoutingKey(message),
+                                                             mandatory: false,
+                                                             basicProperties: basicProperties,
+                                                             body: body);
         }
     }
 

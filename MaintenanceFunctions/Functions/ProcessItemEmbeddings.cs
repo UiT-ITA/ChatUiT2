@@ -190,7 +190,7 @@ public class ProcessItemEmbeddings
                     Operation = RagMqMessageOperations.GenerateEmbeddings,
                     EmbeddingType = myQueueItem.EmbeddingType
                 };
-                _rabbitMqService.SendRagMessage(message);
+                await _rabbitMqService.SendRagMessage(message);
                 item.EmbeddingsCreationInProgress = true;
                 await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, item);
             }

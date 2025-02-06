@@ -78,6 +78,14 @@ public class AddItemEmbeddingsToQueue
                              e.StackTrace,
                              e.InnerException?.Message,
                              e.InnerException?.StackTrace);
+        } finally
+        {
+            _logger.LogInformation("Processing rag message completed {function} {ragProjectId} {itemMongoDbId} {operation} {embeddingType}",
+                                   nameof(AddItemEmbeddingsToQueue),
+                                   myQueueItem.RagProjectId,
+                                   myQueueItem.SourceItemMongoDbId,
+                                   operation,
+                                   embeddingType);
         }
     }
 
@@ -115,7 +123,7 @@ public class AddItemEmbeddingsToQueue
                         Operation = RagMqMessageOperations.GenerateEmbeddings,
                         EmbeddingType = embeddingType
                     };
-                    _rabbitMqService.SendRagMessage(message);
+                    await _rabbitMqService.SendRagMessage(message);
                 }
                 item.EmbeddingsCreationInProgress = true;
                 await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, item);

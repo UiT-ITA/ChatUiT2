@@ -25,7 +25,7 @@ public class SendRagTestMessage
     }
 
     [Function("SendRagTestMessage")]
-    public IActionResult Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req)
+    public async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req)
     {
         RagMqMessage message = new()
         {
@@ -33,7 +33,7 @@ public class SendRagTestMessage
             RagProjectId = "679379f33f0858dbff7b58d4",
             SourceItemMongoDbId = string.Empty
         };
-        _rabbitMqService.SendRagMessage(message);
+        await _rabbitMqService.SendRagMessage(message);
         return new OkObjectResult("Welcome to Azure Functions!");
     }
 }

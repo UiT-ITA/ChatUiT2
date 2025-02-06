@@ -274,7 +274,7 @@
                 SourceItemMongoDbId = string.Empty,
                 EmbeddingType = null
             };
-            rabbitMqService.SendRagMessage(message);
+            await rabbitMqService.SendRagMessage(message);
         }
         catch (Exception e)
         {
@@ -294,7 +294,7 @@
                 RagProjectId = RagProject.Id,
                 SourceItemMongoDbId = string.Empty
             };
-            rabbitMqService.SendRagMessage(message);
+            await rabbitMqService.SendRagMessage(message);
         }
         catch (Exception e)
         {
