@@ -36,4 +36,6 @@ public interface IRagDatabaseService
     Task CancelAllEmbeddingProcessing(RagProject ragProject);
     Task DeleteEmbeddingsForProject(RagProject ragProject);
     Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150);
+    bool IsEmbeddingInProgress(ContentItem item, EmbeddingSourceType type);
+    void SetInProgressFlagOnObject(ContentItem item, EmbeddingSourceType type);
 }

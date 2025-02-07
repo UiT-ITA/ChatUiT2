@@ -17,6 +17,8 @@ using ChatMessage = ChatUiT2.Models.ChatMessage;
 using Microsoft.Extensions.Caching.Memory;
 using Ganss.Xss;
 using System.Text.RegularExpressions;
+using DnsClient.Internal;
+using Microsoft.Extensions.Logging;
 
 namespace ChatUiT2.Services;
 
@@ -30,6 +32,7 @@ public class RagDatabaseService : IRagDatabaseService
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly IConfigService _configService;
     private readonly IMemoryCache _memoryCache;
+    private readonly ILogger<RagDatabaseService> _logger;
 
     // Collections
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemCollection;
@@ -39,12 +42,14 @@ public class RagDatabaseService : IRagDatabaseService
     public RagDatabaseService(IConfiguration configuration,
                               IDateTimeProvider dateTimeProvider,
                               IConfigService configService,
-                              IMemoryCache memoryCache)
+                              IMemoryCache memoryCache,
+                              ILogger<RagDatabaseService> logger)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
         this._configService = configService;
         this._memoryCache = memoryCache;
+        this._logger = logger;
 
         // Init RAG database client
         var connectionString = configuration.GetConnectionString("MongoDbRagProjectDef");
@@ -690,8 +695,15 @@ public class RagDatabaseService : IRagDatabaseService
         }
         var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
         var contentItemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
-        var filter = Builders<BsonDocument>.Filter.Eq("EmbeddingsCreationInProgress", true);
-        var update = Builders<BsonDocument>.Update.Set("EmbeddingsCreationInProgress", false);
+        
+        // Question
+        var filter = Builders<BsonDocument>.Filter.Eq("QuestionEmbeddingsCreationInProgress", true);
+        var update = Builders<BsonDocument>.Update.Set("QuestionEmbeddingsCreationInProgress", false);
+        await contentItemCollection.UpdateManyAsync(filter, update);
+
+        // Paragraph
+        filter = Builders<BsonDocument>.Filter.Eq("ParagraphEmbeddingsCreationInProgress", true);
+        update = Builders<BsonDocument>.Update.Set("ParagraphEmbeddingsCreationInProgress", false);
         await contentItemCollection.UpdateManyAsync(filter, update);
     }
 
@@ -744,6 +756,39 @@ public class RagDatabaseService : IRagDatabaseService
         catch (Exception e)
         {
             throw new Exception($"Noe feilet ved generering av paragraph embeddings for item {item.Id} {e.Message}");
+        }
+    }
+
+    public void SetInProgressFlagOnObject(ContentItem item, EmbeddingSourceType type)
+    {
+        switch (type)
+        {
+            case EmbeddingSourceType.Paragraph:
+                item.ParagraphEmbeddingsCreationInProgress = true;
+                break;
+            case EmbeddingSourceType.Question:
+                item.QuestionEmbeddingsCreationInProgress = true;
+                break;
+            default:
+                _logger.LogWarning("SetInProgressFlag: Unknown embedding type {embeddingType}",                                   
+                                   type);
+                break;
+        }
+    }
+
+    public bool IsEmbeddingInProgress(ContentItem item, EmbeddingSourceType type)
+    {
+        switch (type)
+        {
+            case EmbeddingSourceType.Paragraph:
+                return item.ParagraphEmbeddingsCreationInProgress;
+            case EmbeddingSourceType.Question:
+                return item.QuestionEmbeddingsCreationInProgress;
+                break;
+            default:
+                _logger.LogWarning("IsEmbeddingInProgress: Unknown embedding type {embeddingType}",                                   
+                                   type);
+                throw new Exception($"SetInProgressFlag: Unknown embedding type {type}");
         }
     }
 }

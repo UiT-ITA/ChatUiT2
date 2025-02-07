@@ -88,7 +88,6 @@ public class AddItemEmbeddingsToQueue
                                    embeddingType);
         }
     }
-
     private async Task AddItemsMissingEmbeddingsToQueue(RagProject ragProject, RagMqMessage myQueueItem)
     {
         if(string.IsNullOrEmpty(ragProject.Id))
@@ -105,17 +104,18 @@ public class AddItemEmbeddingsToQueue
                                    nameof(AddItemEmbeddingsToQueue));
                 continue;
             }
-            if (item.EmbeddingsCreationInProgress)
-            {
-                _logger.LogWarning("{functionName}.AddItemsMissingEmbeddingsToQueue: Item {itemId} embeddings creation already in progress",
-                                   nameof(AddItemEmbeddingsToQueue),
-                                   item.Id);
-                continue;
-            }
             try
             {
                 foreach (var embeddingType in ragProject.Configuration.EmbeddingTypes)
                 {
+                    if (_ragTopdeskDatabaseService.IsEmbeddingInProgress(item, embeddingType))
+                    {
+                        _logger.LogWarning("{functionName}.AddItemsMissingEmbeddingsToQueue: Item {itemId} embeddings creation already in progress",
+                                           nameof(AddItemEmbeddingsToQueue),
+                                           item.Id);
+                        continue;
+                    }
+
                     RagMqMessage message = new RagMqMessage
                     {
                         RagProjectId = ragProject.Id,
@@ -124,8 +124,8 @@ public class AddItemEmbeddingsToQueue
                         EmbeddingType = embeddingType
                     };
                     await _rabbitMqService.SendRagMessage(message);
+                    _ragTopdeskDatabaseService.SetInProgressFlagOnObject(item, embeddingType);
                 }
-                item.EmbeddingsCreationInProgress = true;
                 await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, item);
             }
             catch (Exception e)
