@@ -17,15 +17,22 @@
         <MudText>
             Collection: @(RagProject.Configuration?.EmbeddingCollectioName)
         </MudText>
-        <MudText>
-            Antall items uten embeddings: @numberOfItemsMissingEmbeddings
-        </MudText>
-        <MudText>
-            Antall items merket some processing (venter i kø): @nrOfContentItemsMarkedAsProcessingEmbeddings
-            <MudTooltip Text="Hent ny status fra database">
-                <MudIconButton OnClick="RefreshCounts" Icon="@Icons.Material.Filled.Refresh"></MudIconButton>
-            </MudTooltip>
-        </MudText>
+        @if (countsIsLoading)
+        {
+            <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+        }
+        else
+        {
+            <MudText>
+                Antall items uten embeddings: @numberOfItemsMissingEmbeddings
+            </MudText>
+            <MudText>
+                Antall items merket some processing (venter i kø): @nrOfContentItemsInQueue
+                <MudTooltip Text="Hent ny status fra database">
+                    <MudIconButton OnClick="RefreshCounts" Icon="@Icons.Material.Filled.Refresh"></MudIconButton>
+                </MudTooltip>
+            </MudText>
+        }
     }
 </MudText>
 
@@ -135,7 +142,7 @@
 @code {
     [Inject] IRagDatabaseService ragTopdeskService { get; set; }
     [Inject] ISnackbar Snackbar { get; set; }
-    [Inject] IConfigService configService { get; set; }
+    [Inject] IConfiguration configuration { get; set; }
     [Inject] IKnowledgeItemService knowledgeItemService { get; set; } = null!;
     [Inject] IRabbitMqService rabbitMqService { get; set; } = null!;
 
@@ -152,8 +159,10 @@
     private string sourceIdSearch = string.Empty;
     private string sortField = "SourceSystemId";
     private bool isLoading = true;
+    private bool countsIsLoading = true;
     private int numberOfItemsMissingEmbeddings = 0;
-    private long nrOfContentItemsMarkedAsProcessingEmbeddings = 0;
+    private long nrOfContentItemsInQueue = 0;
+    private IEnumerable<RagMqMessage> rabbitMqMessages = [];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -161,8 +170,8 @@
         {
             try
             {
-                await RefreshCounts();
                 await LoadDbEmbeddings();
+                await RefreshCounts();
             }
             catch (Exception e)
             {
@@ -340,20 +349,27 @@
 
     private async Task RefreshCounts()
     {
+        countsIsLoading = true;
+        await RefreshRabbitMqMessages();
         await RefreshItemsWithoutEmbeddingsCount();
         await RefreshProcessingCount();
+        countsIsLoading = false;
+        StateHasChanged();
     }
 
     private async Task RefreshProcessingCount()
     {
-        nrOfContentItemsMarkedAsProcessingEmbeddings = await ragTopdeskService.GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject);
-        StateHasChanged();
+        nrOfContentItemsInQueue = rabbitMqMessages.Where(x => x.RagProjectId == RagProject.Id).Count();
     }
 
     private async Task RefreshItemsWithoutEmbeddingsCount()
     {
         numberOfItemsMissingEmbeddings = await ragTopdeskService.GetNrOfContentItemsWithNoEmbeddings(RagProject);
-        StateHasChanged();
+    }
+
+    private async Task RefreshRabbitMqMessages()
+    {
+        var messages = await rabbitMqService.GetAllMessagesInQueueWithoutRemoval<RagMqMessage>(configuration["RabbitMq:CreateItemEmbeddingQueueName"]);
     }
 
     private async Task DeleteAllEmbeddingsForAllSourceItems()

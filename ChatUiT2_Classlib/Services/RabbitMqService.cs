@@ -3,6 +3,7 @@ using ChatUiT2_Classlib.Model.RabbitMq;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
 using System.Security.Authentication;
 using System.Text;
 using System.Text.Json;
@@ -37,18 +38,66 @@ public class RabbitMqService : IRabbitMqService
             throw new ArgumentException("Message can not be null", "message");
         }
         using (var connection = await _factory.CreateConnectionAsync())
+        {            
+            using (var channel = await connection.CreateChannelAsync())
+            {
+                string jsonString = JsonSerializer.Serialize(message);
+                var body = Encoding.UTF8.GetBytes(jsonString);
+                var ex = _configuration["RabbitMq:ExchangeName"];
+                BasicProperties basicProperties = new();
+                await channel.BasicPublishAsync<BasicProperties>(exchange: _configuration["RabbitMq:ExchangeName"],
+                                                                 routingKey: GetRoutingKey(message),
+                                                                 mandatory: false,
+                                                                 basicProperties: basicProperties,
+                                                                 body: body);
+            }
+        }
+    }
+
+    public async Task<uint> GetQueueCount(string queueName)
+    {
+        if (string.IsNullOrEmpty(queueName) == true)
+        {
+            throw new ArgumentException("Parameter can not be null", "queueName");
+        }
+        using (var connection = await _factory.CreateConnectionAsync())
         using (var channel = await connection.CreateChannelAsync())
         {
-            string jsonString = JsonSerializer.Serialize(message);
-            var body = Encoding.UTF8.GetBytes(jsonString);
-            var ex = _configuration["RabbitMq:ExchangeName"];
-            BasicProperties basicProperties = new();
-            await channel.BasicPublishAsync<BasicProperties>(exchange: _configuration["RabbitMq:ExchangeName"],
-                                                             routingKey: GetRoutingKey(message),
-                                                             mandatory: false,
-                                                             basicProperties: basicProperties,
-                                                             body: body);
+            var queueDeclare = await channel.QueueDeclarePassiveAsync(queueName);
+            return queueDeclare.MessageCount;
         }
+    }
+
+    public async Task<IEnumerable<T>> GetAllMessagesInQueueWithoutRemoval<T>(string queueName)
+    {
+        List<T> messages = new();
+        using (var connection = await _factory.CreateConnectionAsync())
+        using (var channel = await connection.CreateChannelAsync())
+        {
+            while (true)
+            {
+                var result = await channel.BasicGetAsync(queueName, false);
+                if(result == null)
+                {
+                    // No more messages
+                    break;
+                }
+                var body = result.Body.ToArray();
+                var message = Encoding.UTF8.GetString(body);
+                Console.WriteLine($"Received message: {message}");
+                var msgObj = JsonSerializer.Deserialize<T>(message);
+                if (msgObj != null)
+                {
+                    messages.Add(msgObj);
+                }
+                else
+                {
+                    // Should this be exception or just ignore?
+                    throw new Exception("Failed to deserialize message, null was returned from JsonSerializer");
+                }
+            }
+        }
+        return messages;
     }
 
     public string GetRoutingKey(RagMqMessage message)
