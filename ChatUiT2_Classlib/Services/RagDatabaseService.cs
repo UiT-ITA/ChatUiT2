@@ -690,24 +690,16 @@ public class RagDatabaseService : IRagDatabaseService
     /// This will be used to cancel all processing of embeddings for the project
     /// </summary>
     /// <returns></returns>
-    public async Task CancelAllEmbeddingProcessing(RagProject ragProject)
+    public async Task DeleteAllEmbeddingEvents(RagProject ragProject)
     {
         if (string.IsNullOrEmpty(ragProject.Id))
         {
             throw new ArgumentException("ragProject.Id must be set to delete contentItem");
         }
         var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
-        var contentItemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
-        
-        // Question
-        var filter = Builders<BsonDocument>.Filter.Eq("QuestionEmbeddingsCreationInProgress", true);
-        var update = Builders<BsonDocument>.Update.Set("QuestionEmbeddingsCreationInProgress", false);
-        await contentItemCollection.UpdateManyAsync(filter, update);
+        var embeddingEventCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingEventCollectioName);
 
-        // Paragraph
-        filter = Builders<BsonDocument>.Filter.Eq("ParagraphEmbeddingsCreationInProgress", true);
-        update = Builders<BsonDocument>.Update.Set("ParagraphEmbeddingsCreationInProgress", false);
-        await contentItemCollection.UpdateManyAsync(filter, update);
+        await embeddingEventCollection.DeleteManyAsync(new BsonDocument());
     }
 
     public string ReplaceHtmlLinebreaksWithNewline(string text)

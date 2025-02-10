@@ -31,16 +31,16 @@ public interface IRagDatabaseService
     public Task DeleteContentItem(RagProject ragProject, ContentItem item);
     public Task<List<ContentItem>> GetContentItemsWithNoEmbeddings(RagProject ragProject);
     public Task SaveRagProjectItem(RagProject ragProject, ContentItem item);
-    Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject);
-    Task<long> GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject ragProject);
-    Task CancelAllEmbeddingProcessing(RagProject ragProject);
-    Task DeleteEmbeddingsForProject(RagProject ragProject);
-    Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150);        
-    Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent);
-    Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId);
-    Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject);
-    Task<EmbeddingEvent> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId);
-    Task<bool> EmbeddingEventExists(RagProject ragProject, string contentItemId, EmbeddingSourceType type);
-    Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item);
-    Task DeleteEmbeddingEvent(RagProject ragProject, string eventId);
+    public Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject);
+    public Task<long> GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject ragProject);
+    public Task DeleteAllEmbeddingEvents(RagProject ragProject);
+    public Task DeleteEmbeddingsForProject(RagProject ragProject);
+    public Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150);
+    public Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent);
+    public Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId);
+    public Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject);
+    public Task<EmbeddingEvent> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId);
+    public Task<bool> EmbeddingEventExists(RagProject ragProject, string contentItemId, EmbeddingSourceType type);
+    public Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item);
+    public Task DeleteEmbeddingEvent(RagProject ragProject, string eventId);
 }

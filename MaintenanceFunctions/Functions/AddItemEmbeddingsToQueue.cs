@@ -157,6 +157,6 @@ public class AddItemEmbeddingsToQueue
             _logger.LogWarning("CancelAllEmbeddingsProcessing: Missing rag project id or source item id");
             return;
         }
-        await _ragTopdeskDatabaseService.CancelAllEmbeddingProcessing(ragProject);
+        await _ragTopdeskDatabaseService.DeleteAllEmbeddingEvents(ragProject);
     }
 }
