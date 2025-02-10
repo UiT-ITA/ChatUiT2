@@ -38,4 +38,7 @@ public interface IRagDatabaseService
     Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150);
     bool IsEmbeddingInProgress(ContentItem item, EmbeddingSourceType type);
     void SetInProgressFlagOnObject(ContentItem item, EmbeddingSourceType type);
+    Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent);
+    Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId);
+    Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject, string projectId);
 }

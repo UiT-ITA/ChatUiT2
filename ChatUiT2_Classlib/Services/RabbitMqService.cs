@@ -75,7 +75,7 @@ public class RabbitMqService : IRabbitMqService
         using (var channel = await connection.CreateChannelAsync())
         {
             while (true)
-            {
+            {                
                 var result = await channel.BasicGetAsync(queueName, false);
                 if(result == null)
                 {

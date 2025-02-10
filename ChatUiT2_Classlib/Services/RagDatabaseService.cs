@@ -19,6 +19,7 @@ using Ganss.Xss;
 using System.Text.RegularExpressions;
 using DnsClient.Internal;
 using Microsoft.Extensions.Logging;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 
 namespace ChatUiT2.Services;
 
@@ -790,5 +791,67 @@ public class RagDatabaseService : IRagDatabaseService
                                    type);
                 throw new Exception($"SetInProgressFlag: Unknown embedding type {type}");
         }
+    }
+
+    public async Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
+    {
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingEventCollectioName);
+
+        if (string.IsNullOrEmpty(embeddingEvent.Id))
+        {
+            embeddingEvent.Created = _dateTimeProvider.OffsetUtcNow;
+            embeddingEvent.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = embeddingEvent.ToBsonDocument();
+            // This is new document, generate new id
+            document["_id"] = ObjectId.GenerateNewId().ToString();
+            await embeddingCollection.InsertOneAsync(document);
+            embeddingEvent.Id = document["_id"].AsString;
+        }
+        else
+        {
+            embeddingEvent.Updated = _dateTimeProvider.OffsetUtcNow;
+            var document = embeddingEvent.ToBsonDocument();
+            // This is an existing document, do update
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", embeddingEvent.Id);
+            document.Remove("_id");
+            await embeddingCollection.ReplaceOneAsync(filter, document);
+        }
+    }
+
+    public async Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId)
+    {
+        if (string.IsNullOrEmpty(eventId))
+        {
+            throw new ArgumentException("eventId must be set to get embedding event");
+        }
+        // Key not in cache, so get data.
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingEventCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingEventCollectioName);
+
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", eventId);
+        var documents = await embeddingEventCollection.FindAsync(filter);
+        return BsonSerializer.Deserialize<EmbeddingEvent>(documents.FirstOrDefault().AsBsonDocument);
+    }
+
+    public async Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject, string projectId)
+    {
+        if (string.IsNullOrEmpty(projectId))
+        {
+            throw new ArgumentException("projectId must be set to get embedding event");
+        }
+        List<EmbeddingEvent> result = [];
+        // Key not in cache, so get data.
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingEventCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingEventCollectioName);
+
+        var filter = Builders<BsonDocument>.Filter.Eq("RagProjectId", projectId);
+        var documents = await embeddingEventCollection.FindAsync(filter);
+        foreach (var doc in documents.ToList())
+        {
+            var embeddingEvent = BsonSerializer.Deserialize<EmbeddingEvent>(doc.AsBsonDocument);
+            result.Add(embeddingEvent);
+        }
+        return result;
     }
 }

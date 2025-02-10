@@ -23,4 +23,6 @@ public class RagConfiguration
     public string EmbeddingCollectioName { get; set; } = string.Empty;
     [BsonElement("EmbeddingTypes")]
     public List<EmbeddingSourceType> EmbeddingTypes { get; set; } = [];
+    [BsonElement("EmbeddingEventCollectioName")]
+    public string EmbeddingEventCollectioName { get; set; } = string.Empty;
 }
