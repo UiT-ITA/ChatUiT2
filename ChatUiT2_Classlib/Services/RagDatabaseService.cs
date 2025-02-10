@@ -20,6 +20,8 @@ using System.Text.RegularExpressions;
 using DnsClient.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
+using Microsoft.IdentityModel.Tokens;
+using static MongoDB.Driver.WriteConcern;
 
 namespace ChatUiT2.Services;
 
@@ -760,39 +762,6 @@ public class RagDatabaseService : IRagDatabaseService
         }
     }
 
-    public void SetInProgressFlagOnObject(ContentItem item, EmbeddingSourceType type)
-    {
-        switch (type)
-        {
-            case EmbeddingSourceType.Paragraph:
-                item.ParagraphEmbeddingsCreationInProgress = true;
-                break;
-            case EmbeddingSourceType.Question:
-                item.QuestionEmbeddingsCreationInProgress = true;
-                break;
-            default:
-                _logger.LogWarning("SetInProgressFlag: Unknown embedding type {embeddingType}",                                   
-                                   type);
-                break;
-        }
-    }
-
-    public bool IsEmbeddingInProgress(ContentItem item, EmbeddingSourceType type)
-    {
-        switch (type)
-        {
-            case EmbeddingSourceType.Paragraph:
-                return item.ParagraphEmbeddingsCreationInProgress;
-            case EmbeddingSourceType.Question:
-                return item.QuestionEmbeddingsCreationInProgress;
-                break;
-            default:
-                _logger.LogWarning("IsEmbeddingInProgress: Unknown embedding type {embeddingType}",                                   
-                                   type);
-                throw new Exception($"SetInProgressFlag: Unknown embedding type {type}");
-        }
-    }
-
     public async Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
     {
         var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
@@ -819,6 +788,36 @@ public class RagDatabaseService : IRagDatabaseService
         }
     }
 
+    /// <summary>
+    /// Gets EmbeddingEvent and makes sure to set the processing flag to avoid other threads
+    /// from updating it.
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <param name="eventId"></param>
+    /// <returns></returns>
+    public async Task<EmbeddingEvent?> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId)
+    {
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingEventCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingEventCollectioName);
+
+        var filter = Builders<BsonDocument>.Filter.And(
+            Builders<BsonDocument>.Filter.Eq("_id", eventId),
+            Builders<BsonDocument>.Filter.Eq("IsProcessing", false)
+        );
+
+        var update = Builders<BsonDocument>.Update.Set("IsProcessing", true);
+
+        var result = await embeddingEventCollection.UpdateOneAsync(filter, update);
+        if(result.ModifiedCount > 0)
+        {
+            return await GetEmbeddingEventById(ragProject, eventId);
+        } else
+        {
+            // Someone else is already processing this event
+            return null;
+        }
+    }
+
     public async Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId)
     {
         if (string.IsNullOrEmpty(eventId))
@@ -834,9 +833,9 @@ public class RagDatabaseService : IRagDatabaseService
         return BsonSerializer.Deserialize<EmbeddingEvent>(documents.FirstOrDefault().AsBsonDocument);
     }
 
-    public async Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject, string projectId)
+    public async Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject)
     {
-        if (string.IsNullOrEmpty(projectId))
+        if (string.IsNullOrEmpty(ragProject.Id))
         {
             throw new ArgumentException("projectId must be set to get embedding event");
         }
@@ -845,7 +844,7 @@ public class RagDatabaseService : IRagDatabaseService
         var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
         var embeddingEventCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingEventCollectioName);
 
-        var filter = Builders<BsonDocument>.Filter.Eq("RagProjectId", projectId);
+        var filter = Builders<BsonDocument>.Filter.Eq("RagProjectId", ragProject.Id);
         var documents = await embeddingEventCollection.FindAsync(filter);
         foreach (var doc in documents.ToList())
         {
@@ -853,5 +852,41 @@ public class RagDatabaseService : IRagDatabaseService
             result.Add(embeddingEvent);
         }
         return result;
+    }
+
+    public async Task<bool> EmbeddingEventExists(RagProject ragProject, string contentItemId, EmbeddingSourceType type)
+    {
+        if (string.IsNullOrEmpty(contentItemId))
+        {
+            throw new ArgumentException("contentItemId must be set to get embedding event");
+        }
+        // Key not in cache, so get data.
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingEventCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingEventCollectioName);
+
+        var filter = Builders<BsonDocument>.Filter.And(
+            Builders<BsonDocument>.Filter.Eq("ContentItemId", contentItemId),
+            Builders<BsonDocument>.Filter.Eq("EmbeddingSourceType", type)
+        );
+        var documents = await embeddingEventCollection.FindAsync(filter);
+        return documents.FirstOrDefault() != null;
+    }
+
+    public async Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item)
+    {
+        await DeleteEmbeddingEvent(ragProject, item.Id);
+    }
+
+    public async Task DeleteEmbeddingEvent(RagProject ragProject, string eventId)
+    {
+        if (string.IsNullOrEmpty(eventId))
+        {
+            throw new ArgumentException("eventId must be set to delete EmbeddingEvent");
+        }
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingEventCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingEventCollectioName);
+
+        var filter = Builders<BsonDocument>.Filter.Eq("_id", eventId);
+        await embeddingEventCollection.DeleteOneAsync(filter);
     }
 }

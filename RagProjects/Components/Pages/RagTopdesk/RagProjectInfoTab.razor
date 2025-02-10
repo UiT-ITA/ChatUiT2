@@ -51,11 +51,17 @@
         @RagProject?.Configuration?.EmbeddingCollectioName
     </MudItem>
     <MudItem xs="2">
+        Embedding event collection name
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Configuration?.EmbeddingEventCollectioName
+    </MudItem>
+    <MudItem xs="2">
         Embedding types
     </MudItem>
     <MudItem xs="10">
-        <EmbeddingTypeChecklist RagProject="RagProject" 
-                                OnEnableEmbeddingType="EnableEmbeddingType" 
+        <EmbeddingTypeChecklist RagProject="RagProject"
+                                OnEnableEmbeddingType="EnableEmbeddingType"
                                 OnDisableEmbeddingType="DisableEmbeddingType"></EmbeddingTypeChecklist>
     </MudItem>
 </MudGrid>

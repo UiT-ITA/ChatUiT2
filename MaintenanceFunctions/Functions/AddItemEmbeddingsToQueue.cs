@@ -32,14 +32,12 @@ public class AddItemEmbeddingsToQueue
     [Function("AddItemEmbeddingsToQueue")]
     public async Task Run([RabbitMQTrigger("rag-add-process-embedding-tasks", ConnectionStringSetting = "RabbitMqConnectionString")] RagMqMessage myQueueItem, FunctionContext context)
     {
-        var embeddingType = myQueueItem.EmbeddingType == null ? string.Empty : Enum.GetName(typeof(EmbeddingSourceType), myQueueItem.EmbeddingType);
-        var operation = myQueueItem.EmbeddingType == null ? string.Empty : Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation!);
-        _logger.LogInformation("Processing rag message {function} {ragProjectId} {itemMongoDbId} {operation} {embeddingType}",
+        var operation = myQueueItem.Operation == null ? string.Empty : Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation!);
+        _logger.LogInformation("Processing rag message {function} {ragProjectId} {itemMongoDbId} {operation}",
                                nameof(AddItemEmbeddingsToQueue),
                                myQueueItem.RagProjectId,
                                myQueueItem.SourceItemMongoDbId,
-                               operation,
-                               embeddingType);
+                               operation);
         try
         {
             var ragProject = await _ragTopdeskDatabaseService.GetRagProjectById(myQueueItem.RagProjectId);
@@ -80,12 +78,11 @@ public class AddItemEmbeddingsToQueue
                              e.InnerException?.StackTrace);
         } finally
         {
-            _logger.LogInformation("Processing rag message completed {function} {ragProjectId} {itemMongoDbId} {operation} {embeddingType}",
+            _logger.LogInformation("Processing rag message completed {function} {ragProjectId} {itemMongoDbId} {operation}",
                                    nameof(AddItemEmbeddingsToQueue),
                                    myQueueItem.RagProjectId,
                                    myQueueItem.SourceItemMongoDbId,
-                                   operation,
-                                   embeddingType);
+                                   operation);
         }
     }
     private async Task AddItemsMissingEmbeddingsToQueue(RagProject ragProject, RagMqMessage myQueueItem)
@@ -108,23 +105,35 @@ public class AddItemEmbeddingsToQueue
             {
                 foreach (var embeddingType in ragProject.Configuration.EmbeddingTypes)
                 {
-                    if (_ragTopdeskDatabaseService.IsEmbeddingInProgress(item, embeddingType))
+                    if (await _ragTopdeskDatabaseService.EmbeddingEventExists(ragProject, item.Id, embeddingType))
                     {
-                        _logger.LogWarning("{functionName}.AddItemsMissingEmbeddingsToQueue: Item {itemId} embeddings creation already in progress",
+                        _logger.LogWarning("{functionName}.AddItemsMissingEmbeddingsToQueue: Item {itemId} with embeddingType {embeddingType} already exist in collection",
                                            nameof(AddItemEmbeddingsToQueue),
-                                           item.Id);
+                                           item.Id,
+                                           embeddingType);
                         continue;
                     }
+
+                    EmbeddingEvent embeddingEvent = new EmbeddingEvent
+                    {
+                        RagProjectId = ragProject.Id,
+                        ContentItemId = item.Id,
+                        EventType = EmbeddingEventType.Create,
+                        Created = DateTimeOffset.UtcNow,
+                        Updated = DateTimeOffset.UtcNow,
+                        IsProcessing = false,
+                        IsCompleted = false
+                    };
+                    await _ragTopdeskDatabaseService.SaveRagEmbeddingEvent(ragProject, embeddingEvent);
 
                     RagMqMessage message = new RagMqMessage
                     {
                         RagProjectId = ragProject.Id,
                         SourceItemMongoDbId = item.Id,
                         Operation = RagMqMessageOperations.GenerateEmbeddings,
-                        EmbeddingType = embeddingType
+                        EmbeddingEventMongoDbId = embeddingEvent.Id ?? string.Empty
                     };
                     await _rabbitMqService.SendRagMessage(message);
-                    _ragTopdeskDatabaseService.SetInProgressFlagOnObject(item, embeddingType);
                 }
                 await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, item);
             }

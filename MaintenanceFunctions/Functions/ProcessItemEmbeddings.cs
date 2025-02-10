@@ -34,15 +34,13 @@ public class ProcessItemEmbeddings
     [Function("ProcessItemEmbeddings")]
     public async Task Run([RabbitMQTrigger("rag-process-embedding", ConnectionStringSetting = "RabbitMqConnectionString")] RagMqMessage myQueueItem, FunctionContext context)
     {
-        var embeddingType = myQueueItem.EmbeddingType == null ? string.Empty : Enum.GetName(typeof(EmbeddingSourceType), myQueueItem.EmbeddingType);
-        var operation = myQueueItem.EmbeddingType == null ? string.Empty : Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation!);
+        var operation = myQueueItem.Operation == null ? string.Empty : Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation!);
 
-        _logger.LogInformation("Processing rag message {function} {ragProjectId} {itemMongoDbId} {operation} {embeddingType}",
+        _logger.LogInformation("Processing rag message {function} {ragProjectId} {itemMongoDbId} {operation}",
                                myQueueItem.RagProjectId,
                                nameof(ProcessItemEmbeddings),
                                myQueueItem.SourceItemMongoDbId,
-                               operation,
-                               embeddingType);
+                               operation);
         try
         {
             var ragProject = await _ragTopdeskDatabaseService.GetRagProjectById(myQueueItem.RagProjectId);
@@ -83,7 +81,16 @@ public class ProcessItemEmbeddings
 
     private async Task CreateItemEmbeddings(RagProject ragProject, RagMqMessage myQueueItem)
     {
-        switch (myQueueItem.EmbeddingType)
+        var embeddingEvent = await _ragTopdeskDatabaseService.GetEmbeddingEventByIdForProcessing(ragProject, myQueueItem.EmbeddingEventMongoDbId);
+        if (embeddingEvent == null)
+        {
+            _logger.LogWarning("{functionName} error processing message for resource type {itemMongoDbId} operation {operation}: Embedding event not found or is being updated by someone else.",
+                               nameof(ProcessItemEmbeddings),
+                               myQueueItem.SourceItemMongoDbId,
+                               Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
+            return;
+        }
+        switch (embeddingEvent.EmbeddingSourceType)
         {
             case EmbeddingSourceType.Question:
                 await CreateQuestionItemEmbeddings(ragProject, myQueueItem);
@@ -96,7 +103,7 @@ public class ProcessItemEmbeddings
                                    nameof(ProcessItemEmbeddings),
                                    myQueueItem.SourceItemMongoDbId,
                                    Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation),
-                                   Enum.GetName(typeof(EmbeddingSourceType), myQueueItem.EmbeddingType));
+                                   Enum.GetName(typeof(EmbeddingSourceType), embeddingEvent.EmbeddingSourceType));
                 break;
         }
     }
@@ -112,18 +119,8 @@ public class ProcessItemEmbeddings
                              Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
             return;
         }
-        if (myQueueItem.EmbeddingType == null || _ragTopdeskDatabaseService.IsEmbeddingInProgress(sourceItem, (EmbeddingSourceType)myQueueItem.EmbeddingType))
-        {
-            _logger.LogWarning("{functionName} error processing message for resource type {itemMongoDbId}, embeddings creation flag is false, maybe old message that is already processed. Rag project {ragProjectId}. operation {operation} ",
-                             nameof(ProcessItemEmbeddings),
-                             myQueueItem.SourceItemMongoDbId,
-                             myQueueItem.RagProjectId,
-                             Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
-            return;
-        }
         await _ragTopdeskDatabaseService.GenerateRagQuestionsFromContent(ragProject, sourceItem);
-        _ragTopdeskDatabaseService.SetInProgressFlagOnObject(sourceItem, (EmbeddingSourceType)myQueueItem.EmbeddingType);
-        await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, sourceItem);
+        await _ragTopdeskDatabaseService.DeleteEmbeddingEvent(ragProject, myQueueItem.EmbeddingEventMongoDbId);
     }
 
     private async Task CreateParagraphItemEmbeddings(RagProject ragProject, RagMqMessage myQueueItem)
@@ -138,17 +135,7 @@ public class ProcessItemEmbeddings
                              Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
             return;
         }
-        if (_ragTopdeskDatabaseService.IsEmbeddingInProgress(sourceItem, EmbeddingSourceType.Paragraph))
-        {
-            _logger.LogWarning("{functionName} error processing message for resource type {itemMongoDbId}, embeddings creation flag is false, maybe old message that is already processed. Rag project {ragProjectId}. operation {operation} ",
-                             nameof(ProcessItemEmbeddings),
-                             myQueueItem.SourceItemMongoDbId,
-                             myQueueItem.RagProjectId,
-                             Enum.GetName(typeof(RagMqMessageOperations), myQueueItem.Operation));
-            return;
-        }
         await _ragTopdeskDatabaseService.GenerateRagParagraphsFromContent(ragProject, sourceItem);
-        _ragTopdeskDatabaseService.SetInProgressFlagOnObject(sourceItem, EmbeddingSourceType.Paragraph);
-        await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, sourceItem);
+        await _ragTopdeskDatabaseService.DeleteEmbeddingEvent(ragProject, myQueueItem.EmbeddingEventMongoDbId);
     }
 }

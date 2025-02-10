@@ -162,7 +162,7 @@
     private bool countsIsLoading = true;
     private int numberOfItemsMissingEmbeddings = 0;
     private long nrOfContentItemsInQueue = 0;
-    private IEnumerable<RagMqMessage> rabbitMqMessages = [];
+    private IEnumerable<EmbeddingEvent> embeddingEvents = new List<EmbeddingEvent>();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -350,7 +350,7 @@
     private async Task RefreshCounts()
     {
         countsIsLoading = true;
-        await RefreshRabbitMqMessages();
+        await RefreshEmbeddingEvents();
         await RefreshItemsWithoutEmbeddingsCount();
         await RefreshProcessingCount();
         countsIsLoading = false;
@@ -359,7 +359,7 @@
 
     private async Task RefreshProcessingCount()
     {
-        nrOfContentItemsInQueue = rabbitMqMessages.Where(x => x.RagProjectId == RagProject.Id).Count();
+        nrOfContentItemsInQueue = embeddingEvents.Count();
     }
 
     private async Task RefreshItemsWithoutEmbeddingsCount()
@@ -367,9 +367,9 @@
         numberOfItemsMissingEmbeddings = await ragTopdeskService.GetNrOfContentItemsWithNoEmbeddings(RagProject);
     }
 
-    private async Task RefreshRabbitMqMessages()
+    private async Task RefreshEmbeddingEvents()
     {
-        var messages = await rabbitMqService.GetAllMessagesInQueueWithoutRemoval<RagMqMessage>(configuration["RabbitMq:CreateItemEmbeddingQueueName"]);
+        embeddingEvents = await ragTopdeskService.GetEmbeddingEventsByProjectId(RagProject);
     }
 
     private async Task DeleteAllEmbeddingsForAllSourceItems()

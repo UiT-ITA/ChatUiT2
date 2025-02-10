@@ -47,8 +47,4 @@ public class ContentItem
     /// </summary>
     [BsonElement("RagProjectId")]
     public string RagProjectId { get; set; } = string.Empty;
-    [BsonElement("ParagraphEmbeddingsCreationInProgress")]
-    public bool ParagraphEmbeddingsCreationInProgress { get; set; } = false;
-    [BsonElement("QuestionEmbeddingsCreationInProgress")]
-    public bool QuestionEmbeddingsCreationInProgress { get; set; } = false;
 }

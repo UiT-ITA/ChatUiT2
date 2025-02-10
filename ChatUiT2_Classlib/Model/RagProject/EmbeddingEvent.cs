@@ -25,8 +25,12 @@ public class EmbeddingEvent
     public DateTimeOffset Created { get; set; } = DateTimeOffset.MinValue;
     [BsonElement("Updated")]
     public DateTimeOffset Updated { get; set; } = DateTimeOffset.MinValue;
+    [BsonElement("IsProcessing")]
     public bool IsProcessing { get; set; }
+    [BsonElement("IsCompleted")]
     public bool IsCompleted { get; set; }
+    [BsonElement("EmbeddingSourceType")]
+    public EmbeddingSourceType EmbeddingSourceType { get; set; }
 }
 
 public enum EmbeddingEventType

@@ -35,10 +35,12 @@ public interface IRagDatabaseService
     Task<long> GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject ragProject);
     Task CancelAllEmbeddingProcessing(RagProject ragProject);
     Task DeleteEmbeddingsForProject(RagProject ragProject);
-    Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150);
-    bool IsEmbeddingInProgress(ContentItem item, EmbeddingSourceType type);
-    void SetInProgressFlagOnObject(ContentItem item, EmbeddingSourceType type);
+    Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150);        
     Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent);
     Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId);
-    Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject, string projectId);
+    Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject);
+    Task<EmbeddingEvent> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId);
+    Task<bool> EmbeddingEventExists(RagProject ragProject, string contentItemId, EmbeddingSourceType type);
+    Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item);
+    Task DeleteEmbeddingEvent(RagProject ragProject, string eventId);
 }
