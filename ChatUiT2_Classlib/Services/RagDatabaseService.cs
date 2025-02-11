@@ -881,4 +881,21 @@ public class RagDatabaseService : IRagDatabaseService
         var filter = Builders<BsonDocument>.Filter.Eq("_id", eventId);
         await embeddingEventCollection.DeleteOneAsync(filter);
     }
+
+    /// <summary>
+    /// Events that are older than the specified time will be returned
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays)
+    {
+        List<EmbeddingEvent> result = [];
+        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingEventCollection = ragItemsDatabase.GetCollection<EmbeddingEvent>(ragProject.Configuration.EmbeddingEventCollectioName);
+
+        var query = embeddingEventCollection.AsQueryable().Where(x => x.Updated < _dateTimeProvider.UtcNow.AddDays(0 - olderThanDays));
+
+        return query.ToList();
+    }
 }

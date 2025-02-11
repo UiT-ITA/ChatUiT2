@@ -43,4 +43,5 @@ public interface IRagDatabaseService
     public Task<bool> EmbeddingEventExists(RagProject ragProject, string contentItemId, EmbeddingSourceType type);
     public Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item);
     public Task DeleteEmbeddingEvent(RagProject ragProject, string eventId);
+    public Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays);
 }
