@@ -37,19 +37,37 @@ public class RabbitMqService : IRabbitMqService
         {
             throw new ArgumentException("Message can not be null", "message");
         }
+        await SendRagMessages(new List<RagMqMessage> { message });
+    }
+
+    public async Task SendRagMessages(IEnumerable<RagMqMessage> messages)
+    {
         using (var connection = await _factory.CreateConnectionAsync())
-        {            
-            using (var channel = await connection.CreateChannelAsync())
+        using (var channel = await connection.CreateChannelAsync())
+        {
+            int batchSize = messages.Count() > 100 ? 100 : messages.Count();
+            var tasks = new List<Task>();
+            foreach (var message in messages)
             {
                 string jsonString = JsonSerializer.Serialize(message);
                 var body = Encoding.UTF8.GetBytes(jsonString);
                 var ex = _configuration["RabbitMq:ExchangeName"];
                 BasicProperties basicProperties = new();
-                await channel.BasicPublishAsync<BasicProperties>(exchange: _configuration["RabbitMq:ExchangeName"],
-                                                                 routingKey: GetRoutingKey(message),
-                                                                 mandatory: false,
-                                                                 basicProperties: basicProperties,
-                                                                 body: body);
+                tasks.Add(channel.BasicPublishAsync<BasicProperties>(exchange: _configuration["RabbitMq:ExchangeName"],
+                                                                     routingKey: GetRoutingKey(message),
+                                                                     mandatory: false,
+                                                                     basicProperties: basicProperties,
+                                                                     body: body).AsTask());
+                if(tasks.Count() == batchSize)
+                {
+                    await Task.WhenAll(tasks);
+                    tasks.Clear();
+                }
+            }
+            if (tasks.Count() > 0)
+            {
+                await Task.WhenAll(tasks);
+                tasks.Clear();
             }
         }
     }

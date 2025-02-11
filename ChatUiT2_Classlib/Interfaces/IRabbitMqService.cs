@@ -7,4 +7,5 @@ public interface IRabbitMqService
     Task<uint> GetQueueCount(string queueName);
     public string GetRoutingKey(RagMqMessage message);
     public Task SendRagMessage(RagMqMessage message);
+    Task SendRagMessages(IEnumerable<RagMqMessage> messages);
 }

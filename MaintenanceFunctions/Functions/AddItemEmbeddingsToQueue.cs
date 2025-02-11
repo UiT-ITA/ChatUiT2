@@ -92,7 +92,8 @@ public class AddItemEmbeddingsToQueue
             _logger.LogWarning("AddItemsMissingEmbeddingsToQueue: Missing rag project id or source item id");
             return;
         }
-        var itemsMissingEmbeddings = await _ragTopdeskDatabaseService.GetContentItemsWithNoEmbeddings(ragProject);        
+        var itemsMissingEmbeddings = await _ragTopdeskDatabaseService.GetContentItemsWithNoEmbeddings(ragProject);
+        List<RagMqMessage> batchMsg = new List<RagMqMessage>();
         foreach (var item in itemsMissingEmbeddings)
         {
             if(string.IsNullOrEmpty(item.Id))
@@ -133,13 +134,12 @@ public class AddItemEmbeddingsToQueue
                         Operation = RagMqMessageOperations.GenerateEmbeddings,
                         EmbeddingEventMongoDbId = embeddingEvent.Id ?? string.Empty
                     };
-                    await _rabbitMqService.SendRagMessage(message);
+                    batchMsg.Add(message);
                 }
-                await _ragTopdeskDatabaseService.SaveRagProjectItem(ragProject, item);
             }
             catch (Exception e)
             {
-                _logger.LogError("{functionName}.AddItemsMissingEmbeddingsToQueue: Error sending message for item {itemId} error {errorMessage} stackTrace {stackTrace} innerMessage {innerMessage} innerStackTrace {innerStackTrace}",
+                _logger.LogError("{functionName}.AddItemsMissingEmbeddingsToQueue: Error adding rabbitMqMsg to batch for item {itemId} error {errorMessage} stackTrace {stackTrace} innerMessage {innerMessage} innerStackTrace {innerStackTrace}",
                                  nameof(AddItemEmbeddingsToQueue),
                                  item.Id,
                                  e.Message,
@@ -147,6 +147,23 @@ public class AddItemEmbeddingsToQueue
                                  e.InnerException?.Message,
                                  e.InnerException?.StackTrace);
             }
+        }
+        // Now we have a batch of messages to send to RabbitMq
+        try
+        {
+            await _rabbitMqService.SendRagMessages(batchMsg);
+        }
+        catch (Exception e)
+        {
+            _logger.LogError("{functionName}.AddItemsMissingEmbeddingsToQueue: Error sending messages for project {projectId} error {errorMessage} stackTrace {stackTrace} innerMessage {innerMessage} innerStackTrace {innerStackTrace}",
+                             nameof(AddItemEmbeddingsToQueue),
+                             ragProject.Id,
+                             e.Message,
+                             e.StackTrace,
+                             e.InnerException?.Message,
+                             e.InnerException?.StackTrace);
+
+            throw;
         }
     }
 
