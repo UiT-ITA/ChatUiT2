@@ -168,7 +168,7 @@ public static class ChatTools
         }
     }
 
-    private static string TrimContent(string content, int tokens = 20_000, ModelName model = ModelName.gpt4omini)
+    private static string TrimContent(string content, int tokens = 20_000, ModelName model = ModelName.gpt_4o_mini)
     {
 
         var content1 = StripHTML(content);
@@ -182,7 +182,7 @@ public static class ChatTools
 
         Tiktoken.Encoder encoder;
         
-        if (model == ModelName.gpt4omini)
+        if (model == ModelName.gpt_4o_mini)
         {
             encoder = new Tiktoken.Encoder(new O200KBase());
         }
@@ -359,7 +359,7 @@ public static class WikipeidaHelper
 
     public static async Task<string> GetWikipediaSectionAsync(string topic, string section)
     {
-
+        await Task.Delay(1000); // Simulate async call
         return "";
     }
 
