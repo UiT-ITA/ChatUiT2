@@ -327,7 +327,7 @@ public static class FileTools
         }
     }
 
-    public static OpenAI.Chat.ChatMessage GetOpenAIMessage(this ChatFile file, bool userMessage = true)
+    public static OpenAI.Chat.ChatMessage? GetOpenAIMessage(this ChatFile file, bool includeImageParts = true, bool userMessage = true)
     {
         List<ChatMessageContentPart> parts = new List<ChatMessageContentPart>();
         parts.Add(ChatMessageContentPart.CreateTextPart("File: " + file.FileName + "\n"));
@@ -339,12 +339,18 @@ public static class FileTools
                 var messagePart = ChatMessageContentPart.CreateTextPart(textPart.Data);
                 parts.Add(messagePart);
             }
-            else if (part is ImageFilePart imagePart)
+            else if (part is ImageFilePart imagePart && includeImageParts)
             {
                 var messagePart = ChatMessageContentPart.CreateImagePart(imageBytes: new BinaryData(imagePart.Data), imageBytesMediaType: "image/png");
                 parts.Add(messagePart);
             }
         }
+
+        if (parts.Count == 1)
+        {
+            return null;
+        }
+
         if (userMessage)
         {
             return new UserChatMessage(parts);

@@ -112,16 +112,19 @@ public class SettingsService : ISettingsService
     {
         return modelName switch
         {
-            "gpt-3.5" => ModelName.gpt35,
-            "gpt-3.5-turbo" => ModelName.gpt35turbo,
-            "gpt-4" => ModelName.gpt4,
-            "gpt-4-turbo" => ModelName.gpt4turbo,
-            "gpt-4o" => ModelName.gpt4o,
-            "gpt-4o-mini" => ModelName.gpt4omini,
+            "gpt-3.5" => ModelName.gpt_35,
+            "gpt-3.5-turbo" => ModelName.gpt_35_turbo,
+            "gpt-4" => ModelName.gpt_4,
+            "gpt-4-turbo" => ModelName.gpt_4_turbo,
+            "gpt-4o" => ModelName.gpt_4o,
+            "gpt-4o-mini" => ModelName.gpt_4o_mini,
             "o1" => ModelName.o1,
-            "o1-mini" => ModelName.o1mini,
-            "dalle2" => ModelName.dalle2,
-            "dalle3" => ModelName.dalle3,
+            "o1-mini" => ModelName.o1_mini,
+            "o3-mini-low" => ModelName.o3_mini_low,
+            "o3-mini-medium" => ModelName.o3_mini_medium,
+            "o3-mini-high" => ModelName.o3_mini_high,
+            "dalle2" => ModelName.dall_e_2,
+            "dalle3" => ModelName.dall_e_3,
             _ => throw new Exception($"Unknown model name {modelName}")
         };
     }
@@ -138,6 +141,8 @@ public class SettingsService : ISettingsService
             "StarRate" => Icons.Material.Filled.StarRate,
             "Build" => Icons.Material.Filled.Build,
             "PersonSearch" => Icons.Material.Filled.PersonSearch,
+            "HourglassBottom" => Icons.Material.Filled.HourglassBottom,
+            "HourglassFull" => Icons.Material.Filled.HourglassFull,
             _ => Icons.Material.Filled.QuestionMark
         };
     }

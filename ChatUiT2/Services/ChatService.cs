@@ -58,6 +58,7 @@ public class ChatService : IChatService
             chat.Messages.Add(responseMessage);
             chat.Updated = DateTimeTools.GetTimestamp();
             await _userService.UpdateWorkItem(chat);
+            _userService.StreamUpdated();
 
             if (model.DeploymentType == DeploymentType.AzureOpenAI)
             {
@@ -106,7 +107,8 @@ public class ChatService : IChatService
                     Model = chat.Settings.Model,
                     Prompt = chat.Settings.Prompt + "\n\nWhen continuing a message:\n1. **Continuation of Responses:**\n   - **Seamless Continuation:** When continuing from a previous message, continue directly from where the last message left off. Do not introduce new formatting or code blocks.\n   - **Mid-Code Continuation:** If the previous message was a code block that was not closed, continue writing the code without starting a new code block. Simply continue the existing code.\n\n2. **Code Formatting:**\n   - **New Code Sections:** Use code blocks only when starting a completely new code section.\n   - **Avoid Mid-Continuation Blocks:** Do not start new code blocks in the middle of a continuation if the previous message did not close a code block.\n\n3. **Handling Incomplete Messages:**\n   - **Direct Continuation:** If a message is resubmitted for continuation, directly continue from the last point without altering the format.\n   - **No New Blocks:** Ensure no new code blocks are started unless the previous section was explicitly closed.\n\n4. **Adherence to Instructions:**\n   - **Follow Instructions Precisely:** Adhere strictly to the instructions provided in this prompt without expecting further clarification from the user during the task.\n   - **Consistency:** Maintain consistency in response format based on these guidelines.",
                     MaxTokens = chat.Settings.MaxTokens,
-                    Temperature = chat.Settings.Temperature
+                    Temperature = chat.Settings.Temperature,
+                    
                 },
                 // Copy all messages into a NEW list
                 Messages = tempMessages
@@ -137,7 +139,7 @@ public class ChatService : IChatService
             var openAIService = new OpenAIService(model, _userService, _logger);
 
             int inputTokens = openAIService.GetTokens(chat);
-            await openAIService.GetStreamingResponse(chat, responseMessage);
+            await openAIService.GetStreamingResponse(chat, responseMessage, allowImages: model.Capabilities.Vision);
 
         }
         catch (Exception ex)
@@ -228,14 +230,22 @@ public class OpenAIService
     }
 
 
-    public async Task GetStreamingResponse(WorkItemChat chat, Models.ChatMessage responseMessage, bool allowFiles = true)
+    public async Task GetStreamingResponse(WorkItemChat chat, Models.ChatMessage responseMessage, bool allowImages = true)
     {
+        var options = new ChatCompletionOptions();
 
-        var options = new ChatCompletionOptions()
+        int maxTokens = _model.MaxTokens;
+
+        if (_model.Capabilities.ReasoningEffortLevel is not null)
         {
-            MaxOutputTokenCount = Math.Min(_model.MaxTokens, chat.Settings.MaxTokens),
-            Temperature = chat.Settings.Temperature,
-        };
+            options.ReasoningEffortLevel = _model.Capabilities.ReasoningEffortLevel;
+        }
+        else
+        {
+            maxTokens = Math.Min(_model.MaxTokens, chat.Settings.MaxTokens);
+            options.MaxOutputTokenCount = maxTokens;
+            options.Temperature = chat.Settings.Temperature;
+        }
 
         foreach (var tool in _model.RequiredTools)
         {
@@ -251,8 +261,8 @@ public class OpenAIService
         }
 
 
-        int availableTokens = _model.MaxContext - (int)options.MaxOutputTokenCount;
-        List<OpenAI.Chat.ChatMessage> messages = GetOpenAiMessages(chat, availableTokens, allowFiles);
+        int availableTokens = _model.MaxContext - maxTokens;
+        List<OpenAI.Chat.ChatMessage> messages = GetOpenAiMessages(chat, availableTokens, allowImages);
 
         int inputTokens = GetTokens(chat);
 
@@ -378,7 +388,7 @@ public class OpenAIService
     }
 
 
-    public List<OpenAI.Chat.ChatMessage> GetOpenAiMessages(WorkItemChat chat, int maxTokens, bool allowFiles = true)
+    public List<OpenAI.Chat.ChatMessage> GetOpenAiMessages(WorkItemChat chat, int maxTokens, bool allowImages = true)
     {
         List<OpenAI.Chat.ChatMessage> messages = new();
 
@@ -391,13 +401,11 @@ public class OpenAIService
             var message = chat.Messages[i];
             if (message.Status == ChatMessageStatus.Error) continue;
             int messageTokens = GetTokens(message.Content);
+            
             int fileTokens = 0;
-            if (allowFiles)
+            foreach (var file in message.Files)
             {
-                foreach (var file in message.Files)
-                {
-                    fileTokens += GetTokens(file);
-                }
+                fileTokens += GetTokens(file);
             }
 
             if (messageTokens + fileTokens > availableTokens)
@@ -407,35 +415,42 @@ public class OpenAIService
 
             if (message.Content == string.Empty)
             {
-                if (!allowFiles || message.Files.Count == 0)
+                if (!allowImages || message.Files.Count == 0)
                 {
                     continue;
                 }
             }
 
             OpenAI.Chat.ChatMessage requestMessage;
-            if (allowFiles)
-            {
-                if (message.Files.Count > 0)
-                {
-                    messages.Insert(1, GetOpenAIMessage(message));
-                    //Console.WriteLine(message.Content);
-                    foreach (var file in message.Files)
-                    {
 
-                        messages.Insert(1, FileTools.GetOpenAIMessage(file));
+            if (message.Files.Count > 0)
+            {
+                bool filesIncluded = false;
+                messages.Insert(1, GetOpenAIMessage(message));
+                //Console.WriteLine(message.Content);
+                foreach (var file in message.Files)
+                {
+                    var fileMessage = FileTools.GetOpenAIMessage(file, includeImageParts: allowImages);
+                    if (fileMessage != null)
+                    {
+                        messages.Insert(1, fileMessage);
+                        filesIncluded = true;
                     }
+                }
+                if (filesIncluded)
+                {
                     requestMessage = new UserChatMessage("Here is a list of files:\n");
                 }
                 else
                 {
-                    requestMessage = GetOpenAIMessage(message);
+                    requestMessage = new UserChatMessage("User tried to attach images, but you are not capable of viewing those. Advice the user to use a different model if images are important.");
                 }
             }
             else
             {
                 requestMessage = GetOpenAIMessage(message);
             }
+            
 
             messages.Insert(1, requestMessage);
             availableTokens -= messageTokens;
@@ -477,7 +492,7 @@ public class OpenAIService
     {
         // Use tiktoken to calculate tokens
         Tiktoken.Encoder encoder;
-        if (_model.ModelName == ModelName.gpt4o || _model.ModelName == ModelName.gpt4omini)
+        if (_model.ModelName == ModelName.gpt_4o || _model.ModelName == ModelName.gpt_4o_mini)
         {
             encoder = new Tiktoken.Encoder(new O200KBase());
         }
@@ -493,7 +508,7 @@ public class OpenAIService
 
         // Use tiktoken to calculate tokens
         Tiktoken.Encoder encoder;
-        if (_model.ModelName == ModelName.gpt4o || _model.ModelName == ModelName.gpt4omini)
+        if (_model.ModelName == ModelName.gpt_4o || _model.ModelName == ModelName.gpt_4o_mini)
         {
             encoder = new Tiktoken.Encoder(new O200KBase());
         }
@@ -514,11 +529,11 @@ public class OpenAIService
             {
                 int imageTokens;
                 ImageFilePart imgPart = (ImageFilePart)part;
-                if (_model.ModelName == ModelName.gpt4o)
+                if (_model.ModelName == ModelName.gpt_4o)
                 {
                     imageTokens = 85 + 170 * (int)Math.Ceiling(imgPart.Width / 512.0) * (int)Math.Ceiling(imgPart.Height / 512.0);
                 }
-                else if (_model.ModelName == ModelName.gpt4omini)
+                else if (_model.ModelName == ModelName.gpt_4o_mini)
                 {
                     imageTokens = 2833 + 5667 * (int)Math.Ceiling(imgPart.Width / 512.0) * (int)Math.Ceiling(imgPart.Height / 512.0);
                 }
