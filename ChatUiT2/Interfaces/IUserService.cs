@@ -14,7 +14,6 @@ public interface IUserService
     string Name { get; set; }
     bool IsAdmin { get; set; }
     bool IsTester { get; set; }
-    bool EnableFileUpload { get; set; }
     ISettingsService _settingsService { get; set; }
     WorkItemChat CurrentChat { get; }
     ChatWidth ChatWidth { get; set; }
