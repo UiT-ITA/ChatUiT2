@@ -21,12 +21,15 @@ public class ModelEndpoint
     public string Key { get; set; } = null!;
 }
 
+
 public class AzureOpenaiEndpoint : ModelEndpoint
 {
     public string DeploymentName { get; set; } = null!;
 
 }
-    public class AiModel
+
+
+public class AiModel
 {
     // Displayed to user
     public string DisplayName { get; set; } = null!;
