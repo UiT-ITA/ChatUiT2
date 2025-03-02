@@ -108,6 +108,15 @@
             </MudButton>
         } *@
 
+        @if (!Nav.Uri.EndsWith("/assistants"))
+        {
+            <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/assistants"))" Color="Color.Tertiary">
+                <MudStack Row>
+                    <MudIcon Icon="@Icons.Material.Filled.AssignmentInd" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                    <MudText Typo="Typo.h5" Class="pt-1">Assistants</MudText>
+                </MudStack>
+            </MudButton>
+        }
 
 
         

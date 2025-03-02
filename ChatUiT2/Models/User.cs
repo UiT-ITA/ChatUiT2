@@ -30,3 +30,11 @@ public class User
     }
 }
 
+public enum UserRole
+{
+    User,
+    Admin,
+    BetaTester,
+    External
+}
+

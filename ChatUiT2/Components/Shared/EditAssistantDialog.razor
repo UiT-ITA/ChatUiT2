@@ -1,0 +1,71 @@
+﻿@using ChatUiT2.Models
+<MudDialog>
+  <TitleContent>@(IsEdit ? "Edit Assistant" : "New Assistant")</TitleContent>
+  <DialogContent>
+    <MudForm @ref="form" Model="@assistantModel">
+      <MudTextField @bind-Value="assistantModel.Name" Label="Name" Required="true" />
+      <MudTextField @bind-Value="assistantModel.Description" Label="Description" />
+      <MudTextField @bind-Value="assistantModel.SystemPrompt" Label="System Prompt" />
+      <MudNumericField T="float" @bind-Value="assistantModel.Temperature" Label="Temperature" Min="0" Max="1" />
+      @* Insert additional fields as necessary *@
+    </MudForm>
+  </DialogContent>
+  <DialogActions>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save">Save</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="Cancel">Cancel</MudButton>
+  </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Assistant? Assistant { get; set; }
+    [Inject] private IAssistantService AssistantService { get; set; } = null!;
+    private MudForm form = default!;
+    private Assistant assistantModel = new Assistant();
+    private bool IsEdit => Assistant != null;
+    protected override void OnInitialized()
+    {
+        if (IsEdit)
+        {
+            // Clone the provided assistant so that changes aren’t applied until Save is clicked.
+            assistantModel = new Assistant
+            {
+                Id = Assistant!.Id,
+                Name = Assistant.Name,
+                Description = Assistant.Description,
+                SystemPrompt = Assistant.SystemPrompt,
+                Model = Assistant.Model,
+                Temperature = Assistant.Temperature,
+                ReasoningLevel = Assistant.ReasoningLevel,
+                Tools = Assistant.Tools,
+                Owner = Assistant.Owner,
+                AllowedRoles = new List<UserRole>(Assistant.AllowedRoles),
+                AllowedUsers = new List<string>(Assistant.AllowedUsers),
+                VisiblePrompt = Assistant.VisiblePrompt
+            };
+        }
+        else
+        {
+            assistantModel = new Assistant();
+        }
+    }
+    private async Task Save()
+    {
+        await form.Validate();
+        if (form.IsValid)
+        {
+            if (IsEdit)
+            {
+                await AssistantService.UpdateAssistant(assistantModel);
+            }
+            else
+            {
+                await AssistantService.CreateAssistant(assistantModel);
+            }
+            MudDialog.Close(DialogResult.Ok(assistantModel));
+        }
+    }
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+}

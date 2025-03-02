@@ -18,6 +18,7 @@ public interface IUserService
     WorkItemChat CurrentChat { get; }
     ChatWidth ChatWidth { get; set; }
 
+    bool IsInRole(UserRole role);
     void NewChat();
     void AddChat(WorkItemChat chat);
     void SetWorkItem(IWorkItem workItem);

@@ -43,6 +43,7 @@ public class UserService : IUserService
     public string Name { get; set; } = "Unauthorized";
     public bool IsAdmin { get; set; } = false;
     public bool IsTester { get; set; } = false;
+    private List<UserRole> UserRoles { get; set; } = new List<UserRole>();
     private User User { get; set; } = new User();
     private IConfiguration _configuration { get; set; }
     private IChatService _chatService { get; set; }
@@ -124,8 +125,7 @@ public class UserService : IUserService
 
         User.Username = username;
         Name = await _authUserService.GetName()??"Unauthorized";
-        IsAdmin = await _authUserService.TestInRole(["Admin"]);
-        IsTester = await _authUserService.TestInRole(["TestUser"]);
+        await GetRoles();
 
         if (_configuration.GetValue<bool>("DBSettings:UseEncryption", defaultValue: false))
         {
@@ -141,6 +141,31 @@ public class UserService : IUserService
         Loading = false;
         NewChat();
         _updateService.Update(UpdateType.Global);
+    }
+
+    private async Task GetRoles()
+    {
+        if (await _authUserService.TestInRole(["User"]))
+        {
+            UserRoles.Add(UserRole.User);
+        }
+        if (await _authUserService.TestInRole(["Admin"]))
+        {
+            UserRoles.Add(UserRole.Admin);
+        }
+        if (await _authUserService.TestInRole(["Beta"]))
+        {
+            UserRoles.Add(UserRole.BetaTester);
+        }
+        if (await _authUserService.TestInRole(["External"]))
+        {
+            UserRoles.Add(UserRole.External);
+        }
+    }
+
+    public bool IsInRole(UserRole role)
+    {
+        return UserRoles.Contains(role);
     }
 
     public void NewChat()

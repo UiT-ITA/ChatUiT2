@@ -1,0 +1,11 @@
+﻿@using ChatUiT2.Models
+<MudPaper Class="pa-2 my-2" Style="cursor:pointer;" @onclick="@(() => OnSelected.InvokeAsync(Assistant))">
+    <MudStack Row AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h6">@Assistant.Name</MudText>
+    </MudStack>
+    <MudText Typo="Typo.body2">@Assistant.Description</MudText>
+</MudPaper>
+@code {
+    [Parameter] public Assistant Assistant { get; set; } = null!;
+    [Parameter] public EventCallback<Assistant> OnSelected { get; set; }
+}

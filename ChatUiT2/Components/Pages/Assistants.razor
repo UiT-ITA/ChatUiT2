@@ -1,0 +1,84 @@
+﻿@page "/assistants"
+<div style="overflow-y: auto; height: 100%; padding-top:48px;">
+    <div class="mb-2" style="margin: 0 auto; max-width: 1200px; width: 100%;">
+    <h3>System Assistants:</h3>
+    @if (systemAssistants == null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!systemAssistants.Any())
+    {
+        <p>No System Assistants available.</p>
+    }
+    else
+    {
+        @foreach (var assistant in systemAssistants)
+        {
+            <AssistantView Assistant="assistant" OnSelected="ShowAssistantDetails" />
+        }
+    }
+    <h3>Personal Assistants:</h3>
+    @if (userAssistants == null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!userAssistants.Any())
+    {
+        <p>No Personal Assistants available.</p>
+    }
+    else
+    {
+        @foreach (var assistant in userAssistants)
+        {
+            <AssistantView Assistant="assistant" OnSelected="ShowAssistantDetails" />
+        }
+    }
+    <h3>Shared Assistants:</h3>
+    @if (sharedAssistants == null)
+    {
+        <p>Loading...</p>
+    }
+    else if (!sharedAssistants.Any())
+    {
+        <p>No Shared Assistants available.</p>
+    }
+    else
+    {
+        @foreach (var assistant in sharedAssistants)
+        {
+            <AssistantView Assistant="assistant" OnSelected="ShowAssistantDetails" />
+        }
+    }
+    </div>
+</div>
+@code {
+    [Inject] private ISettingsService SettingsService { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IAssistantService AssistantService { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+
+
+    List<Assistant>? systemAssistants;
+    List<Assistant>? userAssistants;
+    List<Assistant>? sharedAssistants;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        systemAssistants = await AssistantService.GetSystemAssistants();
+        userAssistants = await AssistantService.GetUserAssistants();
+        sharedAssistants = await AssistantService.GetSharedAssistants();
+    }
+
+
+    // When the user clicks an assistant card, open the details dialog.
+    private void ShowAssistantDetails(Assistant assistant)
+    {
+        var parameters = new DialogParameters
+    {
+        { "Assistant", assistant },
+        { "CurrentUser", UserService.UserName }
+    };
+        DialogService.Show<AssistantDetailsDialog>("Assistant Details", parameters);
+    }
+}

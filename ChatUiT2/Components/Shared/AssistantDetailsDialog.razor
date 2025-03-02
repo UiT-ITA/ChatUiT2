@@ -1,0 +1,79 @@
+﻿@using ChatUiT2.Models
+<MudDialog>
+  <TitleContent>Assistant Details</TitleContent>
+  <DialogContent>
+    <MudText Typo="Typo.subtitle1"><strong>Name:</strong> @Assistant.Name</MudText>
+    <MudText Typo="Typo.subtitle1"><strong>Description:</strong> @Assistant.Description</MudText>
+    <MudText Typo="Typo.subtitle1"><strong>Temperature:</strong> @Assistant.Temperature</MudText>
+    
+    <MudText Typo="Typo.subtitle1"><strong>System Prompt:</strong></MudText>
+    @if (IsShared && !Assistant.VisiblePrompt)
+    {
+        <MudText>Hidden (not allowed by creator)</MudText>
+    }
+    else
+    {
+        <MudText>@Assistant.SystemPrompt</MudText>
+    }
+    @* You can show additional settings here as needed *@
+  </DialogContent>
+  <DialogActions>
+    @if (IsOwner)
+    {
+        <MudButton Color="Color.Primary" OnClick="Edit">Edit</MudButton>
+    }
+    else
+    {
+        <MudButton Color="Color.Primary" OnClick="Modify">Modify</MudButton>
+    }
+    <MudButton OnClick="Close">Close</MudButton>
+  </DialogActions>
+</MudDialog>
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public Assistant Assistant { get; set; } = null!;
+    // Pass the currently logged in username (from the parent page).
+    [Parameter] public string CurrentUser { get; set; } = string.Empty;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private IAssistantService AssistantService { get; set; } = null!;
+    // Determine if the current user is the owner.
+    private bool IsOwner => Assistant.Owner == CurrentUser;
+    // For our purposes, a shared assistant is one not owned by you and not the "System".
+    private bool IsShared => (Assistant.Owner != CurrentUser) && (Assistant.Owner != "System");
+    private void Close()
+    {
+        MudDialog.Close();
+    }
+    private void Edit()
+    {
+        // For your own assistants, open the edit dialog.
+        var parameters = new DialogParameters();
+        parameters.Add("Assistant", Assistant);
+        var options = new DialogOptions { CloseButton = true };
+        DialogService.Show<EditAssistantDialog>("Edit Assistant", parameters, options);
+        MudDialog.Close();
+    }
+    private void Modify()
+    {
+        // For system/shared assistants, allow modification (i.e. creation of a new assistant based on this one).
+        // Clone the assistant so the new one gets a new Id and owner will be set on creation.
+        var newAssistant = new Assistant
+        {
+            Name = Assistant.Name,
+            Description = Assistant.Description,
+            SystemPrompt = Assistant.SystemPrompt,
+            Model = Assistant.Model,
+            Temperature = Assistant.Temperature,
+            ReasoningLevel = Assistant.ReasoningLevel,
+            Tools = Assistant.Tools,
+            AllowedRoles = new List<UserRole>(Assistant.AllowedRoles),
+            AllowedUsers = new List<string>(Assistant.AllowedUsers),
+            VisiblePrompt = Assistant.VisiblePrompt
+        };
+        var parameters = new DialogParameters();
+        parameters.Add("Assistant", newAssistant);
+        var options = new DialogOptions { CloseButton = true };
+        DialogService.Show<EditAssistantDialog>("Modify Assistant", parameters, options);
+        MudDialog.Close();
+    }
+}
