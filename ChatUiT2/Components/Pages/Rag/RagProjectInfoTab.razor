@@ -1,0 +1,109 @@
+﻿@using ChatUiT2.Models.RagProject
+@using ChatUiT2.Interfaces
+
+<MudText>
+    Project beskrivelse fra database RagProjects collection RagProjectDefinitions.
+    <br /><br />
+    Dette er generell informasjon om prosjektet
+</MudText>
+
+<MudGrid Class="mt-1">
+    <MudItem xs="2">
+        Navn
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Name
+    </MudItem>
+    <MudItem xs="2">
+        Beskrivelse
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Description
+    </MudItem>
+    <MudItem xs="2">
+        Opprettet
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Created
+    </MudItem>
+    <MudItem xs="2">
+        Sist oppdatert
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Updated
+    </MudItem>
+    <MudItem xs="2">
+        Rag database navn
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Configuration?.DbName
+    </MudItem>
+    <MudItem xs="2">
+        Item collection name
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Configuration?.ItemCollectionName
+    </MudItem>
+    <MudItem xs="2">
+        Embedding collection name
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Configuration?.EmbeddingCollectioName
+    </MudItem>
+    <MudItem xs="2">
+        Embedding event collection name
+    </MudItem>
+    <MudItem xs="10">
+        @RagProject?.Configuration?.EmbeddingEventCollectioName
+    </MudItem>
+    <MudItem xs="2">
+        Embedding types
+    </MudItem>
+    <MudItem xs="10">
+        <EmbeddingTypeChecklist RagProject="RagProject"
+                                OnEnableEmbeddingType="EnableEmbeddingType"
+                                OnDisableEmbeddingType="DisableEmbeddingType"></EmbeddingTypeChecklist>
+    </MudItem>
+</MudGrid>
+
+@code {
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IRagDatabaseService ragDatabaseService { get; set; } = null!;
+
+    [Parameter]
+    public RagProject? RagProject { get; set; }
+
+    private async Task EnableEmbeddingType(EmbeddingSourceType embeddingSourceType)
+    {
+        if (RagProject?.Configuration?.EmbeddingTypes.Contains(embeddingSourceType) == false)
+        {
+            try
+            {
+                RagProject?.Configuration.EmbeddingTypes.Add(embeddingSourceType);
+                await ragDatabaseService.SaveRagProject(RagProject);
+                Snackbar.Add($"Prosjekt endringer lagret", Severity.Success);
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Failed to save project: {e.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task DisableEmbeddingType(EmbeddingSourceType embeddingSourceType)
+    {
+        if (RagProject?.Configuration?.EmbeddingTypes.Contains(embeddingSourceType) == true)
+        {
+            try
+            {
+                RagProject?.Configuration.EmbeddingTypes.Remove(embeddingSourceType);
+                await ragDatabaseService.SaveRagProject(RagProject);
+                Snackbar.Add($"Prosjekt endringer lagret", Severity.Success);
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Failed to save project: {e.Message}", Severity.Error);
+            }
+        }
+    }
+}

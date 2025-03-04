@@ -197,7 +197,8 @@ public class UserService : IUserService
 
 
 
-        if (_navigationManager.Uri != _navigationManager.BaseUri)
+        if (_navigationManager.Uri != _navigationManager.BaseUri &&
+            _navigationManager.Uri != $"{_navigationManager.BaseUri}ragprojects")
         {
             _navigationManager.NavigateTo("/");
         }

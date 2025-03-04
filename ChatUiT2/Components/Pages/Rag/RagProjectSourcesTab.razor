@@ -1,0 +1,225 @@
+﻿@using ChatUiT2.Models.RagProject
+@using ChatUiT2.Interfaces
+
+<MudText>
+    Her er alle kilde artikler som RAG databasen inneholder.
+    Dette er tekstene som det vil bli generert spørsmål og
+    embeddings for.
+    <br /><br />
+    @if (RagProject != null)
+    {
+        <MudText>
+            Database: @(RagProject.Configuration?.DbName)
+        </MudText>
+        <MudText>
+            Collection: @(RagProject.Configuration?.ItemCollectionName)
+        </MudText>
+    }
+</MudText>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudText Typo="Typo.h6">Filtere</MudText>
+    <MudGrid Class="mt-1">
+        <MudItem xs="12">
+            <MudTextField T="string"
+                          @bind-Value="sourceIdSearch"
+                          Immediate="true"
+                          Placeholder="Source id"
+                          Adornment="Adornment.Start"
+                          IconSize="Size.Medium"
+                          Class="mt-0"
+                          OnKeyDown="CheckIfEnterPressed">
+            </MudTextField>
+        </MudItem>
+        <MudItem xs="12">
+            <MudTextField T="string"
+                          @bind-Value="titleSearch"
+                          Immediate="true"
+                          Placeholder="Tittel"
+                          Adornment="Adornment.Start"
+                          IconSize="Size.Medium"
+                          Class="mt-0"
+                          OnKeyDown="CheckIfEnterPressed">
+            </MudTextField>
+        </MudItem>
+        <MudItem xs="2">
+            <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
+        </MudItem>
+        <MudItem xs="10">
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (RagProject != null)
+{
+    <MudTable Items="@tableItems"
+              Class="mt-4"
+              T="ContentItem"
+              Dense="false"
+              Hover="true"
+              Bordered="true"
+              Striped="true"
+              SortLabel="Sort By"
+              AllowUnsorted="false"
+              Loading="isLoading"
+              RowsPerPage="50">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6"></MudText>
+            <MudSpacer />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh></MudTh>
+            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.DataType)">Type</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.Title)">Tittel</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.SourceSystemId)">KildesystemId</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ContentItem" SortLabel="Nummer_field" SortBy="new Func<ContentItem, object>(x=>x.SourceSystemAltId)">KildesystemAltId</MudTableSortLabel></MudTh>
+            <MudTh></MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Class="pa-0" OnClick="@(async () => await DeleteSourceItem(context))" />
+            </MudTd>
+            <MudTd>
+                @context?.DataType
+            </MudTd>
+            <MudTd>
+                @context.Title
+            </MudTd>
+            <MudTd>
+                @context.SourceSystemId
+            </MudTd>
+            <MudTd>
+                @context.SourceSystemAltId
+            </MudTd>
+            <MudTd>
+                @if (string.IsNullOrEmpty(context.ViewUrl) == false)
+                {
+                    <MudTooltip Text="Gå til nettside">
+                        <MudLink Href="@(context.ViewUrl)" Target="_blank">
+                            <MudIcon Icon="@Icons.Material.Filled.Language"></MudIcon>
+                        </MudLink>
+                    </MudTooltip>
+                }
+                @if (string.IsNullOrEmpty(context.ContentText) == false)
+                {
+                    <MudTooltip Text="Vis innhold">
+                        <MudIconButton Icon="@Icons.Material.Outlined.TextSnippet" OnClick="@(() => OpenDrawer(context))"></MudIconButton>
+                    </MudTooltip>
+                }
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
+        </PagerContent>
+    </MudTable>
+}
+else
+{
+    <MudText>Ingen content items funnet</MudText>
+}
+
+<MudDrawer @bind-Open="@openContentDrawer"
+           Anchor="Anchor.Start"
+           Elevation="1"
+           Variant="@DrawerVariant.Temporary"
+           OverlayAutoClose="true"
+           Width="50%">
+    <MudDrawerHeader>
+        <MudText Typo="Typo.h6">Innhold i artikkel/dokument</MudText>
+    </MudDrawerHeader>
+    <MudText>
+        @selectedContentItem?.ContentText
+    </MudText>
+</MudDrawer>
+
+@code {
+    [Inject] IRagDatabaseService ragTopdeskService { get; set; }
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+
+    [Parameter]
+    public RagProject? RagProject { get; set; }
+
+    private List<ContentItem> tableItems = [];
+    private bool openContentDrawer = false;
+    private ContentItem? selectedContentItem;
+    private string sourceIdSearch = string.Empty;
+    private string titleSearch = string.Empty;
+    private bool isLoading = true;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                DoSearch();
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved lasting av data fra RAG database {e.Message}", Severity.Error, config => { });
+            }
+        }
+    }
+
+    private void OpenDrawer(ContentItem item)
+    {
+        selectedContentItem = item;
+        openContentDrawer = true;
+        StateHasChanged();
+    }
+
+    private void CheckIfEnterPressed(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Call your function here
+            DoSearch();
+        }
+    }
+
+    private void DoSearch()
+    {
+        try
+        {
+            isLoading = true;
+            tableItems = [];
+            IQueryable<ContentItem>? query = RagProject.ContentItems.AsQueryable();
+            if (string.IsNullOrEmpty(sourceIdSearch) == false)
+            {
+                query = query?.Where(x => x.SourceSystemId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase) ||
+                                          x.SourceSystemAltId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase));
+            }
+            if (string.IsNullOrEmpty(titleSearch) == false)
+            {
+                query = query?.Where(x => x.Title.Contains(titleSearch, StringComparison.OrdinalIgnoreCase) ||
+                                          x.Title.Contains(titleSearch, StringComparison.OrdinalIgnoreCase));
+            }
+            tableItems = query.ToList();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved søk {e.Message}", Severity.Error, config => { });
+        }
+        finally
+        {
+            isLoading = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task DeleteSourceItem(ContentItem item)
+    {
+        try
+        {
+            await ragTopdeskService.DeleteContentItem(RagProject, item);
+            RagProject.ContentItems.RemoveAll(x => x.Id == item.Id);
+            Snackbar.Add($"Embedding slettet", Severity.Success, config => { });
+            DoSearch();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sletting av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+}

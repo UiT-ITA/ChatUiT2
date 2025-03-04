@@ -1,0 +1,384 @@
+﻿@using ChatUiT2.Interfaces
+@using ChatUiT2.Models.RagProject;
+@using ChatUiT2.Models.RabbitMq
+
+<MudText>
+    Her er informasjon om alle embeddings som er lagt inn i embeddings collection for dette RAG prosjektet.
+    Du kan bruke denne siden til å redigere texter eller slette tekster som ikke er aktuell.
+    <br /><br />
+    @if (RagProject != null)
+    {
+        <MudText>
+            Database: @(RagProject.Configuration?.DbName)
+        </MudText>
+        <MudText>
+            Collection: @(RagProject.Configuration?.EmbeddingCollectioName)
+        </MudText>
+        @if (countsIsLoading)
+        {
+            <MudProgressCircular Color="Color.Primary" Size="Size.Small" Indeterminate="true" />
+        }
+        else
+        {
+            <MudText>
+                Antall items uten embeddings: @numberOfItemsMissingEmbeddings
+            </MudText>
+            <MudText>
+                Antall items merket some processing (venter i kø): @nrOfContentItemsInQueue
+                <MudTooltip Text="Hent ny status fra database">
+                    <MudIconButton OnClick="RefreshCounts" Icon="@Icons.Material.Filled.Refresh"></MudIconButton>
+                </MudTooltip>
+            </MudText>
+        }
+    }
+</MudText>
+
+<MudExpansionPanels>
+    <MudExpansionPanel Text="Admin tasks" MaxHeight="450" Expanded="false">
+        <MudGrid>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CancelCreateEmbeddingsForAllSourceItems()" Class="mt-4">Cancel all embedding generation in queue</MudButton>
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => DeleteAllEmbeddingsForAllSourceItems()" Class="mt-4">Delete all embeddings</MudButton>
+            </MudItem>
+
+        </MudGrid>
+    </MudExpansionPanel>
+</MudExpansionPanels>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudText Typo="Typo.h6">Filtere</MudText>
+    <MudGrid Class="mt-1">
+        <MudItem xs="12">
+            <MudTextField T="string"
+                          @bind-Value="sourceIdSearch"
+                          Immediate="true"
+                          Placeholder="Source id"
+                          Adornment="Adornment.Start"
+                          IconSize="Size.Medium"
+                          Class="mt-0"
+                          OnKeyDown="CheckIfEnterPressed">
+            </MudTextField>
+        </MudItem>
+        <MudItem xs="2">
+            <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
+        </MudItem>
+        <MudItem xs="10">
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudTable Items="tableEmbeddings"
+          Class="mt-4"
+          T="RagTextEmbeddingViewItem"
+          Dense="false"
+          Hover="true"
+          Bordered="true"
+          Striped="true"
+          SortLabel="Sort By"
+          AllowUnsorted="false"
+          Loading="isLoading"
+          RowsPerPage="50"
+          @bind-SelectedItem="selectedItem1"
+          CommitEditTooltip="Commit Edit"
+          OnCommitEditClick="CommitEditAsync"
+          RowEditPreview="BackupItem"
+          RowEditCancel="ResetItemToOriginalValues"
+          CanCancelEdit="true"
+          @ref="table">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6"></MudText>
+        <MudSpacer />
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.Originaltext)">Text</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ModelProvider)">Provider</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.Model)">Model</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.TextType)">Type</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ContentItem.SourceSystemId)">Source system id</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ContentItem.SourceSystemAltId)">Source system alt id</MudTableSortLabel></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd>
+            <MudIconButton Icon="@Icons.Material.Outlined.Delete" Class="pa-0" OnClick="@(async () => await DeleteEmbedding(context))" />
+        </MudTd>
+        <MudTd>@context.RagTextEmbedding?.Originaltext</MudTd>
+        <MudTd>@context.RagTextEmbedding?.ModelProvider</MudTd>
+        <MudTd>@context.RagTextEmbedding?.Model</MudTd>
+        <MudTd>@context.RagTextEmbedding?.TextType</MudTd>
+        <MudTd>@context.ContentItem?.SourceSystemId</MudTd>
+        <MudTd>@context.ContentItem?.SourceSystemAltId</MudTd>
+    </RowTemplate>
+    <RowEditingTemplate>
+        <MudTd>
+        </MudTd>
+        <MudTextField T="string"
+                      @bind-Value="context.RagTextEmbedding.Originaltext"
+                      Immediate="true"
+                      Placeholder="Text som skal embeddes"
+                      Adornment="Adornment.Start"
+                      IconSize="Size.Medium"
+                      Class="mt-0">
+        </MudTextField>
+        <MudTd>@context.RagTextEmbedding?.ModelProvider</MudTd>
+        <MudTd>@context.RagTextEmbedding?.Model</MudTd>
+        <MudTd>@context.ContentItem?.SourceSystemId</MudTd>
+        <MudTd>@context.ContentItem?.SourceSystemAltId</MudTd>
+    </RowEditingTemplate>
+    <PagerContent>
+        <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
+    </PagerContent>
+
+</MudTable>
+
+@code {
+    [Inject] IRagDatabaseService ragTopdeskService { get; set; }
+    [Inject] ISnackbar Snackbar { get; set; }
+    [Inject] IConfiguration configuration { get; set; }
+    [Inject] IRabbitMqService rabbitMqService { get; set; } = null!;
+
+    [Parameter]
+    public RagProject? RagProject { get; set; }
+
+    private List<RagTextEmbeddingViewItem> tableEmbeddings = [];
+    private List<RagTextEmbeddingViewItem> allEmbeddings = [];
+    private MudTable<RagTextEmbeddingViewItem> table;
+    private RagTextEmbeddingViewItem selectedItem1 = null;
+    private RagTextEmbeddingViewItem elementBeforeEdit;
+    private int numToGenerate = 20;
+    private string sourceIdSearch = string.Empty;
+    private string sortField = "SourceSystemId";
+    private bool isLoading = true;
+    private bool countsIsLoading = true;
+    private int numberOfItemsMissingEmbeddings = 0;
+    private long nrOfContentItemsInQueue = 0;
+    private IEnumerable<EmbeddingEvent> embeddingEvents = new List<EmbeddingEvent>();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await LoadDbEmbeddings();
+                await RefreshCounts();
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved lasting av data fra RAG database {e.Message}", Severity.Error, config => { });
+            }
+        }
+    }
+
+    private async Task LoadDbEmbeddings()
+    {
+        isLoading = true;
+        allEmbeddings = [];
+        StateHasChanged();
+        if (RagProject == null)
+        {
+            return;
+        }
+        var embeddingsFromDb = await ragTopdeskService.GetEmbeddingsByProject(RagProject, true);
+        foreach (var embedding in embeddingsFromDb)
+        {
+            var sourceItem = await ragTopdeskService.GetContentItemById(RagProject, embedding.SourceItemId);
+            allEmbeddings.Add(new RagTextEmbeddingViewItem()
+            {
+                RagTextEmbedding = embedding,
+                IsEditing = false,
+                ContentItem = sourceItem
+            });
+        }
+        tableEmbeddings = allEmbeddings.ToList();
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveEmbedding(RagTextEmbeddingViewItem item, bool reloadData = true)
+    {
+        try
+        {
+            await ragTopdeskService.SaveRagEmbedding(RagProject, item.RagTextEmbedding);
+            if (reloadData)
+            {
+                await LoadDbEmbeddings();
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lagring av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+
+    private void BackupItem(object elementObj)
+    {
+        RagTextEmbeddingViewItem element = (RagTextEmbeddingViewItem)elementObj;
+        element.IsEditing = true;
+        elementBeforeEdit = new()
+        {
+            RagTextEmbedding = new()
+            {
+                Originaltext = element.RagTextEmbedding.Originaltext,
+            }
+        };
+        StateHasChanged();
+    }
+
+
+    private async Task CommitEditAsync(MouseEventArgs args)
+    {
+        try
+        {
+            selectedItem1.RagTextEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(selectedItem1.RagTextEmbedding.Originaltext)).ToFloats().ToArray();
+            await SaveEmbedding(selectedItem1);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved lagring av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private void ResetItemToOriginalValues(object elementObj)
+    {
+        RagTextEmbeddingViewItem element = (RagTextEmbeddingViewItem)elementObj;
+        element.RagTextEmbedding.Originaltext = elementBeforeEdit.RagTextEmbedding.Originaltext;
+    }
+
+    private async Task DeleteEmbedding(RagTextEmbeddingViewItem item)
+    {
+        try
+        {
+            await ragTopdeskService.DeleteRagEmbedding(RagProject, item.RagTextEmbedding);
+            Snackbar.Add($"Embedding slettet", Severity.Success, config => { });
+            await LoadDbEmbeddings();
+            StateHasChanged();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sletting av embedding {e.Message}", Severity.Error, config => { });
+        }
+    }
+
+    private async Task CreateEmbeddingsForAllSourceItems()
+    {
+
+        try
+        {
+            RagMqMessage message = new()
+            {
+                Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
+                RagProjectId = RagProject.Id,
+                SourceItemMongoDbId = string.Empty,
+                EmbeddingType = null
+            };
+            await rabbitMqService.SendRagMessage(message);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject.Id} {e.Message}", Severity.Error, config => { });
+        }
+        await LoadDbEmbeddings();
+        StateHasChanged();
+    }
+
+    private async Task CancelCreateEmbeddingsForAllSourceItems()
+    {
+        try
+        {
+            RagMqMessage message = new()
+            {
+                Operation = RagMqMessageOperations.CancelAllEmbeddingsProcessing,
+                RagProjectId = RagProject.Id,
+                SourceItemMongoDbId = string.Empty
+            };
+            await rabbitMqService.SendRagMessage(message);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject.Id} {e.Message}", Severity.Error, config => { });
+        }
+        await LoadDbEmbeddings();
+        StateHasChanged();
+    }
+
+    private void CheckIfEnterPressed(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Call your function here
+            DoSearch();
+        }
+    }
+
+    private void DoSearch()
+    {
+        try
+        {
+            isLoading = true;
+            tableEmbeddings = [];
+            IQueryable<RagTextEmbeddingViewItem>? query = allEmbeddings.AsQueryable();
+            if (string.IsNullOrEmpty(sourceIdSearch) == false)
+            {
+                query = query?.Where(x => x.RagTextEmbedding.ContentItem.SourceSystemId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase) ||
+                                          x.RagTextEmbedding.ContentItem.SourceSystemAltId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase));
+            }
+            tableEmbeddings = query.ToList();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved søk {e.Message}", Severity.Error, config => { });
+        }
+        finally
+        {
+            isLoading = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task RefreshCounts()
+    {
+        countsIsLoading = true;
+        await RefreshEmbeddingEvents();
+        await RefreshItemsWithoutEmbeddingsCount();
+        await RefreshProcessingCount();
+        countsIsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task RefreshProcessingCount()
+    {
+        nrOfContentItemsInQueue = embeddingEvents.Count();
+    }
+
+    private async Task RefreshItemsWithoutEmbeddingsCount()
+    {
+        numberOfItemsMissingEmbeddings = await ragTopdeskService.GetNrOfContentItemsWithNoEmbeddings(RagProject);
+    }
+
+    private async Task RefreshEmbeddingEvents()
+    {
+        embeddingEvents = await ragTopdeskService.GetEmbeddingEventsByProjectId(RagProject);
+    }
+
+    private async Task DeleteAllEmbeddingsForAllSourceItems()
+    {
+        try
+        {
+            await ragTopdeskService.DeleteEmbeddingsForProject(RagProject);
+            await LoadDbEmbeddings();
+            DoSearch();
+            Snackbar.Add($"Alle embeddings for prosjekt er slettet", Severity.Success, config => { });
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sletting {e.Message}", Severity.Error, config => { });
+        }
+    }
+}
