@@ -25,6 +25,7 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.45.2" />
     <PackageReference Include="Microsoft.CognitiveServices.Speech" Version="1.41.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Cosmos" Version="8.0.11" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="9.3.0-preview.1.25114.11" />
     <PackageReference Include="Microsoft.Identity.Client" Version="4.66.2" />
     <!-- <PackageReference Include="Microsoft.Identity.Web" Version="2.19.1" /> -->
     <!-- <PackageReference Include="Microsoft.Identity.Web.UI" Version="2.19.1" /> -->
@@ -33,9 +34,11 @@
     <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
     <PackageReference Include="MudBlazor" Version="7.15.0" />
     <PackageReference Include="MudBlazor.Markdown" Version="7.14.0" />
+    <PackageReference Include="RabbitMQ.Client" Version="7.1.1" />
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
     <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
+    <PackageReference Include="System.Numerics.Tensors" Version="9.0.2" />
     <PackageReference Include="Tiktoken" Version="2.2.0" />
   </ItemGroup>
 
