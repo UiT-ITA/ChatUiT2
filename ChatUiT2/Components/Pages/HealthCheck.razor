@@ -46,6 +46,12 @@ else
     <MudText>Deployment: @embeddingModel?.Deployment</MudText>
 </MudPaper>
 
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">NamingModel</MudText>
+    <MudText>DeploymentName: @namingModel?.DeploymentName</MudText>
+    <MudText>Name: @namingModel?.Name</MudText>
+    <MudText>Deployment: @namingModel?.Deployment</MudText>
+</MudPaper>
 
 @code {
     [Inject] IConfiguration configuration { get; set; }
