@@ -32,8 +32,22 @@ else
     <MudText>Rag projects collection name: @ragProjectCollectionName</MudText>
 </MudPaper>
 
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">DefaultModel</MudText>
+    <MudText>DeploymentName: @defaultModel?.DeploymentName</MudText>
+    <MudText>Deployment: @defaultModel?.Deployment</MudText>
+</MudPaper>
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">EmbeddingModel</MudText>
+    <MudText>DeploymentName: @embeddingModel?.DeploymentName</MudText>
+    <MudText>Deployment: @embeddingModel?.Deployment</MudText>
+</MudPaper>
+
+
 @code {
     [Inject] IConfiguration configuration { get; set; }
+    [Inject] IConfigService configService { get; set; }
     [Inject] IRagDatabaseService ragDatabaseService { get; set; }
 
     private bool ragDbStatusLoading = true;
@@ -46,6 +60,10 @@ else
     private string ragDbName = string.Empty;
     private string ragProjectCollectionName = string.Empty;
 
+    private Model? defaultModel = null;
+    private Model? embeddingModel = null;
+    private Model? namingModel = null;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -54,8 +72,16 @@ else
             CheckEnv();
             CheckDbStatus();
             CheckRagConfig();
+            checkModels();
             StateHasChanged();
         }
+    }
+
+    private void checkModels()
+    {
+        defaultModel = configService.GetDefaultModel();
+        embeddingModel = configService.GetEmbeddingModel();
+        namingModel = configService.GetNamingModel();
     }
 
     private void CheckKeyVault()
