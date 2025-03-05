@@ -88,7 +88,17 @@
             </MudButton>
         }
 
-        @* @if (!Nav.Uri.EndsWith("/admin") && UserService.IsAdmin)
+        @if (!Nav.Uri.EndsWith("/ragprojects") && UserService.IsAdmin)
+        {
+            <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/ragprojects"))" Color="Color.Tertiary">
+                <MudStack Row>
+                    <MudIcon Icon="@Icons.Material.Outlined.SnippetFolder" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                    <MudText Typo="Typo.h5" Class="pt-1">Rag projects</MudText>
+                </MudStack>
+            </MudButton>
+        }
+
+        @if (!Nav.Uri.EndsWith("/admin") && UserService.IsAdmin)
         {
             <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/admin"))" Color="Color.Tertiary">
                 <MudStack Row>

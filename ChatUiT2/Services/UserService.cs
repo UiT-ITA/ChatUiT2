@@ -121,7 +121,7 @@ public class UserService : IUserService
         if (username == null)
         {
             throw new Exception("No user found");
-        }
+        }        
 
         User.Username = username;
         Name = await _authUserService.GetName()??"Unauthorized";
@@ -197,8 +197,7 @@ public class UserService : IUserService
 
 
 
-        if (_navigationManager.Uri != _navigationManager.BaseUri &&
-            _navigationManager.Uri != $"{_navigationManager.BaseUri}ragprojects")
+        if (_navigationManager.Uri != _navigationManager.BaseUri)
         {
             _navigationManager.NavigateTo("/");
         }
