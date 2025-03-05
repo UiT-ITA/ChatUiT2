@@ -72,6 +72,8 @@ else
     private Model? embeddingModel = null;
     private Model? namingModel = null;
 
+    private string openAiEndpoint = string.Empty;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -81,9 +83,16 @@ else
             CheckDbStatus();
             CheckRagConfig();
             checkModels();
+            checkOpenAi()
             StateHasChanged();
         }
     }
+
+    private void checkOpenAi()
+    {
+        openAiEndpoint = configuration["AzureOpenAI:Endpoint"] ?? string.Empty;
+    }
+
 
     private void checkModels()
     {
