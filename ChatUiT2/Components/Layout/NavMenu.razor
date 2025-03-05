@@ -98,6 +98,16 @@
             </MudButton>
         }
 
+        @if (!Nav.Uri.EndsWith("/healthcheck") && UserService.IsAdmin)
+        {
+            <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/healthcheck"))" Color="Color.Tertiary">
+                <MudStack Row>
+                    <MudIcon Icon="@Icons.Material.Outlined.ChecklistRtl" Size="Size.Medium" Class="mt-0" Style="height:28px; width: 28px;" />
+                    <MudText Typo="Typo.h5" Class="pt-1">System health check</MudText>
+                </MudStack>
+            </MudButton>
+        }
+
         @if (!Nav.Uri.EndsWith("/admin") && UserService.IsAdmin)
         {
             <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/admin"))" Color="Color.Tertiary">

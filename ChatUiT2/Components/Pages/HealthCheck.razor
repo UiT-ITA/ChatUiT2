@@ -1,0 +1,106 @@
+﻿@page "/healthcheck"
+@attribute [Authorize(Roles = "Admin,SuperUser")]
+@using System.Text.RegularExpressions
+
+<MudText Typo="Typo.h5">Applikasjonstilstand</MudText>
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    Tester forbindelse til eksterne dependencies.
+</MudPaper>
+
+@if (ragDbStatusLoading)
+{
+    <MudPaper Class="mt-4 pa-4" Elevation="3">
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="mt-4 pa-4" Elevation="3">
+        <MudText Typo="Typo.h6">Database status</MudText>
+        <MudText Class="mt-4">@ragDbError</MudText>
+        <MudText>Connection string: @connStrForDisplay</MudText>
+        <MudText>Rag projects document count: @ragDbProjectCount</MudText>
+    </MudPaper>
+}
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">Config variables</MudText>
+    <MudText>Environment: @aspnetCoreEnv</MudText>
+    <MudText>Keyvault: @keyVaultName</MudText>
+    <MudText>Rag db name: @ragDbName</MudText>
+    <MudText>Rag projects collection name: @ragProjectCollectionName</MudText>
+</MudPaper>
+
+@code {
+    [Inject] IConfiguration configuration { get; set; }
+    [Inject] IRagDatabaseService ragDatabaseService { get; set; }
+
+    private bool ragDbStatusLoading = true;
+    private string? ragDbError = null;
+    private int? ragDbProjectCount = 0;
+    private string? connStrForDisplay = null;
+
+    private string keyVaultName = string.Empty;
+    private string aspnetCoreEnv = string.Empty;
+    private string ragDbName = string.Empty;
+    private string ragProjectCollectionName = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            CheckKeyVault();
+            CheckEnv();
+            CheckDbStatus();
+            CheckRagConfig();
+            StateHasChanged();
+        }
+    }
+
+    private void CheckKeyVault()
+    {
+        keyVaultName = configuration.GetConnectionString("KeyVault");
+    }
+
+    private void CheckEnv()
+    {
+        aspnetCoreEnv = configuration["ASPNETCORE_ENVIRONMENT"];
+    }
+
+    private void CheckRagConfig()
+    {
+        ragDbName = configuration["RagProjectDefCollection"];
+        ragProjectCollectionName = configuration["RagProjectDefCollection"];
+    }
+
+    private async Task CheckDbStatus()
+    {
+        ragDbStatusLoading = true;
+        try
+        {
+            var connStr = configuration.GetConnectionString("MongoDbRagProjectDef");
+            if (!string.IsNullOrEmpty(connStr))
+            {
+                connStrForDisplay = GetConnectionStringForDisplay(connStr);
+            }
+            else
+            {
+                connStrForDisplay = "Unable to get connection string from dbContext";
+            }
+            ragDbProjectCount = (await ragDatabaseService.GetAllRagProjects()).Count();
+        }
+        catch (Exception e)
+        {
+            ragDbError = $"Error with database: {e.Message}";
+        }
+        ragDbStatusLoading = false;
+        StateHasChanged();
+    }
+
+    private string? GetConnectionStringForDisplay(string connectionString)
+    {
+        var connStrDebug = Regex.Replace(connectionString, "//.+?@", "//xxxxx:xxxxx@");
+        return connStrDebug;
+    }
+}
