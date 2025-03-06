@@ -39,15 +39,14 @@ public class RagDatabaseService : IRagDatabaseService
                               IDateTimeProvider dateTimeProvider,
                               ISettingsService settingsService,
                               IMemoryCache memoryCache,
-                              ILogger<RagDatabaseService> logger,
-                              IChatService chatService)
+                              ILogger<RagDatabaseService> logger)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
         this._settingsService = settingsService;
         this._memoryCache = memoryCache;
         this._logger = logger;
-        this._chatService = chatService;
+        this._chatService = new ChatService(null, this._settingsService, logger);
 
         // Init RAG database client
         var connectionString = configuration.GetConnectionString("MongoDbRagProjectDef");
