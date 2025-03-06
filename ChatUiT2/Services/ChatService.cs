@@ -2,7 +2,9 @@
 using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
+using OpenAI;
 using OpenAI.Chat;
+using OpenAI.Embeddings;
 using System.Buffers;
 using System.ClientModel;
 using System.Diagnostics;
@@ -193,6 +195,35 @@ public class ChatService : IChatService
 
         return name;
     }
+
+    /// <summary>
+    /// When you just want the response as a string
+    /// No streaming handling needed
+    /// </summary>
+    /// <param name="chat"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    public async Task<string> GetChatResponseAsString(WorkItemChat chat, AiModel? model = null)
+    {
+        string result = string.Empty;
+        if(model == null)
+        {
+            model = _settingsService.DefaultModel;
+        }
+
+        if (model.DeploymentType == DeploymentType.AzureOpenAI)
+        {
+            var openAIService = new OpenAIService(model, _userService, _logger);
+
+            result = await openAIService.GetResponse(chat);
+        }
+        else
+        {
+            throw new Exception("Unsupported deployment type: " + model.DeploymentType);
+        }
+
+        return result;
+    }
 }
 
 public class OpenAIService
@@ -202,13 +233,18 @@ public class OpenAIService
     private ILogger _logger { get; set; }
     private List<ChatTool> _tools { get; set; } = new List<ChatTool>();
     private ChatClient _client { get; set; }
+    private AzureOpenAIClient _azureOpenAiClient { get; set; }
+    private EmbeddingClient _embeddingClient { get; set; }
+
     public OpenAIService(AiModel model, IUserService userService, ILogger logger)
     {
         if (model.DeploymentType != DeploymentType.AzureOpenAI)
         {
             throw new ArgumentException("Model is not an AzureOpenAI model");
         }
-        _client = new AzureOpenAIClient(new Uri(model.Endpoint), new ApiKeyCredential(model.ApiKey)).GetChatClient(model.DeploymentName);
+        _azureOpenAiClient = new AzureOpenAIClient(new Uri(model.Endpoint), new ApiKeyCredential(model.ApiKey));
+        _client = _azureOpenAiClient.GetChatClient(model.DeploymentName);
+        _embeddingClient = _azureOpenAiClient.GetEmbeddingClient(model.DeploymentName);
         _model = model;
         _userService = userService;
         _logger = logger;
@@ -549,6 +585,12 @@ public class OpenAIService
         return tokens;
     }
 
+    public async Task<OpenAIEmbedding> GetEmbedding(string text)
+    {
+        var embeddingResponse = await _embeddingClient.GenerateEmbeddingAsync(text);
+
+        return embeddingResponse;
+    }
 }
 
 

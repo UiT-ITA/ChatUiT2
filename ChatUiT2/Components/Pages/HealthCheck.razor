@@ -66,7 +66,7 @@ else
 
 @code {
     [Inject] IConfiguration configuration { get; set; }
-    [Inject] IConfigService configService { get; set; }
+    [Inject] ISettingsService settingsService { get; set; }
     [Inject] IRagDatabaseService ragDatabaseService { get; set; }
 
     private bool ragDbStatusLoading = true;
@@ -79,9 +79,9 @@ else
     private string ragDbName = string.Empty;
     private string ragProjectCollectionName = string.Empty;
 
-    private Model? defaultModel = null;
-    private Model? embeddingModel = null;
-    private Model? namingModel = null;
+    private AiModel? defaultModel = null;
+    private AiModel? embeddingModel = null;
+    private AiModel? namingModel = null;
 
     private string openAiEndpoint = string.Empty;
 
@@ -112,9 +112,9 @@ else
 
     private void checkModels()
     {
-        defaultModel = configService.GetDefaultModel();
-        embeddingModel = configService.GetEmbeddingModel();
-        namingModel = configService.GetNamingModel();
+        defaultModel = settingsService.DefaultModel;
+        embeddingModel = settingsService.GetEmbeddingModel();
+        namingModel = settingsService.NamingModel;
     }
 
     private void CheckKeyVault()

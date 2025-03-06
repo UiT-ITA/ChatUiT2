@@ -1,6 +1,5 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
-using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
@@ -13,13 +12,8 @@ using MudBlazor;
 using System.Text;
 using ChatMessage = ChatUiT2.Models.ChatMessage;
 using Microsoft.Extensions.Caching.Memory;
-using Ganss.Xss;
 using System.Text.RegularExpressions;
-using DnsClient.Internal;
-using Microsoft.Extensions.Logging;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow;
-using Microsoft.IdentityModel.Tokens;
-using static MongoDB.Driver.WriteConcern;
+using Ganss.Xss;
 
 namespace ChatUiT2.Services;
 
@@ -31,9 +25,10 @@ public class RagDatabaseService : IRagDatabaseService
     private MongoClient _mongoClientRagDb;
     // Services
     private readonly IDateTimeProvider _dateTimeProvider;
-    private readonly IConfigService _configService;
+    private readonly ISettingsService _settingsService;
     private readonly IMemoryCache _memoryCache;
     private readonly ILogger<RagDatabaseService> _logger;
+    private readonly IChatService _chatService;
 
     // Collections
     private readonly IMongoCollection<BsonDocument> _topdeskKnowledgeItemCollection;
@@ -42,15 +37,17 @@ public class RagDatabaseService : IRagDatabaseService
 
     public RagDatabaseService(IConfiguration configuration,
                               IDateTimeProvider dateTimeProvider,
-                              IConfigService configService,
+                              ISettingsService settingsService,
                               IMemoryCache memoryCache,
-                              ILogger<RagDatabaseService> logger)
+                              ILogger<RagDatabaseService> logger,
+                              IChatService chatService)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
-        this._configService = configService;
+        this._settingsService = settingsService;
         this._memoryCache = memoryCache;
         this._logger = logger;
+        this._chatService = chatService;
 
         // Init RAG database client
         var connectionString = configuration.GetConnectionString("MongoDbRagProjectDef");
@@ -68,26 +65,10 @@ public class RagDatabaseService : IRagDatabaseService
         }
     }
 
-    /// <summary>
-    /// For when you have a chat and you simply want to get a text response
-    /// with the next answer from the model.
-    /// </summary>
-    /// <param name="chat">The chat to send to model</param>
-    /// <returns></returns>
-    public async Task<string> GetTextResponseForChat(WorkItemChat chat)
-    {
-        string name;
-        var model = _configService.GetDefaultModel();
-        var endpoint = _configService.GetEndpoint(model.Deployment);
-
-        return await AzureOpenAIService.GetResponse(chat, model, endpoint);
-    }
-
     public async Task<OpenAIEmbedding> GetEmbeddingForText(string text)
     {
         string name;
-        var model = _configService.GetEmbeddingModel();
-        var endpoint = _configService.GetEndpoint(model.Deployment);
+        var model = _settingsService.EmbeddingModel;
 
         return await AzureOpenAIService.GetEmbedding(text, model, endpoint);
     }
@@ -107,12 +88,12 @@ public class RagDatabaseService : IRagDatabaseService
 
     public async Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerateMin = 5, int numToGenerateMax = 20)
     {
-        Model gpt4MiniModel = _configService.GetModel("GPT-4o-Mini");
+        AiModel gpt4MiniModel = _settingsService.GetModel("GPT-4o-Mini");
         WorkItemChat chat = new();
         chat.Settings = new ChatSettings()
         {
             MaxTokens = gpt4MiniModel.MaxTokens,
-            Model = gpt4MiniModel.Name,
+            Model = gpt4MiniModel.DeploymentName,
             Temperature = 0.5f
         };
         chat.Type = WorkItemType.Chat;
@@ -122,7 +103,7 @@ public class RagDatabaseService : IRagDatabaseService
             Role = ChatMessageRole.User,
             Content = content
         });
-        var chatResponse = await GetTextResponseForChat(chat);
+        var chatResponse = await _chatService.GetChatResponseAsString(chat);
         return JsonSerializer.Deserialize<QuestionsFromTextResult>(chatResponse);
     }
 
@@ -425,8 +406,8 @@ public class RagDatabaseService : IRagDatabaseService
         }
         RagTextEmbedding newEmbedding = new()
         {
-            Model = _configService.GetEmbeddingModel().Name,
-            ModelProvider = _configService.GetEmbeddingModel().DeploymentType,
+            Model = _settingsService.GetEmbeddingModel().Name,
+            ModelProvider = _settingsService.GetEmbeddingModel().DeploymentType,
             Originaltext = originalText,
             SourceItemId = itemId,
             RagProjectId = ragProject?.Id ?? string.Empty,
@@ -478,12 +459,12 @@ public class RagDatabaseService : IRagDatabaseService
 
     public async Task<string> SendRagSearchToLlm(List<RagSearchResult> ragSearchResults, string searchTerm)
     {
-        Model defaultModel = _configService.GetDefaultModel();
+        AiModel defaultModel = _settingsService.GetDefaultModel();
         WorkItemChat chat = new();
         chat.Settings = new ChatSettings()
         {
             MaxTokens = defaultModel.MaxTokens,
-            Model = defaultModel.Name,
+            Model = defaultModel.DeploymentName,
             Temperature = 0.5f
         };
         chat.Type = WorkItemType.Chat;
@@ -503,7 +484,7 @@ public class RagDatabaseService : IRagDatabaseService
             Content = $"My question is {searchTerm}"
         });
 
-        return await GetTextResponseForChat(chat);
+        return await _chatService.GetChatResponseAsString(chat);
     }
 
     public async Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8d)

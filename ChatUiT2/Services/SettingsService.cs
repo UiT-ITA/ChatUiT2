@@ -13,6 +13,7 @@ public class SettingsService : ISettingsService
     private List<ModelEndpoint> _endpoints { get; set; } = new List<ModelEndpoint>();
     public AiModel DefaultModel { get; set; } = null!;
     public AiModel NamingModel { get; set; } = null!;
+    public AiModel EmbeddingModel { get; set; } = null!;
 
     private readonly IConfiguration _configuration;
 
@@ -103,9 +104,11 @@ public class SettingsService : ISettingsService
 
         string? defaultModelName = _configuration["DefaultModel"];
         string? namingModelName = _configuration["NamingModel"];
+        string? embeddingModelName = _configuration["EmbeddingModel"];
 
         DefaultModel = Models.FirstOrDefault(m => m.DisplayName == defaultModelName) ?? Models[0];
         NamingModel = Models.FirstOrDefault(m => m.DisplayName == namingModelName) ?? Models[0];
+        EmbeddingModel = Models.FirstOrDefault(m => m.DisplayName == embeddingModelName) ?? Models[0];
     }
 
     public ModelName MapModelName(string modelName)
@@ -125,6 +128,7 @@ public class SettingsService : ISettingsService
             "o3-mini-high" => ModelName.o3_mini_high,
             "dalle2" => ModelName.dall_e_2,
             "dalle3" => ModelName.dall_e_3,
+            "text-3-large" => ModelName.text_3_large,
             _ => throw new Exception($"Unknown model name {modelName}")
         };
     }

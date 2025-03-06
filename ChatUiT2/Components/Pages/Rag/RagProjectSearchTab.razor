@@ -87,7 +87,7 @@
 @code {
     [Inject] private IRagDatabaseService ragTopdeskService { get; set; } = null!;
     [Inject] ISnackbar Snackbar { get; set; } = null!;
-    [Inject] IConfigService configService { get; set; }
+    [Inject] ISettingsService settingsService { get; set; }
 
     [Parameter]
     public RagProject? RagProject { get; set; }

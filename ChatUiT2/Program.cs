@@ -64,7 +64,6 @@ builder.Services.AddScoped<IUpdateService, UpdateService>();
 builder.Services.AddScoped<SpeechService>();
 builder.Services.AddScoped<LocalStorageService>();
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
-builder.Services.AddTransient<IConfigService, ConfigService>();
 
 // Transient services
 
