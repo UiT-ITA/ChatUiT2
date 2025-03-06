@@ -70,7 +70,7 @@ public class RagDatabaseService : IRagDatabaseService
         string name;
         var model = _settingsService.EmbeddingModel;
 
-        return await AzureOpenAIService.GetEmbedding(text, model, endpoint);
+        return await _chatService.GetEmbedding(text, model);
     }
 
     public async Task<List<RagTextEmbedding>> GetAllEmbeddingsMissingKnowledgeItem()
@@ -406,8 +406,8 @@ public class RagDatabaseService : IRagDatabaseService
         }
         RagTextEmbedding newEmbedding = new()
         {
-            Model = _settingsService.GetEmbeddingModel().Name,
-            ModelProvider = _settingsService.GetEmbeddingModel().DeploymentType,
+            Model = _settingsService.EmbeddingModel.DeploymentName,
+            ModelProvider = _settingsService.EmbeddingModel.DeploymentType.GetDisplayName(),
             Originaltext = originalText,
             SourceItemId = itemId,
             RagProjectId = ragProject?.Id ?? string.Empty,
@@ -459,7 +459,7 @@ public class RagDatabaseService : IRagDatabaseService
 
     public async Task<string> SendRagSearchToLlm(List<RagSearchResult> ragSearchResults, string searchTerm)
     {
-        AiModel defaultModel = _settingsService.GetDefaultModel();
+        AiModel defaultModel = _settingsService.DefaultModel;
         WorkItemChat chat = new();
         chat.Settings = new ChatSettings()
         {

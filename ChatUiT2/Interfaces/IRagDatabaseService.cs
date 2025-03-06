@@ -7,7 +7,6 @@ namespace ChatUiT2.Interfaces;
 
 public interface IRagDatabaseService
 {
-    public Task<string> GetTextResponseForChat(WorkItemChat chat);
     public Task<OpenAIEmbedding> GetEmbeddingForText(string text);
     public Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerateMin = 5, int numToGenerateMax = 20);
     public Task SaveRagProject(RagProject ragProject);

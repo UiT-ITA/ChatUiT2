@@ -2,6 +2,7 @@
 using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using OpenAI;
 using OpenAI.Chat;
 using OpenAI.Embeddings;
@@ -223,6 +224,20 @@ public class ChatService : IChatService
         }
 
         return result;
+    }
+
+    public async Task<OpenAIEmbedding> GetEmbedding(string text, AiModel model)
+    {
+        if (model.DeploymentType == DeploymentType.AzureOpenAI)
+        {
+            var openAIService = new OpenAIService(model, _userService, _logger);
+
+            return await openAIService.GetEmbedding(text);
+        }
+        else
+        {
+            throw new Exception("Unsupported deployment type: " + model.DeploymentType);
+        }
     }
 }
 

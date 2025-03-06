@@ -36,22 +36,22 @@ else
 <MudPaper Class="mt-4 pa-4" Elevation="3">
     <MudText Typo="Typo.h6">DefaultModel</MudText>
     <MudText>DeploymentName: @defaultModel?.DeploymentName</MudText>
-    <MudText>Name: @defaultModel?.Name</MudText>
-    <MudText>Deployment: @defaultModel?.Deployment</MudText>
+    <MudText>Name: @defaultModel?.DisplayName</MudText>
+    <MudText>Deployment: @defaultModel?.Endpoint</MudText>
 </MudPaper>
 
 <MudPaper Class="mt-4 pa-4" Elevation="3">
     <MudText Typo="Typo.h6">EmbeddingModel</MudText>
     <MudText>DeploymentName: @embeddingModel?.DeploymentName</MudText>
-    <MudText>Name: @embeddingModel?.Name</MudText>
-    <MudText>Deployment: @embeddingModel?.Deployment</MudText>
+    <MudText>Name: @embeddingModel?.DisplayName</MudText>
+    <MudText>Deployment: @embeddingModel?.Endpoint</MudText>
 </MudPaper>
 
 <MudPaper Class="mt-4 pa-4" Elevation="3">
     <MudText Typo="Typo.h6">NamingModel</MudText>
     <MudText>DeploymentName: @namingModel?.DeploymentName</MudText>
-    <MudText>Name: @namingModel?.Name</MudText>
-    <MudText>Deployment: @namingModel?.Deployment</MudText>
+    <MudText>Name: @namingModel?.DisplayName</MudText>
+    <MudText>Deployment: @namingModel?.Endpoint</MudText>
 </MudPaper>
 
 @foreach (var endpoint in modelEndpoints)
@@ -113,7 +113,7 @@ else
     private void checkModels()
     {
         defaultModel = settingsService.DefaultModel;
-        embeddingModel = settingsService.GetEmbeddingModel();
+        embeddingModel = settingsService.EmbeddingModel;
         namingModel = settingsService.NamingModel;
     }
 
