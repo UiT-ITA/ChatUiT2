@@ -153,6 +153,45 @@ public class DatabaseService : IDatabaseService
         return uniqueUsernames.ToList();
     }
 
+    public async Task<List<IWorkItem>> GetUsersExpiredWorkItems(string username)
+    {
+        // Get user
+        var filter = Builders<BsonDocument>.Filter.Eq("Username", username);
+        var document = await _userCollection.Find(filter).FirstOrDefaultAsync();
+
+        if (document != null)
+        {
+            User userObj = new User()
+            {
+                Username = document["Username"].AsString
+            };
+            var workItems = new List<IWorkItem>();
+            DateTime cutoffDate = _dateTimeProvider.UtcNow.AddDays(-7);
+            var chatFilter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Eq("Username", username),
+                                                               Builders<BsonDocument>.Filter.Ne("Permanent", true),
+                                                               Builders<BsonDocument>.Filter.Lt("Updated", cutoffDate));
+            var documents = await _chatCollection.FindAsync(chatFilter);
+            foreach (var doc in documents.ToList())
+            {
+                if (doc["Type"] == WorkItemType.Chat.ToString())
+                {
+                    var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
+                    workItem.Messages = await GetChatMessages(userObj, workItem.Id);
+                    workItems.Add(workItem);
+                }
+                else
+                {
+                    // Ignore unknown types
+                }
+            }
+            return workItems;
+        }
+        else
+        {
+            throw new Exception("User not found");
+        }
+    }
+
     // WorkItems
     /// <summary>
     /// Get a list of work items for a user from the database
