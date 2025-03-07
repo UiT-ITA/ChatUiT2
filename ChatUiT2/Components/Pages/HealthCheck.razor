@@ -2,6 +2,8 @@
 @attribute [Authorize(Roles = "Admin,SuperUser")]
 @using System.Text.RegularExpressions
 @using OpenAI.Embeddings
+@using ChatUiT2.Interfaces
+@using ChatUiT2.Services
 
 <MudText Typo="Typo.h5">Applikasjonstilstand</MudText>
 
@@ -46,6 +48,43 @@
         }
     }
 </MudPaper>
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">OpenAi chat default model status</MudText>
+    <MudText>DeploymentName: @defaultModel?.DeploymentName</MudText>
+    <MudText>Name: @defaultModel?.DisplayName</MudText>
+    <MudText>Deployment: @defaultModel?.Endpoint</MudText>
+    @if (string.IsNullOrEmpty(defaultModel?.ApiKey) == false)
+    {
+        <MudText>Endpoint key has value</MudText>
+    }
+    else
+    {
+        <MudText>Endpoint key is null or empty</MudText>
+    }
+    @if (defaultModelConfig != null)
+    {
+        <MudText>Default model deployment endpoint config name: @defaultModelConfig.DeploymentEndpoint</MudText>
+    }
+    else
+    {
+        <MudText>Default model config is null</MudText>
+    }
+    @if (chatTestStatusLoading)
+    {
+        <MudText>Testing chat api</MudText>
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Class="mt-4">@chatDbError</MudText>
+        @if (string.IsNullOrEmpty(chatDbError) == true)
+        {
+            <MudText>Chat response: @chatResponse</MudText>
+        }
+    }
+</MudPaper>
+
 
 <MudPaper Class="mt-4 pa-4" Elevation="3">
     <MudText Typo="Typo.h6">OpenAi embedding creation status</MudText>
@@ -122,6 +161,7 @@
     [Inject] IRagDatabaseService ragDatabaseService { get; set; }
     [Inject] IDatabaseService databaseService { get; set; }
     [Inject] IUserService userService { get; set; }
+    [Inject] ILogger<UserService> userLogger { get; set; }
 
     private bool ragDbStatusLoading = true;
     private string? ragDbError = null;
@@ -139,6 +179,7 @@
     private string ragProjectCollectionName = string.Empty;
 
     private AiModel? defaultModel = null;
+    private ModelConfig? defaultModelConfig = null;
     private AiModel? embeddingModel = null;
     private ModelConfig? embeddingModelConfig = null;
     private AiModel? namingModel = null;
@@ -148,6 +189,12 @@
     private bool embeddingTestStatusLoading = true;
     private ModelEndpoint? embeddingModelEndpoint = null;
     private string openAiEndpoint = string.Empty;
+
+    private OpenAIEmbedding? chatTest = null;
+    private string? chatApiError = null;
+    private bool chatTestStatusLoading = true;
+    private ModelEndpoint? chatModelEndpoint = null;
+    private string chatResponse = string.Empty;
 
     private List<ModelEndpoint> modelEndpoints = [];
 
@@ -162,7 +209,8 @@
             CheckChatDbStatus();
             CheckRagDbStatus();
             CheckRagConfig();
-            checkOpenAiConnection();
+            checkOpenAiConnectionEmbedding();
+            checkOpenAiConnectionChat();
             StateHasChanged();
         }
     }
@@ -173,7 +221,7 @@
         modelEndpoints = endpointSection.Get<List<ModelEndpoint>>() ?? [];
     }
 
-    private async Task checkOpenAiConnection()
+    private async Task checkOpenAiConnectionEmbedding()
     {
         embeddingTestStatusLoading = true;
         try
@@ -189,6 +237,32 @@
         StateHasChanged();
     }
 
+    private async Task checkOpenAiConnectionChat()
+    {
+        IChatService chatService = new ChatService(userService, settingsService, userLogger);
+
+        chatTestStatusLoading = true;
+        try
+        {
+            WorkItemChat chat = new();
+            chat.Settings = new ChatSettings()
+            {
+                MaxTokens = defaultModel.MaxTokens,
+                Model = defaultModel.DeploymentName,
+                Temperature = 0.5f
+            };
+            chat.Type = WorkItemType.Chat;
+            chat.Settings.Prompt = $"Can you confirm that you received this message?\n\n";
+            chatResponse = await chatService.GetChatResponseAsString(chat, defaultModel);
+        }
+        catch (Exception e)
+        {
+            chatApiError = $"Error getting chat response: {e.Message}";
+        }
+        chatTestStatusLoading = false;
+        StateHasChanged();
+    }
+
     private void checkModels()
     {
         defaultModel = settingsService.DefaultModel;
@@ -198,6 +272,7 @@
         var modelSection = configuration.GetSection("Models");
         var models = modelSection.Get<List<ModelConfig>>();
         embeddingModelConfig = models?.FirstOrDefault(m => m.DisplayName == embeddingModel.DisplayName);
+        defaultModelConfig = models?.FirstOrDefault(m => m.DisplayName == defaultModel.DisplayName);
     }
 
     private void CheckKeyVault()
