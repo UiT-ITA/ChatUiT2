@@ -16,6 +16,7 @@ public class DatabaseService : IDatabaseService
     // Services
     private readonly IKeyVaultService _keyVaultService;
     private readonly IEncryptionService _encryptionService;
+    private readonly IDateTimeProvider _dateTimeProvider;
     //private IStorageService _storageService;
 
     // Collections
@@ -29,10 +30,12 @@ public class DatabaseService : IDatabaseService
 
     public DatabaseService(IConfiguration configuration, 
                            IEncryptionService encryptionService, 
-                           IKeyVaultService keyVaultService)
+                           IKeyVaultService keyVaultService,
+                           IDateTimeProvider dateTimeProvider)
     {
         _keyVaultService = keyVaultService;
         _encryptionService = encryptionService;
+        this._dateTimeProvider = dateTimeProvider;
         //_storageService = storageService;
 
         var connectionString = configuration.GetConnectionString("MongoDb");
@@ -122,6 +125,33 @@ public class DatabaseService : IDatabaseService
         await _chatMessageCollection.DeleteManyAsync(filter);
     }
 
+    /// <summary>
+    /// Gets a list of usernames for for users that have at least one expired chat (not updated in 7 days)
+    /// </summary>
+    /// <returns></returns>
+    public async Task<List<string>> GetUsersWithWorkItemsExpired()
+    {
+        var workItems = new List<IWorkItem>();
+
+        DateTime olderThan = _dateTimeProvider.UtcNow.AddDays(-7);
+        var filter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Lt("Updated", olderThan),
+                                                       Builders<BsonDocument>.Filter.Ne("Permanent", true));
+
+        var projection = Builders<BsonDocument>.Projection.Include("Username").Exclude("_id");
+
+        var usernames = await _chatCollection
+            .Find(filter)
+            .Project(projection)
+            .ToListAsync();
+
+        var uniqueUsernames = new HashSet<string>();
+
+        foreach (var doc in usernames)
+        {
+            uniqueUsernames.Add(doc["Username"].AsString);
+        }
+        return uniqueUsernames.ToList();
+    }
 
     // WorkItems
     /// <summary>
