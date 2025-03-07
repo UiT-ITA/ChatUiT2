@@ -522,11 +522,11 @@ public class RagDatabaseService : IRagDatabaseService
 
         List<RagSearchResult> result = [];
         var userPhraseEmbedding = await GetEmbeddingForText(searchTerm);
+        var floatsUser = userPhraseEmbedding.ToFloats().ToArray().Take(500).ToArray();
 
         var embeddings = await GetEmbeddingsByProjectCached(ragProject);
         foreach (var embedding in embeddings)
         {
-            var floatsUser = userPhraseEmbedding.ToFloats().ToArray().Take(500).ToArray();
             var floatsText = embedding.Embedding.Take(500).ToArray();
             if (floatsUser != null &&
                 floatsText != null &&
