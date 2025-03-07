@@ -20,8 +20,18 @@ public class RabbitMqService : IRabbitMqService
 
         _factory = new ConnectionFactory();
         _factory.Ssl.Enabled = true;
-        _factory.UserName = _configuration["RabbitMq:Username"];
-        _factory.Password = _configuration["RabbitMq:Password"];
+        string? username = _configuration["RabbitMq:Username"];
+        if (string.IsNullOrEmpty(username))
+        {
+            username = "guest";
+        }
+        _factory.UserName = username;
+        string? password = _configuration["RabbitMq:Password"];
+        if (string.IsNullOrEmpty(password))
+        {
+            password = "guest";
+        }
+        _factory.Password = password;
         _factory.VirtualHost = _configuration["RabbitMq:VirtualHost"];
         _factory.HostName = _configuration["RabbitMq:HostName"];
         _factory.Port = _configuration.GetValue<int>("RabbitMq:Port");
