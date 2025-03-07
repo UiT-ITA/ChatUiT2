@@ -123,6 +123,29 @@
 </MudPaper>
 
 <MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">Mq status</MudText>
+    <MudText>Hostname: @mqHost</MudText>
+    <MudText>Virtualhost: @mqVhost</MudText>
+    <MudText>Port: @mqPort</MudText>
+    <MudText>Exchange: @mqExchange</MudText>
+    <MudText>Username: @mqUsername</MudText>
+    <MudText>Password has value: @mqPasswordHasValue</MudText>
+    @if (mqStatusLoading)
+    {
+        <MudText>Testing rabbitMq connection</MudText>
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Class="mt-4">@mqError</MudText>
+        @if (string.IsNullOrEmpty(mqError) == true)
+        {
+            <MudText>RabbitMq queue count: @mqCount</MudText>
+        }
+    }
+</MudPaper>
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
     <MudText Typo="Typo.h6">Config variables</MudText>
     <MudText>Environment: @aspnetCoreEnv</MudText>
     <MudText>Keyvault: @keyVaultName</MudText>
@@ -162,6 +185,7 @@
     [Inject] IDatabaseService databaseService { get; set; }
     [Inject] IUserService userService { get; set; }
     [Inject] ILogger<UserService> userLogger { get; set; }
+    [Inject] IRabbitMqService rabbitMqService { get; set; }
 
     private bool ragDbStatusLoading = true;
     private string? ragDbError = null;
@@ -196,6 +220,16 @@
     private ModelEndpoint? chatModelEndpoint = null;
     private string chatResponse = string.Empty;
 
+    private string mqVhost = string.Empty;
+    private string mqHost = string.Empty;
+    private string mqPort = string.Empty;
+    private string mqExchange = string.Empty;
+    private string mqUsername = string.Empty;
+    private bool mqPasswordHasValue = false;
+    private uint mqCount;
+    private string? mqError;
+    private bool mqStatusLoading = true;
+
     private List<ModelEndpoint> modelEndpoints = [];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -211,6 +245,7 @@
             CheckRagConfig();
             checkOpenAiConnectionEmbedding();
             checkOpenAiConnectionChat();
+            CheckRabbitMq();
             StateHasChanged();
         }
     }
@@ -345,4 +380,24 @@
         return connStrDebug;
     }
 
+    private async Task CheckRabbitMq()
+    {
+        mqStatusLoading = true;
+        mqVhost = configuration["RabbitMq:VirtualHost"];
+        mqHost = configuration["RabbitMq:HostName"];
+        mqPort = configuration["RabbitMq:Port"];
+        mqExchange = configuration["RabbitMq:ExchangeName"];
+        mqUsername = configuration["RabbitMq:Username"];
+        mqPasswordHasValue = string.IsNullOrEmpty(configuration["RabbitMq:Password"]) == false;
+        try
+        {
+            mqCount = await rabbitMqService.GetQueueCount(configuration["RabbitMq:CreateItemEmbeddingQueueName"] ?? "MissingQueue");
+        }
+        catch (Exception e)
+        {
+            mqError = $"Error getting count from rabbitMq queue: {e.Message}";
+        }
+        mqStatusLoading = false;
+        StateHasChanged();
+    }
 }
