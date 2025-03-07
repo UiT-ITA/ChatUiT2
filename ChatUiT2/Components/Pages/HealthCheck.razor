@@ -1,6 +1,7 @@
 ﻿@page "/healthcheck"
 @attribute [Authorize(Roles = "Admin,SuperUser")]
 @using System.Text.RegularExpressions
+@using OpenAI.Embeddings
 
 <MudText Typo="Typo.h5">Applikasjonstilstand</MudText>
 
@@ -8,21 +9,79 @@
     Tester forbindelse til eksterne dependencies.
 </MudPaper>
 
-@if (ragDbStatusLoading)
-{
-    <MudPaper Class="mt-4 pa-4" Elevation="3">
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">Rag database status</MudText>
+    <MudText>Connection string: @connStrForDisplayRag</MudText>
+    @if (ragDbStatusLoading)
+    {
+        <MudText>Testing connection</MudText>
         <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
-    </MudPaper>
-}
-else
-{
-    <MudPaper Class="mt-4 pa-4" Elevation="3">
-        <MudText Typo="Typo.h6">Database status</MudText>
+    }
+    else
+    {
         <MudText Class="mt-4">@ragDbError</MudText>
-        <MudText>Connection string: @connStrForDisplay</MudText>
-        <MudText>Rag projects document count: @ragDbProjectCount</MudText>
-    </MudPaper>
-}
+        @if (string.IsNullOrEmpty(ragDbError) == true)
+        {
+            <MudText>Rag projects document count: @ragDbProjectsCount</MudText>
+        }
+    }
+</MudPaper>
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">Chat database status</MudText>
+    <MudText>Connection string: @connStrForDisplayChat</MudText>
+    @if (chatDbStatusLoading)
+    {
+        <MudText>Testing connection</MudText>
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Typo="Typo.h6">Chat database status</MudText>
+        <MudText Class="mt-4">@chatDbError</MudText>
+        @if (string.IsNullOrEmpty(chatDbError) == true)
+        {
+            <MudText>Chat users document count: @chatDbUsersCount</MudText>
+        }
+    }
+</MudPaper>
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">OpenAi embedding creation status</MudText>
+    <MudText>DeploymentName: @embeddingModel?.DeploymentName</MudText>
+    <MudText>Name: @embeddingModel?.DisplayName</MudText>
+    <MudText>Deployment: @embeddingModel?.Endpoint</MudText>
+    @if (string.IsNullOrEmpty(embeddingModel?.ApiKey) == false)
+    {
+        <MudText>Endpoint key has value</MudText>
+    }
+    else
+    {
+        <MudText>Endpoint key is null or empty</MudText>
+    }
+    @if (embeddingModelConfig != null)
+    {
+        <MudText>Embedding model deployment endpoint config name: @embeddingModelConfig.DeploymentEndpoint</MudText>
+    }
+    else
+    {
+        <MudText>Embedding model config is null</MudText>
+    }
+    @if (embeddingTestStatusLoading)
+    {
+        <MudText>Testing embedding api</MudText>
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Class="mt-4">@embeddingDbError</MudText>
+        @if (string.IsNullOrEmpty(embeddingDbError) == true)
+        {
+            <MudText>Embedding vector dimension count: @embeddingTest?.ToFloats().ToArray().Count()</MudText>
+        }
+    }
+</MudPaper>
 
 <MudPaper Class="mt-4 pa-4" Elevation="3">
     <MudText Typo="Typo.h6">Config variables</MudText>
@@ -38,13 +97,6 @@ else
     <MudText>DeploymentName: @defaultModel?.DeploymentName</MudText>
     <MudText>Name: @defaultModel?.DisplayName</MudText>
     <MudText>Deployment: @defaultModel?.Endpoint</MudText>
-</MudPaper>
-
-<MudPaper Class="mt-4 pa-4" Elevation="3">
-    <MudText Typo="Typo.h6">EmbeddingModel</MudText>
-    <MudText>DeploymentName: @embeddingModel?.DeploymentName</MudText>
-    <MudText>Name: @embeddingModel?.DisplayName</MudText>
-    <MudText>Deployment: @embeddingModel?.Endpoint</MudText>
 </MudPaper>
 
 <MudPaper Class="mt-4 pa-4" Elevation="3">
@@ -68,11 +120,18 @@ else
     [Inject] IConfiguration configuration { get; set; }
     [Inject] ISettingsService settingsService { get; set; }
     [Inject] IRagDatabaseService ragDatabaseService { get; set; }
+    [Inject] IDatabaseService databaseService { get; set; }
+    [Inject] IUserService userService { get; set; }
 
     private bool ragDbStatusLoading = true;
     private string? ragDbError = null;
-    private int? ragDbProjectCount = 0;
-    private string? connStrForDisplay = null;
+    private int? ragDbProjectsCount = 0;
+    private string? connStrForDisplayChat = null;
+
+    private bool chatDbStatusLoading = true;
+    private string? chatDbError = null;
+    private int? chatDbUsersCount = 0;
+    private string? connStrForDisplayRag = null;
 
     private string keyVaultName = string.Empty;
     private string aspnetCoreEnv = string.Empty;
@@ -81,8 +140,13 @@ else
 
     private AiModel? defaultModel = null;
     private AiModel? embeddingModel = null;
+    private ModelConfig? embeddingModelConfig = null;
     private AiModel? namingModel = null;
 
+    private OpenAIEmbedding? embeddingTest = null;
+    private string? embeddingDbError = null;
+    private bool embeddingTestStatusLoading = true;
+    private ModelEndpoint? embeddingModelEndpoint = null;
     private string openAiEndpoint = string.Empty;
 
     private List<ModelEndpoint> modelEndpoints = [];
@@ -93,28 +157,47 @@ else
         {
             CheckKeyVault();
             CheckEnv();
-            CheckDbStatus();
-            CheckRagConfig();
             checkModels();
-            checkOpenAi();
+            checkEndpointsConfig();
+            CheckChatDbStatus();
+            CheckRagDbStatus();
+            CheckRagConfig();
+            checkOpenAiConnection();
             StateHasChanged();
         }
     }
 
-    private void checkOpenAi()
+    private void checkEndpointsConfig()
     {
-        openAiEndpoint = configuration["AzureOpenAI:Endpoint"] ?? string.Empty;
         var endpointSection = configuration.GetSection("Endpoints");
-        modelEndpoints = endpointSection.Get<List<ModelEndpoint>>() ?? new List<ModelEndpoint>();
-
+        modelEndpoints = endpointSection.Get<List<ModelEndpoint>>() ?? [];
     }
 
+    private async Task checkOpenAiConnection()
+    {
+        embeddingTestStatusLoading = true;
+        try
+        {
+            embeddingTest = await ragDatabaseService.GetEmbeddingForText("Test text");
+
+        }
+        catch (Exception e)
+        {
+            embeddingDbError = $"Error getting embedding: {e.Message}";
+        }
+        embeddingTestStatusLoading = false;
+        StateHasChanged();
+    }
 
     private void checkModels()
     {
         defaultModel = settingsService.DefaultModel;
         embeddingModel = settingsService.EmbeddingModel;
         namingModel = settingsService.NamingModel;
+
+        var modelSection = configuration.GetSection("Models");
+        var models = modelSection.Get<List<ModelConfig>>();
+        embeddingModelConfig = models?.FirstOrDefault(m => m.DisplayName == embeddingModel.DisplayName);
     }
 
     private void CheckKeyVault()
@@ -133,21 +216,45 @@ else
         ragProjectCollectionName = configuration["RagProjectDefCollection"];
     }
 
-    private async Task CheckDbStatus()
+    private async Task CheckChatDbStatus()
     {
         ragDbStatusLoading = true;
         try
         {
-            var connStr = configuration.GetConnectionString("MongoDbRagProjectDef");
-            if (!string.IsNullOrEmpty(connStr))
+            var connStrChat = configuration.GetConnectionString("MongoDb");
+            if (!string.IsNullOrEmpty(connStrChat))
             {
-                connStrForDisplay = GetConnectionStringForDisplay(connStr);
+                connStrForDisplayChat = GetConnectionStringForDisplay(connStrChat);
             }
             else
             {
-                connStrForDisplay = "Unable to get connection string from dbContext";
+                connStrForDisplayChat = "Unable to get connection string from dbContext";
             }
-            ragDbProjectCount = (await ragDatabaseService.GetAllRagProjects()).Count();
+            chatDbUsersCount = (await databaseService.GetUsers()).Count();
+        }
+        catch (Exception e)
+        {
+            ragDbError = $"Error with database: {e.Message}";
+        }
+        chatDbStatusLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task CheckRagDbStatus()
+    {
+        ragDbStatusLoading = true;
+        try
+        {
+            var connStrRag = configuration.GetConnectionString("MongoDbRagProjectDef");
+            if (!string.IsNullOrEmpty(connStrRag))
+            {
+                connStrForDisplayRag = GetConnectionStringForDisplay(connStrRag);
+            }
+            else
+            {
+                connStrForDisplayRag = "Unable to get connection string from dbContext";
+            }
+            ragDbProjectsCount = (await ragDatabaseService.GetAllRagProjects()).Count();
         }
         catch (Exception e)
         {
@@ -162,4 +269,5 @@ else
         var connStrDebug = Regex.Replace(connectionString, "//.+?@", "//xxxxx:xxxxx@");
         return connStrDebug;
     }
+
 }
