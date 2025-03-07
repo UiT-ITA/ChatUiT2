@@ -23,6 +23,26 @@
                           OnKeyDown="CheckIfEnterPressed">
             </MudTextField>
         </MudItem>
+        <MudItem xs="12">
+            <MudSelect T="int" Label="Nr of results articles to send to llm" @bind-Value="numResults">
+                <MudSelectItem T="int" Value="3">1</MudSelectItem>
+                <MudSelectItem T="int" Value="3">2</MudSelectItem>
+                <MudSelectItem T="int" Value="3">3</MudSelectItem>
+                <MudSelectItem T="int" Value="4">4</MudSelectItem>
+                <MudSelectItem T="int" Value="5">5</MudSelectItem>
+                <MudSelectItem T="int" Value="6">6</MudSelectItem>
+                <MudSelectItem T="int" Value="7">7</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12">
+            <MudSelect T="double" Label="Minimum match score" @bind-Value="minScore">
+                <MudSelectItem T="double" Value="0.8d">0.8</MudSelectItem>
+                <MudSelectItem T="double" Value="0.65d">0.65</MudSelectItem>
+                <MudSelectItem T="double" Value="0.5d">0.5</MudSelectItem>
+                <MudSelectItem T="double" Value="0.45d">0.45</MudSelectItem>
+                <MudSelectItem T="double" Value="0.3d">0.3</MudSelectItem>
+            </MudSelect>
+        </MudItem>
         <MudItem xs="2">
             <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
         </MudItem>
@@ -38,7 +58,7 @@
               Dense="false"
               Hover="true"
               Bordered="true"
-              Striped="true"
+              Striped="false"
               SortLabel="Sort By"
               AllowUnsorted="false"
               Loading="tableIsLoading"
@@ -97,6 +117,8 @@
     private MudTable<RagSearchResult> table;
     private string searchTerm = string.Empty;
     private string llmQuestionresponse = string.Empty;
+    private int numResults = 3;
+    private double minScore = 0.5d;
 
     private async Task CheckIfEnterPressed(KeyboardEventArgs e)
     {
@@ -112,7 +134,7 @@
         try
         {
             tableIsLoading = true;
-            var result = await ragTopdeskService.DoGenericRagSearch(RagProject, searchTerm);
+            var result = await ragTopdeskService.DoGenericRagSearch(RagProject, searchTerm, numResults, minScore);
             tableRagResultList = result;
             llmQuestionresponse = await ragTopdeskService.SendRagSearchToLlm(result, searchTerm);
         }
