@@ -16,6 +16,7 @@ using System.Text.RegularExpressions;
 using Ganss.Xss;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 
 namespace ChatUiT2.Services;
 
@@ -488,6 +489,32 @@ public class RagDatabaseService : IRagDatabaseService
         return await _chatService.GetChatResponseAsString(chat);
     }
 
+    private async Task<List<RagTextEmbedding>> GetEmbeddingsByProjectCached(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject?.Id))
+        {
+            throw new ArgumentException("itemId must be set to get source item");
+        }
+        string cacheKey = $"FullItemEmbeddingList_{ragProject.Id}";
+        if (!_memoryCache.TryGetValue(cacheKey, out List<RagTextEmbedding>? cachedValue))
+        {
+            // Key not in cache, so get data.
+            var embeddings = await GetEmbeddingsByProject(ragProject);
+            if (embeddings != null)
+            {                
+                // Set cache options.
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetSlidingExpiration(TimeSpan.FromMinutes(60));
+
+                // Save data in cache.
+                _memoryCache.Set(cacheKey, embeddings, cacheEntryOptions);
+                return embeddings;
+            }
+        }
+
+        return cachedValue ?? [];
+    }
+
     public async Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8d)
     {
         var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
@@ -496,11 +523,11 @@ public class RagDatabaseService : IRagDatabaseService
         List<RagSearchResult> result = [];
         var userPhraseEmbedding = await GetEmbeddingForText(searchTerm);
 
-        var embeddings = await GetEmbeddingsByProject(ragProject);
+        var embeddings = await GetEmbeddingsByProjectCached(ragProject);
         foreach (var embedding in embeddings)
         {
-            var floatsUser = userPhraseEmbedding.ToFloats().ToArray();
-            var floatsText = embedding.Embedding;
+            var floatsUser = userPhraseEmbedding.ToFloats().ToArray().Take(500).ToArray();
+            var floatsText = embedding.Embedding.Take(500).ToArray();
             if (floatsUser != null &&
                 floatsText != null &&
                 floatsUser.Length == floatsText.Length)
