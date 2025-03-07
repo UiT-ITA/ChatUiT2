@@ -1,5 +1,7 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models.RabbitMq;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;

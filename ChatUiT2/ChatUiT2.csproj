@@ -40,7 +40,6 @@
     <PackageReference Include="System.Formats.Asn1" Version="8.0.1" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.1" />
     <PackageReference Include="System.Numerics.Tensors" Version="9.0.2" />
-    <PackageReference Include="Tiktoken" Version="2.2.0" />
   </ItemGroup>
 
   <Import Project="$(MSBuildExtensionsPath64)\Microsoft\VisualStudio\v$(VisualStudioVersion)\TypeScript\Microsoft.TypeScript.targets" Condition="false" />
@@ -51,6 +50,10 @@
 
   <ItemGroup>
     <_ContentIncludedByDefault Remove="Components\Shared\ModelConfigurationView.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ChatUiT2_Lib\ChatUiT2_Lib.csproj" />
   </ItemGroup>
 
   <ItemGroup>

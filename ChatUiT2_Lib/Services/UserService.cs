@@ -2,6 +2,8 @@
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
 namespace ChatUiT2.Services;

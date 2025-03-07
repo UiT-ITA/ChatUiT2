@@ -3,6 +3,7 @@ using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
+using Microsoft.Extensions.Logging;
 using OpenAI;
 using OpenAI.Chat;
 using OpenAI.Embeddings;
@@ -12,9 +13,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Tiktoken;
 using Tiktoken.Encodings;
-using ZstdSharp.Unsafe;
 
 namespace ChatUiT2.Services;
 

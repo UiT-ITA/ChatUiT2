@@ -14,6 +14,8 @@ using ChatMessage = ChatUiT2.Models.ChatMessage;
 using Microsoft.Extensions.Caching.Memory;
 using System.Text.RegularExpressions;
 using Ganss.Xss;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace ChatUiT2.Services;
 
