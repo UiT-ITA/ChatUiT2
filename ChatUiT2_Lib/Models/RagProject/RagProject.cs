@@ -37,6 +37,7 @@ public class RagProject
     [BsonElement("Configuration")]
     public RagConfiguration? Configuration { get; set; }
     [BsonIgnore]
+    [JsonIgnore]
     public List<ContentItem> ContentItems { get; set; } = [];    
     [BsonElement("Created")]
     public DateTimeOffset Created { get; set; } = DateTimeOffset.MinValue;

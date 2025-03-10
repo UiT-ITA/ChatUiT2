@@ -19,7 +19,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests
             Description = "Test Description",
             Configuration = new RagConfiguration
             {
-                DbName = "TestDb",
+                DbName = "XunitTestDb",
                 ItemCollectionName = "TestCollection"
             },
             ContentItems = new List<ContentItem>
@@ -68,5 +68,123 @@ public class RagDatabaseServiceCosmosDbNoSqlTests
         Assert.Equal(2, contentItemList.Count());
         Assert.Equal("Test Content 1", contentItemList[0].ContentText);
         Assert.Equal("Test Content 2", contentItemList[1].ContentText);
+
+        // Cleanup
+        await ragProjectDefdatabase.DeleteAsync();
+        await ragItemDatabase.Database.DeleteAsync();
+    }
+
+    [Fact]
+    public async Task GetRagProjectById_NormalRun_ShouldReturnItem()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Project",
+            Description = "Test Description",
+            Configuration = new RagConfiguration
+            {
+                DbName = "XunitTestDb",
+                ItemCollectionName = "TestCollection"
+            },
+            ContentItems = new List<ContentItem>
+            {
+                new ContentItem
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 1"
+                },
+                new ContentItem
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 2"
+                }
+            }
+        };
+        var service = RagDatabaseServiceCosmosDbNoSqlStaging.GetRagDatabaseServiceCosmosDbNoSqlStaging("Development");
+        var configuration = ConfigurationStaging.GetConfiguration("Development");
+        var connectionString = configuration["ConnectionStrings:RagProjectDef"];
+        var cosmosClient = new CosmosClient(connectionString);        
+        var ragProjectDefDatabase = await cosmosClient.CreateDatabaseIfNotExistsAsync(configuration["RagProjectDefCollection"]);
+        var ragProjectContainer = (await ragProjectDefDatabase.Database.CreateContainerIfNotExistsAsync(configuration["RagProjectDefCollection"], "/id")).Container;
+        var ragItemDatabase = await cosmosClient.CreateDatabaseIfNotExistsAsync(ragProject.Configuration.DbName);
+        var itemContainer = (await ragItemDatabase.Database.CreateContainerIfNotExistsAsync(ragProject.Configuration.ItemCollectionName, "/id")).Container;
+
+        // Act
+        await ragProjectContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var item in ragProject.ContentItems)
+        {
+            item.RagProjectId = ragProject.Id;
+            await itemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
+        }
+        var result = await service.GetRagProjectById(ragProject.Id);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(ragProject.Name, result.Name);
+        Assert.Equal(ragProject.Description, result.Description);
+        Assert.Empty(result.ContentItems);
+    }
+
+    [Fact]
+    public async Task GetRagProjectById_WithContentItems_ShouldReturnItemAndContentItems()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Project",
+            Description = "Test Description",
+            Configuration = new RagConfiguration
+            {
+                DbName = "XunitTestDb",
+                ItemCollectionName = "TestCollection"
+            },
+            ContentItems = new List<ContentItem>
+            {
+                new ContentItem
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 1"
+                },
+                new ContentItem
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 2"
+                }
+            }
+        };
+        var service = RagDatabaseServiceCosmosDbNoSqlStaging.GetRagDatabaseServiceCosmosDbNoSqlStaging("Development");
+        var configuration = ConfigurationStaging.GetConfiguration("Development");
+        var connectionString = configuration["ConnectionStrings:RagProjectDef"];
+        var cosmosClient = new CosmosClient(connectionString);
+        var ragProjectDefDatabase = await cosmosClient.CreateDatabaseIfNotExistsAsync(configuration["RagProjectDefCollection"]);
+        var ragProjectContainer = (await ragProjectDefDatabase.Database.CreateContainerIfNotExistsAsync(configuration["RagProjectDefCollection"], "/id")).Container;
+        var ragItemDatabase = await cosmosClient.CreateDatabaseIfNotExistsAsync(ragProject.Configuration.DbName);
+        var itemContainer = (await ragItemDatabase.Database.CreateContainerIfNotExistsAsync(ragProject.Configuration.ItemCollectionName, "/id")).Container;
+
+        // Act
+        await ragProjectContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var item in ragProject.ContentItems)
+        {
+            item.RagProjectId = ragProject.Id;
+            await itemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
+        }
+        var result = await service.GetRagProjectById(ragProject.Id, true);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(ragProject.Name, result.Name);
+        Assert.Equal(ragProject.Description, result.Description);
+        Assert.Equal(2, result.ContentItems.Count());
     }
 }

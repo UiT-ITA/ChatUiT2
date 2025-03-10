@@ -93,8 +93,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
         {
             throw new ArgumentException("RagProject.Configuration.ItemCollectionName must be set to save project");
         }
-        var ragProjectDefDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(_configuration["RagProjectDefCollection"]);
-        var ragProjectDefContainer = (await ragProjectDefDatabase.Database.CreateContainerIfNotExistsAsync(_configuration["RagProjectDefCollection"], "/id")).Container;
+        var ragProjectDefContainer = await GetRagProjectDefinitionContainer();
         var ragItemDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(ragProject.Configuration.DbName);
         var itemContainer = (await ragItemDatabase.Database.CreateContainerIfNotExistsAsync(ragProject.Configuration.ItemCollectionName, "/id")).Container;
 
@@ -152,9 +151,40 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
         }
     }
 
-    public Task<RagProject> GetRagProjectById(string projectId, bool loadItems = false)
+    private async Task<Container> GetRagProjectDefinitionContainer()
     {
-        throw new NotImplementedException();
+        var ragProjectDefDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(_configuration["RagProjectDefCollection"]);
+        return (await ragProjectDefDatabase.Database.CreateContainerIfNotExistsAsync(_configuration["RagProjectDefCollection"], "/id")).Container;
+    }
+
+    public async Task<RagProject> GetRagProjectById(string projectId, bool loadItems = false)
+    {
+        if (string.IsNullOrEmpty(projectId))
+        {
+            throw new ArgumentException("projectId must be set to get project");
+        }
+
+        var ragProjectDefinitionsContainer = await GetRagProjectDefinitionContainer();
+        var response = await ragProjectDefinitionsContainer.ReadItemAsync<RagProject>(projectId, new PartitionKey(projectId));
+        var ragProject = response.Resource;
+
+        // Get the items for the project
+        if (loadItems)
+        {
+            var database = _cosmosClient.GetDatabase(ragProject.Configuration?.DbName);
+            var itemContainer = database.GetContainer(ragProject.Configuration?.ItemCollectionName);
+            var query = new QueryDefinition("SELECT * FROM c WHERE c.RagProjectId = @projectId")
+                .WithParameter("@projectId", projectId);
+            var iterator = itemContainer.GetItemQueryIterator<ContentItem>(query);
+            ragProject.ContentItems = new List<ContentItem>();
+            while (iterator.HasMoreResults)
+            {
+                var responseItems = await iterator.ReadNextAsync();
+                ragProject.ContentItems.AddRange(responseItems);
+            }
+        }
+
+        return ragProject;
     }
 
     public Task<List<RagProject>> GetAllRagProjects()
