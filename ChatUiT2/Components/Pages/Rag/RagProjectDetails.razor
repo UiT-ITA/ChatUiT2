@@ -1,0 +1,54 @@
+﻿@page "/ragprojects/{RagProjectId}"
+@using ChatUiT2.Interfaces
+@using ChatUiT2.Models.RagProject
+
+<PageTitle>Detaljer om RAG prosjekt</PageTitle>
+
+<MudText Typo="Typo.h3">
+    Detaljer om rag projekt @(ragProject?.Name ?? string.Empty)
+</MudText>
+
+@if (isLoading)
+{
+    <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+}
+else
+{
+<MudTabs Class="mt-6" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+    <MudTabPanel Text="Prosjektinformasjon">
+        <RagProjectInfoTab RagProject="ragProject"></RagProjectInfoTab>
+    </MudTabPanel>
+    <MudTabPanel Text="Kildedata">
+        <RagProjectSourcesTab RagProject="ragProject"></RagProjectSourcesTab>
+    </MudTabPanel>
+    <MudTabPanel Text="Embeddings">
+        <RagProjectEmbeddingsTab RagProject="ragProject"></RagProjectEmbeddingsTab>
+    </MudTabPanel>
+    <MudTabPanel Text="Test RAG søk">
+        <RagProjectSearchTab RagProject="ragProject"></RagProjectSearchTab>
+    </MudTabPanel>
+</MudTabs>
+}
+
+@code {
+    [Inject] private IRagDatabaseService ragDatabaseService { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+
+    [Parameter]
+    public string? RagProjectId { get; set; }
+
+    private RagProject ragProject;
+    private bool isLoading = true;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!string.IsNullOrEmpty(RagProjectId))
+            {
+                ragProject = await ragDatabaseService.GetRagProjectById(RagProjectId, true);
+            }
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

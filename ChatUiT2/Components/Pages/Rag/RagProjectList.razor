@@ -1,0 +1,208 @@
+﻿@page "/ragprojects"
+@using ChatUiT2.Interfaces
+@using ChatUiT2.Models.RagProject
+
+<PageTitle>Topdesk knowledge items</PageTitle>
+
+<MudText Typo="Typo.h3">
+    Liste over rag projektbeskrivelser i rag MongoDb
+</MudText>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
+        <ActivatorContent>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                Last opp ny Rag prosjekt fil
+            </MudButton>
+        </ActivatorContent>
+    </MudFileUpload>
+    <br/>
+    <MudLink Href="/ragexamples/studieprogram.json">Eksempel fil studieprogram</MudLink>
+</MudPaper>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudText Typo="Typo.h6">Filtere</MudText>
+    <MudGrid Class="mt-1">
+        <MudItem xs="2">
+            Prosjektnavn
+        </MudItem>
+        <MudItem xs="10">
+            <MudTextField T="string"
+                          @bind-Value="nameSearch"
+                          Immediate="true"
+                          Placeholder="Skriv prosjektnavn du vil søke etter"
+                          Adornment="Adornment.Start"
+                          IconSize="Size.Medium"                          
+                          Class="mt-0"
+                          OnKeyDown="CheckIfEnterPressed">
+            </MudTextField>
+        </MudItem>
+        <MudItem xs="2">
+            <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
+        </MudItem>
+        <MudItem xs="10">
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudTable Items="tableRagProjectList"
+              T="RagProjectViewClass"
+              Dense="false"
+              Hover="true"
+              Bordered="true"
+              Striped="false"
+              SortLabel="Sort By"
+              AllowUnsorted="false"
+              Loading="tableIsLoading"
+              RowsPerPage="50"
+              @ref="table">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6"></MudText>
+            <MudSpacer />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh></MudTh>
+            <MudTh><MudTableSortLabel T="RagProjectViewClass" SortLabel="Navn_field">Navn</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="RagProjectViewClass" SortLabel="Beskrivelse_field">Beskrivelse</MudTableSortLabel></MudTh>
+            <MudTh>Antall sources</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" Class="pa-0" OnClick="@(async () => await DeleteRagProject(context))" />
+            </MudTd>
+            <MudTd>
+                <MudLink Href="@($"/ragprojects/{context.RagProject?.Id}")">
+                    @context.RagProject?.Name
+                </MudLink>
+            </MudTd>
+            <MudTd>
+                @context.RagProject.Description
+            </MudTd>
+            <MudTd>
+                @context.RagProject.ContentItems.Count
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+<MudOverlay Visible="pageIsWorking" DarkBackground="true">
+    <MudProgressCircular Color="Color.Secondary" Indeterminate="true" />
+</MudOverlay>
+
+@code {
+    [Inject] private IRagDatabaseService ragDatabaseService { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+
+    private List<RagProjectViewClass> tableRagProjectList = [];
+    private List<RagProjectViewClass> allRagProjectList = [];
+    private bool tableIsLoading = true;
+    private MudTable<RagProjectViewClass>? table;
+    private string nameSearch = string.Empty;
+    private bool pageIsWorking = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                await LoadRagProjectsFromRagDb();
+            }
+            catch (Exception e)
+            {
+                Snackbar.Add($"Noe feilet ved lasting av data {e.Message}", Severity.Error, config => { });
+            }
+        }
+    }
+
+    private async Task LoadRagProjectsFromRagDb()
+    {
+        tableIsLoading = true;
+        tableRagProjectList = [];
+        var dbRagProjects = await ragDatabaseService.GetAllRagProjects();
+        allRagProjectList = dbRagProjects.Select(x => new RagProjectViewClass(x)).ToList();
+        tableRagProjectList = allRagProjectList.ToList();
+        tableIsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task CheckIfEnterPressed(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Call your function here
+            await DoSearch();
+        }
+    }
+
+    private async Task DoSearch()
+    {
+        tableIsLoading = true;
+        tableRagProjectList = [];
+
+        IQueryable<RagProjectViewClass>? query = allRagProjectList.AsQueryable();
+        if (query == null)
+        {
+            Snackbar.Add("Fant ingen prosjekter", Severity.Info, config => { });
+            tableIsLoading = false;
+            return;
+        }
+
+        if (string.IsNullOrEmpty(nameSearch) == false)
+        {
+            query = query?.Where(x => x.RagProject.Name != null &&
+                                      x.RagProject.Name.Contains(nameSearch, StringComparison.OrdinalIgnoreCase));
+        }
+        foreach (var item in query.ToList())
+        {
+            tableRagProjectList.Add(item);
+        }
+        tableIsLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task UploadFiles(IBrowserFile file)
+    {
+        pageIsWorking = true;
+        StateHasChanged();
+        try
+        {
+            var uploadResult = await ragDatabaseService.HandleRagProjectUpload(file);
+            if (uploadResult != null)
+            {
+                Snackbar.Add("Nytt RAG prosjekt lagret i database", Severity.Success, config => { });
+                await LoadRagProjectsFromRagDb();
+            }
+            else
+            {
+                Snackbar.Add("Klarte ikke å få ut data for nytt RAG prosjekt", Severity.Error, config => { });
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet i opprettelse av nytt RAG prosjekt {e.Message}", Severity.Error, config => { });
+        }
+        pageIsWorking = false;
+        StateHasChanged();
+    }
+
+    private async Task DeleteRagProject(RagProjectViewClass project)
+    {
+        try
+        {
+            await ragDatabaseService.DeleteRagProject(project.RagProject);
+            Snackbar.Add("RAG prosjekt slettet i db", Severity.Success, config => { });
+            await LoadRagProjectsFromRagDb();
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet i sletting av RAG prosjekt {e.Message}", Severity.Error, config => { });
+        }
+    }
+}

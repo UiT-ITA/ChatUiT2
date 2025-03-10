@@ -54,6 +54,8 @@ builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IKeyVaultService, KeyVaultService>();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddSingleton<AdminService>();
+builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
+builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseService>();
 
 // Scoped services
 builder.Services.AddScoped<IUserService, UserService>();
@@ -61,6 +63,7 @@ builder.Services.AddScoped<IAuthUserService, AuthUserService>();
 builder.Services.AddScoped<IUpdateService, UpdateService>();
 builder.Services.AddScoped<SpeechService>();
 builder.Services.AddScoped<LocalStorageService>();
+builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 
 // Transient services
 

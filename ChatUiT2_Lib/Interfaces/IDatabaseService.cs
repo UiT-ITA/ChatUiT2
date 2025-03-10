@@ -8,6 +8,8 @@ public interface IDatabaseService
     Task<Preferences> GetUserPreferences(string username);
     Task SaveUserPreferences(string username, Preferences preferences);
     Task DeleteUser(string username);
+    Task<List<string>> GetUsersWithWorkItemsExpired();
+    Task<List<IWorkItem>> GetUsersExpiredWorkItems(string username);
 
     // WorkItems
     Task<List<IWorkItem>> GetWorkItemList(User user);

@@ -7,7 +7,7 @@
         </MudButton>
     </ActivatorContent>
     <ChildContent>
-        @foreach (var model in Models)
+        @foreach (var model in Models.Where(x => x.Capabilities.Chat))
         {
             <MudMenuItem OnClick="@(() => SelectModel(model))">
                 <div class="d-flex align-items-center" style="width: 300px;">

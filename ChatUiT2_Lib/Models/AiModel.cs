@@ -94,6 +94,7 @@ public enum ModelName
     o3_mini_high,
     dall_e_2,
     dall_e_3,
+    text_3_large,
 }
 
 public static class ModelServiceExtensions
@@ -127,6 +128,9 @@ public static class ModelServiceExtensions
             // OpenAI DALL-E
             ModelName.dall_e_2 => new ModelCapabilities { Vision = true, ImageGeneration = true },
             ModelName.dall_e_3 => new ModelCapabilities { Vision = false, ImageGeneration = true },
+
+            // Text embeddings
+            ModelName.text_3_large => new ModelCapabilities { MaxContext = 50_000, MaxTokens = 50_000, Chat = false },
 
             _ => throw new NotImplementedException(),
         };

@@ -1,6 +1,7 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
+using Microsoft.Extensions.Configuration;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
@@ -15,6 +16,7 @@ public class DatabaseService : IDatabaseService
     // Services
     private readonly IKeyVaultService _keyVaultService;
     private readonly IEncryptionService _encryptionService;
+    private readonly IDateTimeProvider _dateTimeProvider;
     //private IStorageService _storageService;
 
     // Collections
@@ -28,10 +30,12 @@ public class DatabaseService : IDatabaseService
 
     public DatabaseService(IConfiguration configuration, 
                            IEncryptionService encryptionService, 
-                           IKeyVaultService keyVaultService)
+                           IKeyVaultService keyVaultService,
+                           IDateTimeProvider dateTimeProvider)
     {
         _keyVaultService = keyVaultService;
         _encryptionService = encryptionService;
+        this._dateTimeProvider = dateTimeProvider;
         //_storageService = storageService;
 
         var connectionString = configuration.GetConnectionString("MongoDb");
@@ -121,6 +125,72 @@ public class DatabaseService : IDatabaseService
         await _chatMessageCollection.DeleteManyAsync(filter);
     }
 
+    /// <summary>
+    /// Gets a list of usernames for for users that have at least one expired chat (not updated in 7 days)
+    /// </summary>
+    /// <returns></returns>
+    public async Task<List<string>> GetUsersWithWorkItemsExpired()
+    {
+        var workItems = new List<IWorkItem>();
+
+        DateTime olderThan = _dateTimeProvider.UtcNow.AddDays(-7);
+        var filter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Lt("Updated", olderThan),
+                                                       Builders<BsonDocument>.Filter.Ne("Permanent", true));
+
+        var projection = Builders<BsonDocument>.Projection.Include("Username").Exclude("_id");
+
+        var usernames = await _chatCollection
+            .Find(filter)
+            .Project(projection)
+            .ToListAsync();
+
+        var uniqueUsernames = new HashSet<string>();
+
+        foreach (var doc in usernames)
+        {
+            uniqueUsernames.Add(doc["Username"].AsString);
+        }
+        return uniqueUsernames.ToList();
+    }
+
+    public async Task<List<IWorkItem>> GetUsersExpiredWorkItems(string username)
+    {
+        // Get user
+        var filter = Builders<BsonDocument>.Filter.Eq("Username", username);
+        var document = await _userCollection.Find(filter).FirstOrDefaultAsync();
+
+        if (document != null)
+        {
+            User userObj = new User()
+            {
+                Username = document["Username"].AsString
+            };
+            var workItems = new List<IWorkItem>();
+            DateTime cutoffDate = _dateTimeProvider.UtcNow.AddDays(-7);
+            var chatFilter = Builders<BsonDocument>.Filter.And(Builders<BsonDocument>.Filter.Eq("Username", username),
+                                                               Builders<BsonDocument>.Filter.Ne("Permanent", true),
+                                                               Builders<BsonDocument>.Filter.Lt("Updated", cutoffDate));
+            var documents = await _chatCollection.FindAsync(chatFilter);
+            foreach (var doc in documents.ToList())
+            {
+                if (doc["Type"] == WorkItemType.Chat.ToString())
+                {
+                    var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
+                    workItem.Messages = await GetChatMessages(userObj, workItem.Id);
+                    workItems.Add(workItem);
+                }
+                else
+                {
+                    // Ignore unknown types
+                }
+            }
+            return workItems;
+        }
+        else
+        {
+            throw new Exception("User not found");
+        }
+    }
 
     // WorkItems
     /// <summary>

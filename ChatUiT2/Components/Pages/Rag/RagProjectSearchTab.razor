@@ -1,0 +1,151 @@
+﻿@using ChatUiT2.Models.RagProject
+@using ChatUiT2.Models
+@using ChatUiT2.Interfaces
+
+<MudText>
+    Her er kan du gjøre test søk for dette RAG prosjektet.
+    Resultatet vil vise både svar fra OpenAi og hvilke embeddings som
+    ga best match. På denne måten kan du få et innblikk i hvilke
+    artikler RAG sendte med som datagrunnlag til OpenAi.
+</MudText>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudText Typo="Typo.h6">Filtere</MudText>
+    <MudGrid Class="mt-1">
+        <MudItem xs="12">
+            <MudTextField T="string"
+                          @bind-Value="searchTerm"
+                          Immediate="true"
+                          Placeholder="Tittel"
+                          Adornment="Adornment.Start"
+                          IconSize="Size.Medium"
+                          Class="mt-0"
+                          OnKeyDown="CheckIfEnterPressed">
+            </MudTextField>
+        </MudItem>
+        <MudItem xs="12">
+            <MudSelect T="int" Label="Nr of results articles to send to llm" @bind-Value="numResults">
+                <MudSelectItem T="int" Value="3">1</MudSelectItem>
+                <MudSelectItem T="int" Value="3">2</MudSelectItem>
+                <MudSelectItem T="int" Value="3">3</MudSelectItem>
+                <MudSelectItem T="int" Value="4">4</MudSelectItem>
+                <MudSelectItem T="int" Value="5">5</MudSelectItem>
+                <MudSelectItem T="int" Value="6">6</MudSelectItem>
+                <MudSelectItem T="int" Value="7">7</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12">
+            <MudSelect T="double" Label="Minimum match score" @bind-Value="minScore">
+                <MudSelectItem T="double" Value="0.8d">0.8</MudSelectItem>
+                <MudSelectItem T="double" Value="0.65d">0.65</MudSelectItem>
+                <MudSelectItem T="double" Value="0.5d">0.5</MudSelectItem>
+                <MudSelectItem T="double" Value="0.45d">0.45</MudSelectItem>
+                <MudSelectItem T="double" Value="0.3d">0.3</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="2">
+            <MudIconButton Icon="@Icons.Material.Filled.Search" OnClick="() => DoSearch()"></MudIconButton>
+        </MudItem>
+        <MudItem xs="10">
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    <MudTable Items="tableRagResultList"
+              T="RagSearchResult"
+              Dense="false"
+              Hover="true"
+              Bordered="true"
+              Striped="false"
+              SortLabel="Sort By"
+              AllowUnsorted="false"
+              Loading="tableIsLoading"
+              RowsPerPage="50"
+              @ref="table">
+        <ToolBarContent>
+            <MudText Typo="Typo.h6"></MudText>
+            <MudSpacer />
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="RagSearchResult" SortBy="new Func<RagSearchResult, object>(x=>x.EmbeddingText)">Text</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="RagSearchResult" SortBy="new Func<RagSearchResult, object>(x=>x.MatchScore)">MatchScore</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="RagSearchResult" SortBy="new Func<RagSearchResult, object>(x=>x.SourceId)">Kilde id</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="RagSearchResult" SortBy="new Func<RagSearchResult, object>(x=>x.SourceAltId)">Kilde alt id</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                @context.EmbeddingText
+            </MudTd>
+            <MudTd>
+                @context.MatchScore
+            </MudTd>
+            <MudTd>
+                <MudLink Href="@(context.ContentUrl)"
+                         Target="_new">
+                    @context.SourceId
+                </MudLink>
+            </MudTd>
+            <MudTd>
+                <MudLink Href="@(context.ContentUrl)"
+                         Target="_new">
+                    @context.SourceAltId
+                </MudLink>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+<MudPaper Elevation="3" Class="mt-4 pa-4">
+    @llmQuestionresponse
+</MudPaper>
+
+@code {
+    [Inject] private IRagDatabaseService ragTopdeskService { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+    [Inject] ISettingsService settingsService { get; set; }
+
+    [Parameter]
+    public RagProject? RagProject { get; set; }
+
+    private List<RagSearchResult> tableRagResultList = [];
+    private bool tableIsLoading = false;
+    private MudTable<RagSearchResult> table;
+    private string searchTerm = string.Empty;
+    private string llmQuestionresponse = string.Empty;
+    private int numResults = 3;
+    private double minScore = 0.5d;
+
+    private async Task CheckIfEnterPressed(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            // Call your function here
+            await DoSearch();
+        }
+    }
+
+    private async Task DoSearch()
+    {
+        try
+        {
+            tableIsLoading = true;
+            var result = await ragTopdeskService.DoGenericRagSearch(RagProject, searchTerm, numResults, minScore);
+            tableRagResultList = result;
+            llmQuestionresponse = await ragTopdeskService.SendRagSearchToLlm(result, searchTerm);
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved søk {e.Message}", Severity.Error, config => { });
+        }
+        finally
+        {
+            tableIsLoading = false;
+        }
+        StateHasChanged();
+    }
+}

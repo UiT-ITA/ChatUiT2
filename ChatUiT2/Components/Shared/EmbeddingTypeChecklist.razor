@@ -1,0 +1,69 @@
+﻿@using ChatUiT2.Models.RagProject
+
+@foreach(var item in CheckableEnums)
+{
+    <MudCheckBox Value="@item.IsChecked" Label="@item.Label" ValueChanged="(bool newval) => CheckboxChanged(newval, item)"></MudCheckBox>
+}
+
+@code {
+    [Parameter]
+    public RagProject? RagProject { get; set; }
+
+    [Parameter]
+    public EventCallback<EmbeddingSourceType> OnEnableEmbeddingType { get; set; }
+
+    [Parameter]
+    public EventCallback<EmbeddingSourceType> OnDisableEmbeddingType { get; set; }
+
+    private List<EmbeddingTypeListItem> CheckableEnums { get; set; } = new List<EmbeddingTypeListItem>();
+
+    class EmbeddingTypeListItem
+    {
+        public EmbeddingSourceType EmbeddingSourceType { get; set; }
+        public string? Label { get; set; }
+        public int Value { get; set; }
+        public bool IsChecked { get; set; }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender)
+        {
+            LoadCheckList();
+        }
+    }
+
+    private void LoadCheckList()
+    {
+        foreach (var val in Enum.GetValues(typeof(EmbeddingSourceType)))
+        {
+            string label = Enum.GetName(typeof(EmbeddingSourceType), val);
+            EmbeddingTypeListItem item = new EmbeddingTypeListItem()
+            {
+                Label = label,
+                Value = (int)val,
+                IsChecked = EmbeddingTypeIsEnabledInRagProject((EmbeddingSourceType)val),
+                EmbeddingSourceType = (EmbeddingSourceType)val
+            };
+            CheckableEnums.Add(item);
+        }
+        StateHasChanged();
+    }
+
+    private bool EmbeddingTypeIsEnabledInRagProject(EmbeddingSourceType enumVal)
+    {
+        return RagProject?.Configuration?.EmbeddingTypes.Contains(enumVal) ?? false;
+    }
+
+    private void CheckboxChanged(bool newVal, EmbeddingTypeListItem item)
+    {
+        item.IsChecked = newVal;
+        if(newVal)
+        {
+            OnEnableEmbeddingType.InvokeAsync(item.EmbeddingSourceType);
+        } else
+        {
+            OnDisableEmbeddingType.InvokeAsync(item.EmbeddingSourceType);
+        }
+    }
+}
