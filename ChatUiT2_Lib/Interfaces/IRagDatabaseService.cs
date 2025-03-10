@@ -36,7 +36,7 @@ public interface IRagDatabaseService
     public Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId);
     public Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject);
     public Task<EmbeddingEvent> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId);
-    public Task<bool> EmbeddingEventExists(RagProject ragProject, string contentItemId, EmbeddingSourceType type);
+    public Task<string> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type);
     public Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item);
     public Task DeleteEmbeddingEvent(RagProject ragProject, string eventId);
     public Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays);

@@ -853,7 +853,7 @@ public class RagDatabaseService : IRagDatabaseService
         return result;
     }
 
-    public async Task<bool> EmbeddingEventExists(RagProject ragProject, string contentItemId, EmbeddingSourceType type)
+    public async Task<string> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type)
     {
         if (string.IsNullOrEmpty(contentItemId))
         {
@@ -868,7 +868,15 @@ public class RagDatabaseService : IRagDatabaseService
             Builders<BsonDocument>.Filter.Eq("EmbeddingSourceType", type)
         );
         var documents = await embeddingEventCollection.FindAsync(filter);
-        return documents.FirstOrDefault() != null;
+        var document = documents.FirstOrDefault();
+        if (document != null)
+        {
+            return document["_id"].AsString;
+        }
+        else
+        {
+            return string.Empty;
+        }
     }
 
     public async Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item)
