@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatUiT2_Lib", "ChatUiT2_Lib\ChatUiT2_Lib.csproj", "{455D3E46-9921-4D26-994C-7D960A021678}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatUiT2_Lib.Integration.Tests", "ChatUiT2_Lib.Integration.Tests\ChatUiT2_Lib.Integration.Tests.csproj", "{49CC647F-6AC7-40DD-A266-1C9D713B3738}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{455D3E46-9921-4D26-994C-7D960A021678}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{455D3E46-9921-4D26-994C-7D960A021678}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{455D3E46-9921-4D26-994C-7D960A021678}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49CC647F-6AC7-40DD-A266-1C9D713B3738}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49CC647F-6AC7-40DD-A266-1C9D713B3738}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49CC647F-6AC7-40DD-A266-1C9D713B3738}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49CC647F-6AC7-40DD-A266-1C9D713B3738}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

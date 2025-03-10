@@ -75,19 +75,6 @@ public class RagDatabaseService : IRagDatabaseService
         return await _chatService.GetEmbedding(text, model);
     }
 
-    public async Task<List<RagTextEmbedding>> GetAllEmbeddingsMissingKnowledgeItem()
-    {
-        List<RagTextEmbedding> result = [];
-        var documents = await _topdeskKnowledgeItemEmbeddingCollection.FindAsync(new BsonDocument());
-        foreach (var doc in documents.ToList())
-        {
-            var embedding = BsonSerializer.Deserialize<RagTextEmbedding>(doc.AsBsonDocument);
-            result.Add(embedding);
-        }
-        return result;
-
-    }
-
     public async Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerateMin = 5, int numToGenerateMax = 20)
     {
         AiModel gpt4MiniModel = _settingsService.GetModel("GPT-4o-Mini");
