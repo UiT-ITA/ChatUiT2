@@ -830,6 +830,34 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Empty(eventsAfterDelete);
     }
 
+    [Fact]
+    public async Task DeleteEmbeddingsForProject_ValidProject_ShouldDeleteAll()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+
+        var embeddings = new List<RagTextEmbedding>
+        {
+            new RagTextEmbedding { Id = "embeddingEvent1", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embeddingEvent2", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embeddingEvent3", RagProjectId = ragProject.Id }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.SourceItemId));
+        }
+        var eventsBeforeDelete = await GetAllEmbeddings();
+        await _service.DeleteEmbeddingsForProject(ragProject);
+        var eventsAfterDelete = await GetAllEmbeddings();
+
+        // Assert
+        Assert.Equal(3, eventsBeforeDelete.Count);
+        Assert.Empty(eventsAfterDelete);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";

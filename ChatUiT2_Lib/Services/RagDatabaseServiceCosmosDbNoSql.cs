@@ -511,9 +511,26 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public Task DeleteEmbeddingsForProject(RagProject ragProject)
+    public async Task DeleteEmbeddingsForProject(RagProject ragProject)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to delete content items");
+        }
+
+        var container = await GetEmbeddingContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c");
+        var queryIterator = container.GetItemQueryIterator<EmbeddingEvent>(queryDefinition);
+        var allEmbeddings = new List<EmbeddingEvent>();
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            allEmbeddings.AddRange(response);
+        }
+        foreach (var item in allEmbeddings)
+        {
+            await container.DeleteItemAsync<EmbeddingEvent>(item.Id, new PartitionKey(item.ContentItemId));
+        }
     }
 
     public Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150)
