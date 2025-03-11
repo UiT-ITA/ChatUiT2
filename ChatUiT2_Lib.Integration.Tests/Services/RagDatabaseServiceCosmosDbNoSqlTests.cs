@@ -747,6 +747,61 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.True(embeddingsBefore[0].Updated < embeddingsAfter[0].Updated);
     }
 
+    [Fact]
+    public async Task GetContentItemsWithNoEmbeddings_Exist_ShouldReturnList()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 4);
+        string embedId1 = "embedding1";
+        string embedId2 = "embedding2";
+        var textEmbedding = CreateTestRagTextEmbedding(ragProject.Id, "item0", embedId1);
+        var textEmbedding2 = CreateTestRagTextEmbedding(ragProject.Id, "item1", embedId2);
+        
+        // Act
+        await _ragEmbeddingContainer.CreateItemAsync(textEmbedding, new PartitionKey(textEmbedding.SourceItemId));
+        await _ragEmbeddingContainer.CreateItemAsync(textEmbedding2, new PartitionKey(textEmbedding2.SourceItemId));
+        foreach (var item in ragProject.ContentItems)
+        {
+            await _ragItemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
+        }
+        var result = await _service.GetContentItemsWithNoEmbeddings(ragProject);
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("item2", result[0].Id);
+        Assert.Equal("item3", result[1].Id);
+    }
+
+    [Fact]
+    public async Task GetEmbeddingContentItemIdsByProject_ValidProject_ReturnsIds()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+        
+        var embeddings = new List<RagTextEmbedding>
+        {
+            new RagTextEmbedding { Id = "embedding1", SourceItemId = "source1", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embedding2", SourceItemId = "source2", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embedding3", SourceItemId = "source3", RagProjectId = ragProject.Id }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.SourceItemId));
+        }
+        var result = await _service.GetEmbeddingContentItemIdsByProject(ragProject);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(embeddings.Count, result.Count());
+        Assert.Equal("source1", result[0]);
+        Assert.Equal("source2", result[1]);
+        Assert.Equal("source3", result[2]);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";
@@ -777,13 +832,13 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
 
     private RagTextEmbedding CreateTestRagTextEmbedding(string ragProjectId,
                                                         string itemId,
-                                                        int num)
+                                                        string embeddingId)
     {
         return new RagTextEmbedding()
         {
-            Id = $"embedding",
-            SourceItemId = $"source",
-            RagProjectId = "projectId"
+            Id = embeddingId,
+            SourceItemId = itemId,
+            RagProjectId = ragProjectId
         };
     }
 

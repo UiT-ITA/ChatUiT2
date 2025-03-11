@@ -48,5 +48,5 @@ public class ContentItem
     /// Added when storing to RAG database
     /// </summary>
     [BsonElement("RagProjectId")]
-    public string RagProjectId { get; set; } = string.Empty;
+    public string RagProjectId { get; set; } = string.Empty;    
 }

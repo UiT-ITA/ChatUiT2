@@ -337,6 +337,33 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Get a list of unique content item ids from the embeddings container.
+    /// Can be used to find all items that has embeddings
+    /// </summary>
+    /// <param name="ragProject">The project to get for</param>
+    /// <returns></returns>
+    public async Task<List<string>> GetEmbeddingContentItemIdsByProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("Project id must be set to get embeddings");
+        }
+
+        var result = new List<string>();
+        var embeddingContainer = await GetEmbeddingContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT c.SourceItemId FROM c");
+        var queryIterator = embeddingContainer.GetItemQueryIterator<RagTextEmbedding>(queryDefinition);
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response.Select(x => x.SourceItemId));
+        }
+
+        return result;
+    }
+
     public Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
     {
         throw new NotImplementedException();
@@ -397,7 +424,16 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
 
     public string GetItemContentString(ContentItem item)
     {
-        throw new NotImplementedException();
+        string textContent = string.Empty;
+        switch (item.ContentType)
+        {
+            case "INLINE":
+                textContent = item.ContentText;
+                break;
+            default:
+                break;
+        }
+        return textContent;
     }
 
     public Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8)
@@ -410,9 +446,37 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         throw new NotImplementedException();
     }
 
-    public Task<List<ContentItem>> GetContentItemsWithNoEmbeddings(RagProject ragProject)
+    public async Task<List<ContentItem>> GetContentItemsWithNoEmbeddings(RagProject ragProject)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to get content items");
+        }
+
+        var queryDefinition = new QueryDefinition("SELECT * FROM c");
+        var itemContainer = await GetItemContainer(ragProject);
+        var queryIterator = itemContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        var allContentItems = new List<ContentItem>();
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            allContentItems.AddRange(response);
+        }
+
+        var allEmbeddings = await GetEmbeddingContentItemIdsByProject(ragProject);
+
+        var resultContentItems = new List<ContentItem>();
+        foreach (var item in allContentItems)
+        {
+            if (!allEmbeddings.Contains(item.Id))
+            {
+                resultContentItems.Add(item);
+            }
+        }
+
+        return resultContentItems;
     }
 
     public Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject)
