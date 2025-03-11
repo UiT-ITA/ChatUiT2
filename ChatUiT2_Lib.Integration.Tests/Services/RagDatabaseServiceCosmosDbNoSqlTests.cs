@@ -802,6 +802,34 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal("source3", result[2]);
     }
 
+    [Fact]
+    public async Task DeleteAllEmbeddingEvents_ValidProject_ShouldDeleteAll()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject.Id }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var eventsBeforeDelete = await GetAllEmbeddingEvents();
+        await _service.DeleteAllEmbeddingEvents(ragProject);
+        var eventsAfterDelete = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.Equal(3, eventsBeforeDelete.Count);
+        Assert.Empty(eventsAfterDelete);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";

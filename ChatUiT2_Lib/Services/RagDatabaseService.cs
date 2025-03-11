@@ -660,26 +660,6 @@ public class RagDatabaseService : IRagDatabaseService
     }
 
     /// <summary>
-    /// Find out how many content items currently are marked as processing embeddings
-    /// These are most likely waiting in the RabbitMq queue
-    /// </summary>
-    /// <param name="ragProject"></param>
-    /// <returns></returns>
-    /// <exception cref="ArgumentException"></exception>
-    public async Task<long> GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject ragProject)
-    {
-        if (string.IsNullOrEmpty(ragProject.Id))
-        {
-            throw new ArgumentException("ragProject.Id must be set to delete contentItem");
-        }
-        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
-        var contentItemCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.ItemCollectionName);
-        var filter = Builders<BsonDocument>.Filter.Eq("EmbeddingsCreationInProgress", true);
-        var count = await contentItemCollection.CountDocumentsAsync(filter);
-        return count;
-    }
-
-    /// <summary>
     /// Sets all ContentItems in the project to EmbeddingsCreationInProgress = false
     /// This will be used to cancel all processing of embeddings for the project
     /// </summary>

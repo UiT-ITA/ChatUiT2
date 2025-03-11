@@ -479,19 +479,36 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return resultContentItems;
     }
 
-    public Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject)
+    public async Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject)
     {
-        throw new NotImplementedException();
+        return (await GetContentItemsWithNoEmbeddings(ragProject)).Count();
     }
 
-    public Task<long> GetNrOfContentItemsMarkedAsProcessingEmbeddings(RagProject ragProject)
+    /// <summary>
+    /// Sets all ContentItems in the project to EmbeddingsCreationInProgress = false
+    /// This will be used to cancel all processing of embeddings for the project
+    /// </summary>
+    /// <returns></returns>
+    public async Task DeleteAllEmbeddingEvents(RagProject ragProject)
     {
-        throw new NotImplementedException();
-    }
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to delete content items");
+        }
 
-    public Task DeleteAllEmbeddingEvents(RagProject ragProject)
-    {
-        throw new NotImplementedException();
+        var container = await GetEmbeddingEventContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c");        
+        var queryIterator = container.GetItemQueryIterator<EmbeddingEvent>(queryDefinition);
+        var allEmbeddingEvents = new List<EmbeddingEvent>();
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            allEmbeddingEvents.AddRange(response);
+        }
+        foreach (var item in allEmbeddingEvents)
+        {            
+            await container.DeleteItemAsync<EmbeddingEvent>(item.Id, new PartitionKey(item.RagProjectId));
+        }
     }
 
     public Task DeleteEmbeddingsForProject(RagProject ragProject)
