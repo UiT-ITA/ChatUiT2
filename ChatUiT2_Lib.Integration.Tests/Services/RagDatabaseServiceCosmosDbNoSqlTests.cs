@@ -18,6 +18,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     private readonly string _ragItemDbName = string.Empty;
     private readonly string _ragItemContainerName = string.Empty;
     private readonly string _ragEmbeddingContainerName = string.Empty;
+    private readonly string _ragEmbeddingEventContainerName = string.Empty;
     private readonly IConfiguration _configuration;
     private readonly CosmosClient _cosmosClient;
 
@@ -27,6 +28,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     private Database _ragItemDatabase;
     private Container _ragItemContainer;
     private Container _ragEmbeddingContainer;
+    private Container _ragEmbeddingEventContainer;
 
     public RagDatabaseServiceCosmosDbNoSqlTests()
     {
@@ -55,6 +57,11 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         if (string.IsNullOrEmpty(_ragEmbeddingContainerName))
         {
             throw new Exception("RagEmbeddingContainerName is not set in appsettings.json");
+        }
+        this._ragEmbeddingEventContainerName = _configuration["RagEmbeddingEventContainerName"] ?? string.Empty;
+        if (string.IsNullOrEmpty(_ragEmbeddingEventContainerName))
+        {
+            throw new Exception("RagEmbeddingEventContainerName is not set in appsettings.json");
         }
         var connectionString = _configuration["ConnectionStrings:RagProjectDef"];
         if (string.IsNullOrEmpty(connectionString))
@@ -133,6 +140,19 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         }
         // Create project def container
         this._ragEmbeddingContainer = await _ragItemDatabase.CreateContainerAsync(_ragEmbeddingContainerName, "/SourceItemId");
+
+        // Delete any existing embedding event container if exists
+        var existingEmbeddingEventContainer = _ragItemDatabase.GetContainer(_ragEmbeddingEventContainerName);
+        try
+        {
+            await existingEmbeddingEventContainer.DeleteContainerAsync();
+        }
+        catch (Exception)
+        {
+            // Ignore, most likely db does not exist
+        }
+        // Create project def container
+        this._ragEmbeddingEventContainer = await _ragItemDatabase.CreateContainerAsync(_ragEmbeddingEventContainerName, "/RagProjectId");
 
         this._service = RagDatabaseServiceCosmosDbNoSqlStaging.GetRagDatabaseServiceCosmosDbNoSqlStaging("Development");
     }
@@ -670,6 +690,145 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.NotNull(result[1].ContentItem);
         Assert.Equal("item1", result[0].ContentItem!.Id);
         Assert.Equal("item2", result[1].ContentItem!.Id);
+    }
+
+    [Fact]
+    public async Task SaveRagEmbeddingEvent_NewEvent_CreatesItem()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 1);
+        string embedId = "EmbeddingId";
+        var textEmbeddingEvent = CreateTestRagTextEmbeddingEvent(ragProject.Id, "item1", embedId);
+        textEmbeddingEvent.EmbeddingSourceType = EmbeddingSourceType.Paragraph;
+
+        // Act
+        var embeddingsBefore = await GetAllEmbeddingEvents();
+        await _service.SaveRagEmbeddingEvent(ragProject, textEmbeddingEvent);
+        var embeddingsAfter = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.Empty(embeddingsBefore);
+        Assert.Single(embeddingsAfter);
+        Assert.Equal(embedId, embeddingsAfter[0].Id);
+        Assert.Equal(ragProjectId, embeddingsAfter[0].RagProjectId);
+        Assert.Equal("item1", embeddingsAfter[0].ContentItemId);
+        Assert.Equal(EmbeddingSourceType.Paragraph, embeddingsAfter[0].EmbeddingSourceType);
+        Assert.Equal(embeddingsAfter[0].Created, embeddingsAfter[0].Created);
+        Assert.Equal(embeddingsAfter[0].Updated, embeddingsAfter[0].Updated);
+    }
+
+    [Fact]
+    public async Task SaveRagEmbeddingEvent_ExistingEvent_UpdatesItem()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 1);
+        string embedId = "EmbeddingId";
+        var textEmbeddingEvent = CreateTestRagTextEmbeddingEvent(ragProject.Id, "item1", embedId);
+        textEmbeddingEvent.EmbeddingSourceType = EmbeddingSourceType.Paragraph;
+
+        // Act
+        await _ragEmbeddingEventContainer.CreateItemAsync(textEmbeddingEvent, new PartitionKey(textEmbeddingEvent.RagProjectId));
+        var embeddingsBefore = await GetAllEmbeddingEvents();
+        textEmbeddingEvent.EmbeddingSourceType = EmbeddingSourceType.Question;
+        await _service.SaveRagEmbeddingEvent(ragProject, textEmbeddingEvent);
+        var embeddingsAfter = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.Single(embeddingsBefore);
+        Assert.Single(embeddingsAfter);
+        Assert.Equal(embedId, embeddingsAfter[0].Id);
+        Assert.Equal(ragProjectId, embeddingsAfter[0].RagProjectId);
+        Assert.Equal("item1", embeddingsAfter[0].ContentItemId);
+        Assert.Equal(EmbeddingSourceType.Paragraph, embeddingsBefore[0].EmbeddingSourceType);
+        Assert.Equal(EmbeddingSourceType.Question, embeddingsAfter[0].EmbeddingSourceType);
+        Assert.Equal(embeddingsBefore[0].Created, embeddingsAfter[0].Created);
+        Assert.True(embeddingsBefore[0].Updated < embeddingsAfter[0].Updated);
+    }
+
+    private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
+    {
+        var query = "SELECT * FROM c";
+        var queryDefinition = new QueryDefinition(query);
+        var embeddingIterator = _ragEmbeddingContainer.GetItemQueryIterator<RagTextEmbedding>(queryDefinition);
+        var result = new List<RagTextEmbedding>();
+        while (embeddingIterator.HasMoreResults)
+        {
+            var item = await embeddingIterator.ReadNextAsync();
+            result.AddRange(item);
+        }
+        return result;
+    }
+
+    private async Task<List<EmbeddingEvent>> GetAllEmbeddingEvents()
+    {
+        var query = "SELECT * FROM c";
+        var queryDefinition = new QueryDefinition(query);
+        var embeddingEventIterator = _ragEmbeddingEventContainer.GetItemQueryIterator<EmbeddingEvent>(queryDefinition);
+        var result = new List<EmbeddingEvent>();
+        while (embeddingEventIterator.HasMoreResults)
+        {
+            var item = await embeddingEventIterator.ReadNextAsync();
+            result.AddRange(item);
+        }
+        return result;
+    }
+
+    private RagTextEmbedding CreateTestRagTextEmbedding(string ragProjectId,
+                                                        string itemId,
+                                                        int num)
+    {
+        return new RagTextEmbedding()
+        {
+            Id = $"embedding",
+            SourceItemId = $"source",
+            RagProjectId = "projectId"
+        };
+    }
+
+    private EmbeddingEvent CreateTestRagTextEmbeddingEvent(string ragProjectId,
+                                                           string itemId,
+                                                           string embeddingId)
+    {
+        return new EmbeddingEvent()
+        {
+            Id = embeddingId,                       
+            RagProjectId = "projectId",
+            ContentItemId = itemId
+        };
+    }
+
+    private RagProject CreateTestRagProject(string id, 
+                                            string name,
+                                            string description,
+                                            int numItems)
+    {
+        var result = new RagProject
+        {
+            Id = id,
+            Name = name,
+            Description = description,
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName,
+                EmbeddingCollectioName = _ragEmbeddingContainerName,
+                EmbeddingEventCollectioName = _ragEmbeddingEventContainerName
+            }
+        };
+        for (int i = 0; i < numItems; i++)
+        {
+            result.ContentItems.Add(new ContentItem
+            {
+                Id = $"item{i}",
+                SystemName = "TestSystem",
+                ContentType = "INLINE",
+                ContentText = $"Test Content {i}",
+                RagProjectId = id
+            });
+        }
+        return result;
     }
 
     public async ValueTask DisposeAsync()

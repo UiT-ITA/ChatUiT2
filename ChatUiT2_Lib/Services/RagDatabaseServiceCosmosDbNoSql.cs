@@ -440,9 +440,20 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         throw new NotImplementedException();
     }
 
-    public Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
+    public async Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
     {
-        throw new NotImplementedException();
+        var embeddingEventContainer = await GetEmbeddingEventContainer(ragProject);
+        if (string.IsNullOrEmpty(embeddingEvent.Id))
+        {
+            embeddingEvent.Created = _dateTimeProvider.OffsetUtcNow;
+            embeddingEvent.Updated = _dateTimeProvider.OffsetUtcNow;
+            embeddingEvent.Id = Guid.NewGuid().ToString(); // Generate new ID
+        }
+        else
+        {
+            embeddingEvent.Updated = _dateTimeProvider.OffsetUtcNow;
+        }
+        await embeddingEventContainer.UpsertItemAsync(embeddingEvent, new PartitionKey(embeddingEvent.RagProjectId));
     }
 
     public Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId)
