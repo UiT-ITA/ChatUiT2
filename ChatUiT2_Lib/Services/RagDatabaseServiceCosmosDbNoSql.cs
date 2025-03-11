@@ -533,9 +533,56 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150)
+    public async Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150)
     {
-        throw new NotImplementedException();
+        try
+        {
+            string textContent = GetItemContentString(item);
+            var paragraphs = SplitTextIntoParagraphs(textContent);
+            foreach (var paragraph in paragraphs)
+            {
+                if (paragraph.Length < minParagraphSize)
+                {
+                    continue;
+                }
+                await AddRagTextEmbedding(ragProject, item.Id, EmbeddingSourceType.Paragraph, paragraph);
+            }
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Noe feilet ved generering av paragraph embeddings for item {item.Id} {e.Message}");
+        }
+    }
+
+    public string ReplaceHtmlLinebreaksWithNewline(string text)
+    {
+        // Regular expression to match all variants of <br> tags
+        string pattern = @"<br\s*/?>";
+        string result = Regex.Replace(text, pattern, "\n", RegexOptions.IgnoreCase);
+        return result;
+    }
+
+    public string RemoveAllHtmlTagsFromString(string text)
+    {
+        var sanitizer = new HtmlSanitizer();
+        sanitizer.AllowedTags.Clear();
+        sanitizer.KeepChildNodes = true;
+        return sanitizer.Sanitize(text);
+    }
+
+    public IEnumerable<string> SplitTextIntoParagraphs(string text, bool removeHtmlTags = true, bool convertBrTagsToNewlines = true)
+    {
+        if (convertBrTagsToNewlines)
+        {
+            text = ReplaceHtmlLinebreaksWithNewline(text);
+        }
+        if (removeHtmlTags)
+        {
+            text = RemoveAllHtmlTagsFromString(text);
+        }
+        string pattern = @"\n\s*\n";
+        string strWithNormalizedDoubleNewline = Regex.Replace(text, pattern, "\n\n", RegexOptions.IgnoreCase);
+        return strWithNormalizedDoubleNewline.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
     }
 
     public async Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
@@ -554,9 +601,24 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         await embeddingEventContainer.UpsertItemAsync(embeddingEvent, new PartitionKey(embeddingEvent.RagProjectId));
     }
 
-    public Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId)
+    public async Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(eventId))
+        {
+            throw new ArgumentException("eventId must be set to get embedding event");
+        }
+
+        var container = await GetEmbeddingEventContainer(ragProject);
+        try
+        {
+            var response = await container.ReadItemAsync<EmbeddingEvent>(eventId, new PartitionKey(ragProject.Id));
+            return response.Resource;
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Handle the case where the item is not found
+            return null;
+        }
     }
 
     public Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject)
