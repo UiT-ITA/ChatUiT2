@@ -10,7 +10,7 @@ public interface IRagDatabaseService
     public Task<OpenAIEmbedding> GetEmbeddingForText(string text);
     public Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerateMin = 5, int numToGenerateMax = 20);
     public Task SaveRagProject(RagProject ragProject);
-    public Task<RagProject> GetRagProjectById(string projectId, bool loadItems = false);
+    public Task<RagProject?> GetRagProjectById(string projectId, bool loadItems = false);
     public Task<List<RagProject>> GetAllRagProjects();
     public Task DeleteOrphanEmbeddings(RagProject ragProject);
     public Task DeleteRagProject(RagProject ragProject);
