@@ -621,14 +621,44 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject)
+    /// <summary>
+    /// Gets EmbeddingEvent and makes sure to set the processing flag to avoid other threads
+    /// from updating it.
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <param name="eventId"></param>
+    /// <returns></returns>
+    public async Task<EmbeddingEvent?> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId)
     {
-        throw new NotImplementedException();
-    }
+        if (string.IsNullOrEmpty(eventId))
+        {
+            throw new ArgumentException("eventId must be set to get embedding event");
+        }
 
-    public Task<EmbeddingEvent> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId)
-    {
-        throw new NotImplementedException();
+        var container = await GetEmbeddingEventContainer(ragProject);
+
+        // Create a transactional batch to ensure atomicity
+        var partitionKey = new PartitionKey(ragProject.Id);
+        var batch = container.CreateTransactionalBatch(partitionKey);
+
+        // Add the read operation to the batch
+        batch.ReadItem(eventId);
+
+        // Add the update operation to the batch
+        batch.ReplaceItem(eventId, new { IsProcessing = true });
+
+        var batchResponse = await batch.ExecuteAsync();
+
+        if (batchResponse.IsSuccessStatusCode)
+        {
+            var embeddingEvent = batchResponse.GetOperationResultAtIndex<EmbeddingEvent>(0);
+            return embeddingEvent.Resource;
+        }
+        else
+        {
+            // Someone else is already processing this event or an error occurred
+            return null;
+        }
     }
 
     public Task<string> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type)

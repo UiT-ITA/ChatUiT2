@@ -799,27 +799,6 @@ public class RagDatabaseService : IRagDatabaseService
         return BsonSerializer.Deserialize<EmbeddingEvent>(documents.FirstOrDefault().AsBsonDocument);
     }
 
-    public async Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject)
-    {
-        if (string.IsNullOrEmpty(ragProject.Id))
-        {
-            throw new ArgumentException("projectId must be set to get embedding event");
-        }
-        List<EmbeddingEvent> result = [];
-        // Key not in cache, so get data.
-        var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
-        var embeddingEventCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingEventCollectioName);
-
-        var filter = Builders<BsonDocument>.Filter.Eq("RagProjectId", ragProject.Id);
-        var documents = await embeddingEventCollection.FindAsync(filter);
-        foreach (var doc in documents.ToList())
-        {
-            var embeddingEvent = BsonSerializer.Deserialize<EmbeddingEvent>(doc.AsBsonDocument);
-            result.Add(embeddingEvent);
-        }
-        return result;
-    }
-
     public async Task<string> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type)
     {
         if (string.IsNullOrEmpty(contentItemId))
