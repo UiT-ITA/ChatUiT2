@@ -8,6 +8,8 @@ using MudBlazor.Services;
 using Microsoft.Identity.Web.UI;
 using ChatUiT2.Services.Template;
 using Microsoft.ApplicationInsights.Extensibility;
+using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
+using Microsoft.Azure.Cosmos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +56,12 @@ builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IKeyVaultService, KeyVaultService>();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddSingleton<AdminService>();
+builder.Services.AddSingleton<CosmosClient>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    string connectionString = configuration["ConnectionStrings:RagProjectDef"];
+    return new CosmosClient(connectionString);
+});
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
 builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseService>();
 

@@ -19,12 +19,18 @@ using MongoDB.Driver.Core.Configuration;
 
 namespace ChatUiT2.Services;
 
-public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
+public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
 {
     private readonly IConfiguration _configuration;
 
     // Client
     private CosmosClient _cosmosClient;
+
+    // CosmosDb defs
+    private readonly string _ragProjectDefDbName = string.Empty;
+    private readonly string _ragProjectDefContainerName = string.Empty;
+    private Database _ragProjectDefDatabase;
+    private Container _ragProjectDefContainer;
 
     // Services
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -37,7 +43,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
                                            IDateTimeProvider dateTimeProvider,
                                            ISettingsService settingsService,
                                            IMemoryCache memoryCache,
-                                           ILogger<RagDatabaseService> logger)
+                                           ILogger<RagDatabaseService> logger,
+                                           CosmosClient cosmosClient)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
@@ -45,13 +52,22 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
         this._memoryCache = memoryCache;
         this._logger = logger;
         this._chatService = new ChatService(null, this._settingsService, logger);
+        this._ragProjectDefDbName = _configuration["RagProjectDefDatabaseName"] ?? string.Empty;
+        this._ragProjectDefContainerName = _configuration["RagProjectDefContainerName"] ?? string.Empty;
+        this._cosmosClient = cosmosClient;
+        InitializeAsync().GetAwaiter().GetResult();
+    }
 
-        var connectionString = configuration["ConnectionStrings:RagProjectDef"];
-        if(string.IsNullOrEmpty(connectionString))
-        {
-            throw new ArgumentException("No connection string found for RagProjectDef");
-        }
-        _cosmosClient = new CosmosClient(connectionString);
+    public async Task InitializeAsync()
+    {
+        await InitializeCosmosDb(_ragProjectDefDbName);
+    }
+
+    private async Task InitializeCosmosDb(string databaseName)
+    {
+        // Create the project def database if it does not exist
+        _ragProjectDefDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName);
+        _ragProjectDefContainer = (await _ragProjectDefDatabase.CreateContainerIfNotExistsAsync(_ragProjectDefContainerName, "/id")).Container;
     }
 
     public async Task<OpenAIEmbedding> GetEmbeddingForText(string text)
@@ -93,7 +109,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
         {
             throw new ArgumentException("RagProject.Configuration.ItemCollectionName must be set to save project");
         }
-        var ragProjectDefContainer = await GetRagProjectDefinitionContainer();
         var ragItemDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(ragProject.Configuration.DbName);
         var itemContainer = (await ragItemDatabase.Database.CreateContainerIfNotExistsAsync(ragProject.Configuration.ItemCollectionName, "/id")).Container;
 
@@ -103,12 +118,12 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
             ragProject.Created = _dateTimeProvider.OffsetUtcNow;
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
             ragProject.Id = Guid.NewGuid().ToString();
-            await ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
         }
         else
         {
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
-            await ragProjectDefContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            await _ragProjectDefContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
         }
 
         // Save the items in the specific db for this rag project
@@ -129,8 +144,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
         {
             throw new ArgumentException("RagProject.Configuration.ItemCollectionName must be set to save project");
         }
-        var database = _cosmosClient.GetDatabase(ragProject.Configuration.DbName);
-        var itemContainer = database.GetContainer(ragProject.Configuration.ItemCollectionName);
+        var itemDatabase = _cosmosClient.GetDatabase(ragProject.Configuration.DbName);
+        var itemContainer = itemDatabase.GetContainer(ragProject.Configuration.ItemCollectionName);
 
         await SaveRagProjectItem(item, itemContainer);
     }
@@ -151,28 +166,27 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
         }
     }
 
-    private async Task<Container> GetRagProjectDefinitionContainer()
-    {
-        var ragProjectDefDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(_configuration["RagProjectDefCollection"]);
-        return (await ragProjectDefDatabase.Database.CreateContainerIfNotExistsAsync(_configuration["RagProjectDefCollection"], "/id")).Container;
-    }
-
-    public async Task<RagProject> GetRagProjectById(string projectId, bool loadItems = false)
+    public async Task<RagProject?> GetRagProjectById(string projectId, bool loadItems = false)
     {
         if (string.IsNullOrEmpty(projectId))
         {
             throw new ArgumentException("projectId must be set to get project");
         }
 
-        var ragProjectDefinitionsContainer = await GetRagProjectDefinitionContainer();
-        var response = await ragProjectDefinitionsContainer.ReadItemAsync<RagProject>(projectId, new PartitionKey(projectId));
+        var response = await _ragProjectDefContainer.ReadItemAsync<RagProject>(projectId, new PartitionKey(projectId));
         var ragProject = response.Resource;
+
+        if (response.Resource == null)
+        {
+            // Not found
+            return null;
+        }
 
         // Get the items for the project
         if (loadItems)
         {
-            var database = _cosmosClient.GetDatabase(ragProject.Configuration?.DbName);
-            var itemContainer = database.GetContainer(ragProject.Configuration?.ItemCollectionName);
+            var itemDatabase = _cosmosClient.GetDatabase(ragProject.Configuration?.DbName);
+            var itemContainer = itemDatabase.GetContainer(ragProject.Configuration?.ItemCollectionName);
             var query = new QueryDefinition("SELECT * FROM c WHERE c.RagProjectId = @projectId")
                 .WithParameter("@projectId", projectId);
             var iterator = itemContainer.GetItemQueryIterator<ContentItem>(query);
@@ -186,10 +200,19 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
 
         return ragProject;
     }
-
-    public Task<List<RagProject>> GetAllRagProjects()
+    public async Task<List<RagProject>> GetAllRagProjects()
     {
-        throw new NotImplementedException();
+        var result = new List<RagProject>();
+        var query = "SELECT * FROM c";
+        var iterator = _ragProjectDefContainer.GetItemQueryIterator<RagProject>(new QueryDefinition(query));
+
+        while (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            result.AddRange(response);
+        }
+
+        return result;
     }
 
     public Task DeleteOrphanEmbeddings(RagProject ragProject)
@@ -325,5 +348,10 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService
     public Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays)
     {
         throw new NotImplementedException();
+    }
+
+    public void Dispose()
+    {
+        _cosmosClient.Dispose();
     }
 }
