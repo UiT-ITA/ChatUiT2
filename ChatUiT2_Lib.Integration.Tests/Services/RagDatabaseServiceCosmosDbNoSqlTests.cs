@@ -6,6 +6,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace ChatUiT2.Integration.Tests.Services;
@@ -302,6 +303,119 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal("project3", result[2].Id);
         Assert.Equal("project4", result[3].Id);
         Assert.Equal("project5", result[4].Id);        
+    }
+
+    [Fact]
+    public async Task DeleteRagProject_ValidProject_DeletesProjectAndItemDatabase()
+    {
+        // Arrange
+        var ragProjects = new List<RagProject>();
+        for (int i = 1; i < 6; i++)
+        {
+            ragProjects.Add(new RagProject
+            {
+                Id = $"project{i}",
+                Name = $"name{i}",
+                Description = $"desc{i}",
+                Configuration = new RagConfiguration
+                {
+                    DbName = _ragItemDbName,
+                    ItemCollectionName = _ragItemContainerName
+                }, 
+                ContentItems = new()
+                {
+                    new ContentItem
+                    {
+                        Id = $"item{i}",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content {i}",
+                        RagProjectId = $"project{i}"
+                    },
+                    new ContentItem
+                    {
+                        Id = $"item{i+5}",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content {i}",
+                        RagProjectId = $"project{i}"
+                    }
+                }
+            });
+        }
+
+        // Act
+        foreach (var project in ragProjects)
+        {
+            await _ragProjectDefContainer.CreateItemAsync(project, new PartitionKey(project.Id));
+        }
+        foreach (var projectItem in ragProjects.SelectMany(x => x.ContentItems))
+        {
+            await _ragItemContainer.CreateItemAsync(projectItem, new PartitionKey(projectItem.Id));
+        }
+        RagProject toDeleteProject = ragProjects.FirstOrDefault(x => x.Id == "project3")!;
+        var query = "SELECT * FROM c";
+        var queryDefinition = new QueryDefinition(query);
+        var projectIterator = _ragProjectDefContainer.GetItemQueryIterator<RagProject>(queryDefinition);
+        var projectsBefore = new List<RagProject>();
+        while (projectIterator.HasMoreResults)
+        {
+            var item = await projectIterator.ReadNextAsync();
+            projectsBefore.AddRange(item);
+        }
+        await _service.DeleteRagProject(toDeleteProject);
+        var itemDbExistsAfter = await _service.DatabaseExistsAsync(_ragItemDbName);
+        projectIterator = _ragProjectDefContainer.GetItemQueryIterator<RagProject>(queryDefinition);
+        var projectsAfter = new List<RagProject>();
+        while (projectIterator.HasMoreResults)
+        {
+            var item = await projectIterator.ReadNextAsync();
+            projectsAfter.AddRange(item);
+        }
+
+        // Assert
+        Assert.Equal(5, projectsBefore.Count);
+        Assert.Equal(4, projectsAfter.Count);
+        Assert.Contains(projectsAfter, x => x.Id == "project1");
+        Assert.Contains(projectsAfter, x => x.Id == "project2");
+        Assert.DoesNotContain(projectsAfter, x => x.Id == "project3");
+        Assert.Contains(projectsAfter, x => x.Id == "project4");
+        Assert.Contains(projectsAfter, x => x.Id == "project5");
+        Assert.False(itemDbExistsAfter);
+    }
+
+    [Fact]
+    public async Task DeleteRagProject_MissingId_ThrowsArgumentException()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = null,
+            Configuration = new RagConfiguration
+            {
+                DbName = "testDb"
+            }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.DeleteRagProject(ragProject));
+    }
+
+    [Fact]
+    public async Task DeleteRagProject_MissingDbName_ThrowsArgumentException()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = "testId",
+            Configuration = new RagConfiguration
+            {
+                DbName = null
+            }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.DeleteRagProject(ragProject));
     }
 
     public async ValueTask DisposeAsync()

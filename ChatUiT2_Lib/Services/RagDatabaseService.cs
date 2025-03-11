@@ -900,4 +900,9 @@ public class RagDatabaseService : IRagDatabaseService
 
         return query.ToList();
     }
+
+    public Task<bool> DatabaseExistsAsync(string databaseId)
+    {
+        throw new NotImplementedException();
+    }
 }

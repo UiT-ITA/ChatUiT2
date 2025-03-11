@@ -220,9 +220,23 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         throw new NotImplementedException();
     }
 
-    public Task DeleteRagProject(RagProject ragProject)
+    public async Task DeleteRagProject(RagProject ragProject)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("RagProject.Id must be set to delete the project");
+        }
+        if (string.IsNullOrEmpty(ragProject.Configuration?.DbName))
+        {
+            throw new ArgumentException("RagProject.Configuration.DbName must be set to delete the project");
+        }
+
+        // Delete the item from the container
+        await _ragProjectDefContainer.DeleteItemAsync<RagProject>(ragProject.Id, new PartitionKey(ragProject.Id));
+
+        // Drop the specific database
+        var database = _cosmosClient.GetDatabase(ragProject.Configuration.DbName);
+        await database.DeleteAsync();
     }
 
     public Task<RagProject?> HandleRagProjectUpload(IBrowserFile file)
@@ -348,6 +362,20 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     public Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task<bool> DatabaseExistsAsync(string databaseId)
+    {
+        try
+        {
+            var database = _cosmosClient.GetDatabase(databaseId);
+            await database.ReadAsync();
+            return true;
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return false;
+        }
     }
 
     public void Dispose()
