@@ -1028,6 +1028,74 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal(3, eventsInDb.Count);
     }
 
+    [Fact]
+    public async Task DeleteEmbeddingEvent_NormalRun_ShouldDelete()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+        EmbeddingSourceType embeddingSourceType = EmbeddingSourceType.Paragraph;
+        EmbeddingSourceType embeddingSourceType2 = EmbeddingSourceType.Question;
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject.Id, ContentItemId = "itemId1", EmbeddingSourceType = embeddingSourceType },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject.Id, ContentItemId = "anotherId", EmbeddingSourceType = embeddingSourceType2 }
+        };
+
+        // Act
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var eventsInDbBefore = await GetAllEmbeddingEvents();
+        await _service.DeleteEmbeddingEvent(ragProject, embeddings[1]);
+        var eventsInDbAfter = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.Equal(3, eventsInDbBefore.Count);
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent1");
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent2");
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent3");
+        Assert.Equal(2, eventsInDbAfter.Count);
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent1");
+        Assert.DoesNotContain(eventsInDbAfter, x => x.Id == "embeddingEvent2");
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent3");
+    }
+
+    [Fact]
+    public async Task DeleteEmbeddingEvent_EventDoesNotExist_ShouldNotDeleteAnythingAndNoException()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+        EmbeddingSourceType embeddingSourceType = EmbeddingSourceType.Paragraph;
+        EmbeddingSourceType embeddingSourceType2 = EmbeddingSourceType.Question;
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject.Id, ContentItemId = "itemId1", EmbeddingSourceType = embeddingSourceType },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject.Id, ContentItemId = "anotherId", EmbeddingSourceType = embeddingSourceType2 }
+        };
+
+        // Act
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var eventsInDbBefore = await GetAllEmbeddingEvents();
+        await _service.DeleteEmbeddingEvent(ragProject, "NonExistingId");
+        var eventsInDbAfter = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.Equal(3, eventsInDbBefore.Count);
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent1");
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent2");
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent3");
+        Assert.Equal(3, eventsInDbAfter.Count);
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent1");
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent2");
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent3");
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";

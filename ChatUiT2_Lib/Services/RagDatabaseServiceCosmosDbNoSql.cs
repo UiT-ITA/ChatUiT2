@@ -704,14 +704,41 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return null;
     }
 
-    public Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item)
+    public async Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item)
     {
-        throw new NotImplementedException();
+        if (item?.Id == null)
+        {
+            throw new ArgumentException("item must be set to delete EmbeddingEvent");
+        }
+        await DeleteEmbeddingEvent(ragProject, item.Id);
     }
 
-    public Task DeleteEmbeddingEvent(RagProject ragProject, string eventId)
+    public async Task DeleteEmbeddingEvent(RagProject ragProject, string eventId)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(eventId))
+        {
+            throw new ArgumentException("eventId must be set to delete EmbeddingEvent");
+        }
+
+        var container = await GetEmbeddingEventContainer(ragProject);
+
+        try
+        {
+            var response = await container.DeleteItemAsync<EmbeddingEvent>(eventId, new PartitionKey(ragProject.Id));
+            if (response.StatusCode == HttpStatusCode.NoContent)
+            {
+                // Item successfully deleted
+            }
+            else
+            {
+                // Handle unsuccessful deletion
+                throw new Exception($"Failed to delete EmbeddingEvent {eventId}, http status code {response.StatusCode}");
+            }
+        }
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // Item not found
+        }
     }
 
     public Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays)
