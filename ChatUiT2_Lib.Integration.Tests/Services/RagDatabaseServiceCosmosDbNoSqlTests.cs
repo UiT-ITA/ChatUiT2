@@ -970,6 +970,64 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal(3, eventsInDb.Count);
     }
 
+    [Fact]
+    public async Task GetExistingEmbeddingEventId_ValidProject_ShouldGetCorrectId()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+        string contentItemId = "itemId1";
+        EmbeddingSourceType embeddingSourceType = EmbeddingSourceType.Paragraph;
+        EmbeddingSourceType embeddingSourceType2 = EmbeddingSourceType.Question;
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject.Id, ContentItemId = "itemId1", EmbeddingSourceType = embeddingSourceType },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject.Id, ContentItemId = "anotherId", EmbeddingSourceType = embeddingSourceType2 }
+        };
+
+        // Act
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var result = await _service.GetExistingEmbeddingEventId(ragProject, contentItemId, EmbeddingSourceType.Paragraph);
+        var eventsInDb = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("embeddingEvent2", result);
+        Assert.Equal(3, eventsInDb.Count);
+    }
+
+    [Theory]
+    [InlineData("NoMatchingId", EmbeddingSourceType.Paragraph)]
+    [InlineData("itemId1", EmbeddingSourceType.Question)]
+    public async Task GetExistingEmbeddingEventId_NoMatch_ShouldReturnNull(string itemId, EmbeddingSourceType sourceType)
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+        EmbeddingSourceType embeddingSourceType = EmbeddingSourceType.Paragraph;
+        EmbeddingSourceType embeddingSourceType2 = EmbeddingSourceType.Question;
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject.Id, ContentItemId = "itemId1", EmbeddingSourceType = embeddingSourceType },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject.Id, ContentItemId = "anotherId", EmbeddingSourceType = embeddingSourceType2 }
+        };
+
+        // Act
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var result = await _service.GetExistingEmbeddingEventId(ragProject, itemId, sourceType);
+        var eventsInDb = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.Null(result);
+        Assert.Equal(3, eventsInDb.Count);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";

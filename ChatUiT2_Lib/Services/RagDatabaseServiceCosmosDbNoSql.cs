@@ -675,10 +675,33 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             return null;
         }
     }
-    
-    public Task<string> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type)
+
+    public async Task<string?> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(contentItemId))
+        {
+            throw new ArgumentException("contentItemId must be set to get embedding event");
+        }
+
+        var container = await GetEmbeddingEventContainer(ragProject);
+
+        var query = new QueryDefinition("SELECT c.id FROM c WHERE c.ContentItemId = @contentItemId AND c.EmbeddingSourceType = @type")
+            .WithParameter("@contentItemId", contentItemId)
+            .WithParameter("@type", type);
+
+        using (var iterator = container.GetItemQueryIterator<EmbeddingEvent>(query))
+        {
+            while (iterator.HasMoreResults)
+            {
+                var response = await iterator.ReadNextAsync();
+                var embeddingEvent = response.FirstOrDefault();
+                if (embeddingEvent != null)
+                {
+                    return embeddingEvent.Id;
+                }
+            }
+        }
+        return null;
     }
 
     public Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item)
