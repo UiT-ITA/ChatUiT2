@@ -879,4 +879,9 @@ public class RagDatabaseService : IRagDatabaseService
     {
         throw new NotImplementedException();
     }
+
+    public Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject)
+    {
+        throw new NotImplementedException();
+    }
 }

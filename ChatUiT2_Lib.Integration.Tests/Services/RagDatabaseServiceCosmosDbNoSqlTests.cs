@@ -1096,6 +1096,52 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent3");
     }
 
+    [Fact]
+    public async Task GetEmbeddingEventsByProjectId_NormalRun_ShouldReturnItemsForProject()
+    {
+        // Arrange
+        var ragProject1 = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+        var ragProject2 = CreateTestRagProject("testProjectId2", "projectName2", "projectDescription2", 10);        
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject1.Id! },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject1.Id! },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject1.Id! },
+            new EmbeddingEvent { Id = "embeddingEvent4", RagProjectId = ragProject2.Id! },
+            new EmbeddingEvent { Id = "embeddingEvent5", RagProjectId = ragProject2.Id! },
+            new EmbeddingEvent { Id = "embeddingEvent6", RagProjectId = ragProject2.Id! }
+        };
+
+        // Act
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var eventsInDbBefore = await GetAllEmbeddingEvents();
+        var result = await _service.GetEmbeddingEventsByProjectId(ragProject2);
+        var eventsInDbAfter = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.Equal(3, result.Count());
+        Assert.Contains(result, x => x.Id == "embeddingEvent4");
+        Assert.Contains(result, x => x.Id == "embeddingEvent5");
+        Assert.Contains(result, x => x.Id == "embeddingEvent6");
+        Assert.Equal(6, eventsInDbBefore.Count);
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent1");
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent2");
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent3");
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent4");
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent5");
+        Assert.Contains(eventsInDbBefore, x => x.Id == "embeddingEvent6");
+        Assert.Equal(6, eventsInDbAfter.Count);
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent1");
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent2");
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent3");
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent4");
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent5");
+        Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent6");
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";

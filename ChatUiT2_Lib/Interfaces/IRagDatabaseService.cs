@@ -40,4 +40,5 @@ public interface IRagDatabaseService
     public Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays);
     Task<bool> DatabaseExistsAsync(string databaseId);
     Task<List<string>> GetEmbeddingContentItemIdsByProject(RagProject ragProject);
+    Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject);
 }
