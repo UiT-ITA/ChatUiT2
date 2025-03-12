@@ -884,6 +884,8 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.NotNull(result);
         Assert.Equal("embeddingEvent2", result!.Id);
         Assert.Equal(3, eventsInDb.Count);
+        Assert.NotNull(eventsInDb[0].ETag);
+        Assert.NotEmpty(eventsInDb[0].ETag);
     }
 
     [Fact]
@@ -911,6 +913,60 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         // Assert
         Assert.NotNull(result);
         Assert.Equal("embeddingEvent2", result!.Id);
+        Assert.Equal(3, eventsInDb.Count);
+    }
+
+    [Fact]
+    public async Task GetEmbeddingEventByIdForProcessing_EtagChangedSignalingSomeoneElseUpdated_ShouldReturnNull()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject.Id }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var result = await _service.GetEmbeddingEventByIdForProcessing(ragProject, "embeddingEvent2", simulateEtagChanged: true);
+        var eventsInDb = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.Null(result);
+        Assert.Equal(3, eventsInDb.Count);
+    }
+
+    [Fact]
+    public async Task GetEmbeddingEventByIdForProcessing_EventDoesNotExist_ShouldReturnNull()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject.Id },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject.Id }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var result = await _service.GetEmbeddingEventByIdForProcessing(ragProject, "NonExistingId");
+        var eventsInDb = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.Null(result);
         Assert.Equal(3, eventsInDb.Count);
     }
 

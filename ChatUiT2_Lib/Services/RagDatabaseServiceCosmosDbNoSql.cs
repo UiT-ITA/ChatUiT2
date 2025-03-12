@@ -16,6 +16,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using MongoDB.Driver.Core.Configuration;
+using MongoDB.Bson;
+using System.Net;
 
 namespace ChatUiT2.Services;
 
@@ -627,40 +629,53 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     /// </summary>
     /// <param name="ragProject"></param>
     /// <param name="eventId"></param>
+    /// <param name="simulateEtagChanged">Only used by integration tests to check lock mechanism</param>
     /// <returns></returns>
-    public async Task<EmbeddingEvent?> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId)
+    ///     
+    public async Task<EmbeddingEvent?> GetEmbeddingEventByIdForProcessing(RagProject ragProject, 
+                                                                          string eventId,
+                                                                          bool simulateEtagChanged = false)
     {
-        if (string.IsNullOrEmpty(eventId))
-        {
-            throw new ArgumentException("eventId must be set to get embedding event");
-        }
-
+        
         var container = await GetEmbeddingEventContainer(ragProject);
 
-        // Create a transactional batch to ensure atomicity
-        var partitionKey = new PartitionKey(ragProject.Id);
-        var batch = container.CreateTransactionalBatch(partitionKey);
-
-        // Add the read operation to the batch
-        batch.ReadItem(eventId);
-
-        // Add the update operation to the batch
-        batch.ReplaceItem(eventId, new { IsProcessing = true });
-
-        var batchResponse = await batch.ExecuteAsync();
-
-        if (batchResponse.IsSuccessStatusCode)
+        var embeddingEvent = await GetEmbeddingEventById(ragProject, eventId);
+        if (embeddingEvent == null)
         {
-            var embeddingEvent = batchResponse.GetOperationResultAtIndex<EmbeddingEvent>(0);
-            return embeddingEvent.Resource;
+            return null;
         }
-        else
+        var etag = simulateEtagChanged ? "WrongEtagValue" : embeddingEvent.ETag;
+
+        if (embeddingEvent.IsProcessing)
         {
-            // Someone else is already processing this event or an error occurred
+            // Someone else is already processing this event
+            return null;
+        }
+
+        embeddingEvent.IsProcessing = true;
+
+        try
+        {
+            var requestOptions = new ItemRequestOptions { IfMatchEtag = etag };
+            var updateResponse = await container.ReplaceItemAsync(embeddingEvent, eventId, new PartitionKey(ragProject.Id), requestOptions);
+
+            if (updateResponse.StatusCode == HttpStatusCode.OK)
+            {
+                return await GetEmbeddingEventById(ragProject, eventId);
+            }
+            else
+            {
+                // Update failed
+                return null;
+            }
+        }
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.PreconditionFailed)
+        {
+            // ETag mismatch, someone else updated the item
             return null;
         }
     }
-
+    
     public Task<string> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type)
     {
         throw new NotImplementedException();

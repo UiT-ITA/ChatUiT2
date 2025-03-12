@@ -33,7 +33,7 @@ public interface IRagDatabaseService
     public Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150);
     public Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent);
     public Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId);    
-    public Task<EmbeddingEvent> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId);
+    public Task<EmbeddingEvent> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId, bool simulateEtagChanged = false);
     public Task<string> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type);
     public Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item);
     public Task DeleteEmbeddingEvent(RagProject ragProject, string eventId);

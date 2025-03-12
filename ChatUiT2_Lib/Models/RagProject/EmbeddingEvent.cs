@@ -31,6 +31,9 @@ public class EmbeddingEvent
     public bool IsProcessing { get; set; }
     [BsonElement("EmbeddingSourceType")]
     public EmbeddingSourceType EmbeddingSourceType { get; set; }
+    [BsonElement("_etag")]
+    [JsonProperty(PropertyName = "_etag")]
+    public string? ETag { get; set; }
 }
 
 public enum EmbeddingEventType
