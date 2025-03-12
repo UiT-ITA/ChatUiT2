@@ -2,11 +2,9 @@
 using ChatUiT2.Models;
 using Microsoft.Azure.Cosmos;
 using OpenAI.Embeddings;
-using System.Numerics.Tensors;
 using System.Text.Json;
 using ChatUiT2.Models.RagProject;
 using Microsoft.AspNetCore.Components.Forms;
-using MudBlazor;
 using System.Text;
 using ChatMessage = ChatUiT2.Models.ChatMessage;
 using Microsoft.Extensions.Caching.Memory;
@@ -14,10 +12,10 @@ using System.Text.RegularExpressions;
 using Ganss.Xss;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using System.Collections.Generic;
-using MongoDB.Driver.Core.Configuration;
-using MongoDB.Bson;
 using System.Net;
+using System.Collections.ObjectModel;
+using Microsoft.Extensions.AI;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 
 namespace ChatUiT2.Services;
 
@@ -118,7 +116,36 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             throw new ArgumentException("RagProject.Configuration.EmbeddingCollectioName must be set to get container");
         }
         var ragEmbeddingDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(ragProject.Configuration.DbName);
-        return (await ragEmbeddingDatabase.Database.CreateContainerIfNotExistsAsync(ragProject.Configuration.EmbeddingCollectioName, "/SourceItemId")).Container;
+
+        var containerProperties = new ContainerProperties(ragProject.Configuration.EmbeddingCollectioName, "/SourceItemId")
+        {
+            Id = ragProject.Configuration.EmbeddingCollectioName,
+            PartitionKeyPath = "/SourceItemId",
+            IndexingPolicy = new IndexingPolicy
+            {                
+                VectorIndexes = new Collection<VectorIndexPath>()
+                {
+                    new VectorIndexPath()
+                    {
+                        Path = "/Embedding",
+                        Type = VectorIndexType.Flat
+                    }
+                }
+            },            
+            VectorEmbeddingPolicy = new VectorEmbeddingPolicy(new()
+            {
+                new()
+                {
+                    Path = "/Embedding",
+                    DataType = VectorDataType.Float32,
+                    DistanceFunction = DistanceFunction.Cosine,
+                    Dimensions = 500                    
+                }
+            })
+        };
+        containerProperties.IndexingPolicy.IncludedPaths.Add(new IncludedPath { Path = "/*" });
+        containerProperties.IndexingPolicy.ExcludedPaths.Add(new ExcludedPath { Path = "/Embedding/*" });
+        return (await ragEmbeddingDatabase.Database.CreateContainerIfNotExistsAsync(containerProperties)).Container;
     }
 
     private async Task<Container> GetEmbeddingEventContainer(RagProject ragProject)
@@ -406,9 +433,32 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public Task AddRagTextEmbedding(RagProject ragProject, string itemId, EmbeddingSourceType embedType, string originalText = "")
+    public async Task AddRagTextEmbedding(RagProject ragProject, string itemId, EmbeddingSourceType embedType, string originalText = "")
     {
-        throw new NotImplementedException();
+        if (ragProject == null)
+        {
+            throw new ArgumentException("ragProject must be set to add embedding");
+        }
+        if (string.IsNullOrEmpty(itemId))
+        {
+            throw new ArgumentException("itemId must be set to add embedding");
+        }
+        if (string.IsNullOrEmpty(originalText))
+        {
+            throw new ArgumentException("originalText must be set to add embedding");
+        }
+        RagTextEmbedding newEmbedding = new()
+        {
+            Model = _settingsService.EmbeddingModel.DeploymentName,
+            ModelProvider = _settingsService.EmbeddingModel.DeploymentType.GetDisplayName(),
+            Originaltext = originalText,
+            SourceItemId = itemId,
+            RagProjectId = ragProject?.Id ?? string.Empty,
+            TextType = embedType
+        };
+        int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"]);
+        newEmbedding.Embedding = (await GetEmbeddingForText(newEmbedding.Originaltext)).ToFloats().Slice(0, numDimensions).ToArray();
+        await SaveRagEmbedding(ragProject, newEmbedding);
     }
 
     public async Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item)
@@ -514,9 +564,41 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return textContent;
     }
 
-    public Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8)
+    public async Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8)
     {
-        throw new NotImplementedException();
+        List<RagSearchResult> result = [];
+        
+        var userPhraseEmbedding = await GetEmbeddingForText(searchTerm);
+        int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"]);
+        var floatsUser = userPhraseEmbedding.ToFloats().Slice(0, numDimensions).ToArray();
+        var embeddingContainer = await GetEmbeddingContainer(ragProject);
+        var queryDef = new QueryDefinition(
+            query: $"SELECT TOP {numResults} c.Originaltext as EmbeddingText, c.SourceItemId as SourceId, VectorDistance(c.Embedding,@embedding) AS MatchScore FROM c ORDER BY VectorDistance(c.Embedding,@embedding)"
+        ).WithParameter("@embedding", floatsUser);
+        
+        using FeedIterator<RagSearchResult> feed = embeddingContainer.GetItemQueryIterator<RagSearchResult>(
+            queryDefinition: queryDef
+        );
+        while (feed.HasMoreResults)
+        {
+            FeedResponse<RagSearchResult> response = await feed.ReadNextAsync();
+            foreach (var item in response)
+            {
+                item.Source = ragProject.Name;
+                result.Add(item);
+            }
+        }
+
+        // Get details about ContentItem
+        foreach (var res in result)
+        {
+            var contentItem = await GetContentItemById(ragProject, res.SourceId);
+            res.ContentUrl = contentItem.ViewUrl;
+            res.SourceAltId = contentItem.SourceSystemAltId;
+            res.SourceContent = GetItemContentString(contentItem);
+        }
+
+        return result;
     }
 
     public Task DeleteContentItem(RagProject ragProject, ContentItem item)
