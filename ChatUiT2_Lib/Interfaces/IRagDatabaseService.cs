@@ -41,4 +41,5 @@ public interface IRagDatabaseService
     Task<bool> DatabaseExistsAsync(string databaseId);
     Task<List<string>> GetEmbeddingContentItemIdsByProject(RagProject ragProject);
     Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject);
+    Task<List<string>> GetAllDatabaseIdsAsync();
 }

@@ -942,6 +942,23 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return result;
     }
 
+    public async Task<List<string>> GetAllDatabaseIdsAsync()
+    {
+        var databaseList = new List<string>();
+        var iterator = _cosmosClient.GetDatabaseQueryIterator<DatabaseProperties>();
+
+        while (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            foreach (var database in response)
+            {
+                databaseList.Add(database.Id);
+            }
+        }
+
+        return databaseList;
+    }
+
     public void Dispose()
     {
         _cosmosClient.Dispose();

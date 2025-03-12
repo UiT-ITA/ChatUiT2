@@ -884,4 +884,9 @@ public class RagDatabaseService : IRagDatabaseService
     {
         throw new NotImplementedException();
     }
+
+    public Task<List<string>> GetAllDatabaseIdsAsync()
+    {
+        throw new NotImplementedException();
+    }
 }

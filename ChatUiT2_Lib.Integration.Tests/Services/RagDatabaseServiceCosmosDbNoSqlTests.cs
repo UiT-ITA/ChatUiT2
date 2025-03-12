@@ -1260,6 +1260,21 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent3");
     }
 
+    [Fact]
+    public async Task GetAllDatabaseIdsAsync_NormalRun_ShouldReturnAllIds()
+    {
+        // Arrange
+
+        // Act
+        var result = await _service.GetAllDatabaseIdsAsync();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.True(result.Count > 0);
+        Assert.Contains("XunitRagItemDb", result);
+        Assert.Contains("XunitRagProjects", result);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";
