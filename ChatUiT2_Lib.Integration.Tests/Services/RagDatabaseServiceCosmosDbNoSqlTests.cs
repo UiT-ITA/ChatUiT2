@@ -1142,6 +1142,59 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Contains(eventsInDbAfter, x => x.Id == "embeddingEvent6");
     }
 
+    [Fact]
+    public async Task SaveRagEmbedding_NewEmbedding_CreatesItem()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 1);
+        var textEmbedding = CreateTestRagTextEmbedding(ragProject.Id, "item1", null);
+
+        // Act
+        var embeddingsBefore = await GetAllEmbeddings();
+        await _service.SaveRagEmbedding(ragProject, textEmbedding);
+        var embeddingsAfter = await GetAllEmbeddings();
+
+        // Assert
+        Assert.Empty(embeddingsBefore);
+        Assert.Single(embeddingsAfter);
+        Assert.NotEmpty(embeddingsAfter[0].Id);
+        Assert.Equal(ragProjectId, embeddingsAfter[0].RagProjectId);
+        Assert.Equal("item1", embeddingsAfter[0].SourceItemId);
+    }
+
+    [Fact]
+    public async Task SaveRagEmbedding_ExistingEvent_UpdatesItem()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 1);
+        string embedId = "EmbeddingId";
+        var textEmbeddingEvent = CreateTestRagTextEmbedding(ragProject.Id, "item1", embedId);
+        textEmbeddingEvent.Originaltext = "OrigText";
+
+        // Act
+        await _ragEmbeddingContainer.CreateItemAsync(textEmbeddingEvent, new PartitionKey(textEmbeddingEvent.SourceItemId));
+        var embeddingsBefore = await GetAllEmbeddings();
+        textEmbeddingEvent.Originaltext = "NewOrigText";
+        await _service.SaveRagEmbedding(ragProject, textEmbeddingEvent);
+        var embeddingsAfter = await GetAllEmbeddings();
+
+        // Assert
+        Assert.Single(embeddingsBefore);
+        Assert.Single(embeddingsAfter);
+        Assert.Equal(embedId, embeddingsBefore[0].Id);
+        Assert.Equal(embedId, embeddingsAfter[0].Id);
+        Assert.Equal(ragProjectId, embeddingsBefore[0].RagProjectId);
+        Assert.Equal(ragProjectId, embeddingsAfter[0].RagProjectId);
+        Assert.Equal("item1", embeddingsBefore[0].SourceItemId);
+        Assert.Equal("item1", embeddingsAfter[0].SourceItemId);
+        Assert.Equal("OrigText", embeddingsBefore[0].Originaltext);
+        Assert.Equal("NewOrigText", embeddingsAfter[0].Originaltext);
+        Assert.Equal(embeddingsBefore[0].Created, embeddingsAfter[0].Created);
+        Assert.True(embeddingsBefore[0].Updated < embeddingsAfter[0].Updated);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";

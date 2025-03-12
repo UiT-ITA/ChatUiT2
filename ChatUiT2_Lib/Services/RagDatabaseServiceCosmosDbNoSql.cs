@@ -31,8 +31,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     // CosmosDb defs
     private readonly string _ragProjectDefDbName = string.Empty;
     private readonly string _ragProjectDefContainerName = string.Empty;
-    private Database _ragProjectDefDatabase;
-    private Container _ragProjectDefContainer;
 
     // Services
     private readonly IDateTimeProvider _dateTimeProvider;
@@ -57,19 +55,13 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         this._ragProjectDefDbName = _configuration["RagProjectDefDatabaseName"] ?? string.Empty;
         this._ragProjectDefContainerName = _configuration["RagProjectDefContainerName"] ?? string.Empty;
         this._cosmosClient = cosmosClient;
-        InitializeAsync().GetAwaiter().GetResult();
     }
 
-    public async Task InitializeAsync()
-    {
-        await InitializeCosmosDb(_ragProjectDefDbName);
-    }
-
-    private async Task InitializeCosmosDb(string databaseName)
+    private async Task<Container> GetRagProjectDefContainer()
     {
         // Create the project def database if it does not exist
-        _ragProjectDefDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName);
-        _ragProjectDefContainer = (await _ragProjectDefDatabase.CreateContainerIfNotExistsAsync(_ragProjectDefContainerName, "/id")).Container;
+        var ragProjectDefDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(_ragProjectDefDbName);
+        return (await ragProjectDefDatabase.Database.CreateContainerIfNotExistsAsync(_ragProjectDefContainerName, "/id")).Container;
     }
 
     public async Task<OpenAIEmbedding> GetEmbeddingForText(string text)
@@ -153,6 +145,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         {
             throw new ArgumentException("RagProject.Configuration.ItemCollectionName must be set to save project");
         }
+        var ragProjectContainer = await GetRagProjectDefContainer();
         var itemContainer = await GetItemContainer(ragProject);
 
         // Save the project definition
@@ -161,12 +154,12 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             ragProject.Created = _dateTimeProvider.OffsetUtcNow;
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
             ragProject.Id = Guid.NewGuid().ToString();
-            await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            await ragProjectContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
         }
         else
         {
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
-            await _ragProjectDefContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            await ragProjectContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
         }
 
         // Save the items in the specific db for this rag project
@@ -214,8 +207,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         {
             throw new ArgumentException("projectId must be set to get project");
         }
-
-        var response = await _ragProjectDefContainer.ReadItemAsync<RagProject>(projectId, new PartitionKey(projectId));
+        var ragProjectContainer = await GetRagProjectDefContainer();
+        var response = await ragProjectContainer.ReadItemAsync<RagProject>(projectId, new PartitionKey(projectId));
         var ragProject = response.Resource;
 
         if (response.Resource == null)
@@ -243,9 +236,10 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     }
     public async Task<List<RagProject>> GetAllRagProjects()
     {
+        var ragProjectContainer = await GetRagProjectDefContainer();
         var result = new List<RagProject>();
         var query = "SELECT * FROM c";
-        var iterator = _ragProjectDefContainer.GetItemQueryIterator<RagProject>(new QueryDefinition(query));
+        var iterator = ragProjectContainer.GetItemQueryIterator<RagProject>(new QueryDefinition(query));
 
         while (iterator.HasMoreResults)
         {
@@ -271,9 +265,9 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         {
             throw new ArgumentException("RagProject.Configuration.DbName must be set to delete the project");
         }
-
+        var ragProjectContainer = await GetRagProjectDefContainer();
         // Delete the item from the container
-        await _ragProjectDefContainer.DeleteItemAsync<RagProject>(ragProject.Id, new PartitionKey(ragProject.Id));
+        await ragProjectContainer.DeleteItemAsync<RagProject>(ragProject.Id, new PartitionKey(ragProject.Id));
 
         // Drop the specific database
         var database = _cosmosClient.GetDatabase(ragProject.Configuration.DbName);
@@ -366,9 +360,32 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return result;
     }
 
-    public Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
+    /// <summary>
+    /// Save a rag embedding to the rag project db
+    /// </summary>
+    /// <param name="ragProject">The project the embedding belongs to</param>
+    /// <param name="embedding">The embedding to save</param>
+    /// <returns></returns>
+    public async Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
     {
-        throw new NotImplementedException();
+        var ragItemsDatabase = _cosmosClient.GetDatabase(ragProject.Configuration.DbName);
+        var embeddingContainer = await GetEmbeddingContainer(ragProject);
+
+        if (string.IsNullOrEmpty(embedding.Id))
+        {
+            embedding.Created = _dateTimeProvider.OffsetUtcNow;
+            embedding.Updated = _dateTimeProvider.OffsetUtcNow;
+            // This is a new document, generate a new id
+            embedding.Id = Guid.NewGuid().ToString();
+            await embeddingContainer.CreateItemAsync<RagTextEmbedding>(embedding, new PartitionKey(embedding.SourceItemId));
+        }
+        else
+        {
+            embedding.Updated = _dateTimeProvider.OffsetUtcNow;
+            // This is an existing document, do update
+            var partitionKey = new PartitionKey(embedding.SourceItemId);
+            await embeddingContainer.ReplaceItemAsync<RagTextEmbedding>(embedding, embedding.Id, partitionKey);
+        }
     }
 
     public Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
@@ -381,14 +398,60 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         throw new NotImplementedException();
     }
 
-    public Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item)
+    public async Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item)
     {
-        throw new NotImplementedException();
+        try
+        {
+            string textContent = GetItemContentString(item);
+            var questionsFromLlm = await GenerateQuestionsFromContent(textContent,
+                                                                      ragProject.Configuration?.MinNumberOfQuestionsPerItem ?? 5,
+                                                                      ragProject.Configuration?.MaxNumberOfQuestionsPerItem ?? 20);
+            if (questionsFromLlm != null)
+            {
+                foreach (var question in questionsFromLlm.Questions)
+                {
+                    await AddRagTextEmbedding(ragProject, item.Id, EmbeddingSourceType.Question, question);
+                }
+            }
+            else
+            {
+                throw new Exception("No questions generated by LLM");
+            }
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Noe feilet ved generering av spørsmål for item {item.Id} {e.Message}");
+        }
     }
 
-    public Task<string> SendRagSearchToLlm(List<RagSearchResult> ragSearchResults, string searchTerm)
+    public async Task<string> SendRagSearchToLlm(List<RagSearchResult> ragSearchResults, string searchTerm)
     {
-        throw new NotImplementedException();
+        AiModel defaultModel = _settingsService.DefaultModel;
+        WorkItemChat chat = new();
+        chat.Settings = new ChatSettings()
+        {
+            MaxTokens = defaultModel.MaxTokens,
+            Model = defaultModel.DeploymentName,
+            Temperature = 0.5f
+        };
+        chat.Type = WorkItemType.Chat;
+        chat.Settings.Prompt = $"Use the information in the knowledge articles the user provides to answer the user question. Answer in the same language as the user is asking in.\n\n";
+        for (int i = 0; i < ragSearchResults.Count(); i++)
+        {
+            chat.Messages.Add(new ChatMessage()
+            {
+                Role = ChatMessageRole.User,
+                Content = $"## Knowledge article {i}\n\n{ragSearchResults.ElementAt(i).SourceContent}\n\n"
+            });
+        }
+
+        chat.Messages.Add(new ChatMessage()
+        {
+            Role = ChatMessageRole.User,
+            Content = $"My question is {searchTerm}"
+        });
+
+        return await _chatService.GetChatResponseAsString(chat);
     }
 
     public async Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId)
