@@ -235,31 +235,38 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             throw new ArgumentException("projectId must be set to get project");
         }
         var ragProjectContainer = await GetRagProjectDefContainer();
-        var response = await ragProjectContainer.ReadItemAsync<RagProject>(projectId, new PartitionKey(projectId));
-        var ragProject = response.Resource;
-
-        if (response.Resource == null)
+        try
         {
-            // Not found
+            var response = await ragProjectContainer.ReadItemAsync<RagProject>(projectId, new PartitionKey(projectId));
+            var ragProject = response.Resource;
+
+            if (response.Resource == null)
+            {
+                // Not found
+                return null;
+            }
+
+            // Get the items for the project
+            if (loadItems)
+            {
+                var itemContainer = await GetItemContainer(ragProject);
+                var query = new QueryDefinition("SELECT * FROM c WHERE c.RagProjectId = @projectId")
+                    .WithParameter("@projectId", projectId);
+                var iterator = itemContainer.GetItemQueryIterator<ContentItem>(query);
+                ragProject.ContentItems = new List<ContentItem>();
+                while (iterator.HasMoreResults)
+                {
+                    var responseItems = await iterator.ReadNextAsync();
+                    ragProject.ContentItems.AddRange(responseItems);
+                }
+            }
+
+            return ragProject;
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
             return null;
         }
-
-        // Get the items for the project
-        if (loadItems)
-        {
-            var itemContainer = await GetItemContainer(ragProject);
-            var query = new QueryDefinition("SELECT * FROM c WHERE c.RagProjectId = @projectId")
-                .WithParameter("@projectId", projectId);
-            var iterator = itemContainer.GetItemQueryIterator<ContentItem>(query);
-            ragProject.ContentItems = new List<ContentItem>();
-            while (iterator.HasMoreResults)
-            {
-                var responseItems = await iterator.ReadNextAsync();
-                ragProject.ContentItems.AddRange(responseItems);
-            }
-        }
-
-        return ragProject;
     }
     public async Task<List<RagProject>> GetAllRagProjects()
     {
