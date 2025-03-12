@@ -63,7 +63,7 @@ builder.Services.AddSingleton<CosmosClient>(sp =>
     return new CosmosClient(connectionString);
 });
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
-builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseService>();
+builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseServiceCosmosDbNoSql>();
 
 // Scoped services
 builder.Services.AddScoped<IUserService, UserService>();
