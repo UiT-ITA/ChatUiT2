@@ -368,7 +368,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     /// <returns></returns>
     public async Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
     {
-        var ragItemsDatabase = _cosmosClient.GetDatabase(ragProject.Configuration.DbName);
         var embeddingContainer = await GetEmbeddingContainer(ragProject);
 
         if (string.IsNullOrEmpty(embedding.Id))
@@ -388,9 +387,23 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
+    public async Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(embedding.Id))
+        {
+            throw new ArgumentException("Embedding.Id must be set to delete embedding");
+        }
+        var embeddingContainer = await GetEmbeddingContainer(ragProject);
+
+        var partitionKey = new PartitionKey(embedding.SourceItemId);
+        try
+        {
+            await embeddingContainer.DeleteItemAsync<RagTextEmbedding>(embedding.Id, partitionKey);
+        }
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // Do nothing, the item was not found
+        }
     }
 
     public Task AddRagTextEmbedding(RagProject ragProject, string itemId, EmbeddingSourceType embedType, string originalText = "")
