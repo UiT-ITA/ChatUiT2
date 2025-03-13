@@ -1270,9 +1270,36 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
 
         // Assert
         Assert.NotNull(result);
-        Assert.True(result.Count > 0);
+        Assert.True(result.Count() > 0);
         Assert.Contains("XunitRagItemDb", result);
         Assert.Contains("XunitRagProjects", result);
+    }
+
+    [Fact]
+    public async Task GetEmbeddingIdsByProject_ValidProject_ReturnsIds()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+        var embeddings = new List<RagTextEmbedding>
+        {
+            new RagTextEmbedding { Id = "embedding1", SourceItemId = "source1", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embedding2", SourceItemId = "source2", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embedding3", SourceItemId = "source3", RagProjectId = ragProject.Id }
+        };
+
+        // Act
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.SourceItemId));
+        }
+        var result = await _service.GetEmbeddingIdsByProject(ragProject);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(embeddings.Count, result.Count());
+        Assert.Contains("embedding1", result);
+        Assert.Contains("embedding2", result);
+        Assert.Contains("embedding3", result);
     }
 
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()

@@ -889,4 +889,9 @@ public class RagDatabaseService : IRagDatabaseService
     {
         throw new NotImplementedException();
     }
+
+    public Task<List<string>> GetEmbeddingIdsByProject(RagProject ragProject)
+    {
+        throw new NotImplementedException();
+    }
 }

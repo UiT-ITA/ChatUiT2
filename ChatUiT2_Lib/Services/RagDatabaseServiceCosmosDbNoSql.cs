@@ -966,6 +966,34 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return databaseList;
     }
 
+    /// <summary>
+    /// Get a list of unique embedding ids from the embeddings container.
+    /// Can be used when for instance copying rag database to get a list of
+    /// already existing embeddings.
+    /// </summary>
+    /// <param name="ragProject">The project to get for</param>
+    /// <returns></returns>
+    public async Task<List<string>> GetEmbeddingIdsByProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("Project id must be set to get embeddings");
+        }
+
+        var result = new List<string>();
+        var embeddingContainer = await GetEmbeddingContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT c.id FROM c");
+        var queryIterator = embeddingContainer.GetItemQueryIterator<RagTextEmbedding>(queryDefinition);
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response.Select(x => x.Id));
+        }
+
+        return result;
+    }
+
     public void Dispose()
     {
         _cosmosClient.Dispose();
