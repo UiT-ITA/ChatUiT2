@@ -328,7 +328,7 @@ public class RagDatabaseService : IRagDatabaseService
     /// <param name="ragProject">The project the embedding belongs to</param>
     /// <param name="embedding">The embedding to save</param>
     /// <returns></returns>
-    public async Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
+    public async Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false)
     {
         var ragItemsDatabase = _mongoClientRagDb.GetDatabase(ragProject.Configuration.DbName);
         var embeddingCollection = ragItemsDatabase.GetCollection<BsonDocument>(ragProject.Configuration.EmbeddingCollectioName);

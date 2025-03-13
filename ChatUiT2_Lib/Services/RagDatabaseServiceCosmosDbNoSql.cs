@@ -396,11 +396,14 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
 
     /// <summary>
     /// Save a rag embedding to the rag project db
+    /// If Id is null or empty it will create, or if forceCreateWithId is true.
+    /// If id is set it will do update
     /// </summary>
     /// <param name="ragProject">The project the embedding belongs to</param>
     /// <param name="embedding">The embedding to save</param>
+    /// <param name="forceCreateWithId">In cases where you want to create with a predefined id. For instance when copying a database</param>
     /// <returns></returns>
-    public async Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding)
+    public async Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false)
     {
         var embeddingContainer = await GetEmbeddingContainer(ragProject);
 
