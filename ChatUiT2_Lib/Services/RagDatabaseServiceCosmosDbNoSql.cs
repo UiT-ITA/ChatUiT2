@@ -411,8 +411,11 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         {
             embedding.Created = _dateTimeProvider.OffsetUtcNow;
             embedding.Updated = _dateTimeProvider.OffsetUtcNow;
-            // This is a new document, generate a new id
-            embedding.Id = Guid.NewGuid().ToString();
+            // This is a new document, generate a new id unless forceCreateWithId true
+            if(!forceCreateWithId)
+            {
+                embedding.Id = Guid.NewGuid().ToString();
+            }
             await embeddingContainer.CreateItemAsync<RagTextEmbedding>(embedding, new PartitionKey(embedding.SourceItemId));
         }
         else
@@ -995,6 +998,18 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Deletes a database by Id
+    /// </summary>
+    /// <param name="id">The id of the database to delete</param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async Task DeleteDatabase(string id)
+    {
+        var database = _cosmosClient.GetDatabase(id);
+        await database.DeleteAsync();
     }
 
     public void Dispose()

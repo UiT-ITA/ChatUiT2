@@ -894,4 +894,14 @@ public class RagDatabaseService : IRagDatabaseService
     {
         throw new NotImplementedException();
     }
+
+    public Task DeleteRagDefinitionsDatabase()
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task DeleteDatabase(string id)
+    {
+        throw new NotImplementedException();
+    }
 }

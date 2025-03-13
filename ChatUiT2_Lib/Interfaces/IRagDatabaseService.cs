@@ -38,9 +38,10 @@ public interface IRagDatabaseService
     public Task DeleteEmbeddingEvent(RagProject ragProject, EmbeddingEvent item);
     public Task DeleteEmbeddingEvent(RagProject ragProject, string eventId);
     public Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays);
-    Task<bool> DatabaseExistsAsync(string databaseId);
-    Task<List<string>> GetEmbeddingContentItemIdsByProject(RagProject ragProject);
-    Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject);
-    Task<List<string>> GetEmbeddingIdsByProject(RagProject ragProject);
-    Task<List<string>> GetAllDatabaseIdsAsync();
+    public Task<bool> DatabaseExistsAsync(string databaseId);
+    public Task<List<string>> GetEmbeddingContentItemIdsByProject(RagProject ragProject);
+    public Task<IEnumerable<EmbeddingEvent>> GetEmbeddingEventsByProjectId(RagProject ragProject);
+    public Task<List<string>> GetEmbeddingIdsByProject(RagProject ragProject);
+    public Task<List<string>> GetAllDatabaseIdsAsync();
+    public Task DeleteDatabase(string id);
 }

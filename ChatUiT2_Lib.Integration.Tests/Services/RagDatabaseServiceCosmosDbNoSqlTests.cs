@@ -1302,6 +1302,27 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Contains("embedding3", result);
     }
 
+    [Fact]
+    public async Task DeleteDatabase_MainDatabase_ShouldDeleteDatabase()
+    {
+        // Arrange
+
+        // Act
+        var dbsBefore = await GetAllDatabaseNames();
+        dbsBefore = dbsBefore.Where(x => x.StartsWith("Xunit")).ToList();
+        await _service.DeleteDatabase(_ragProjectDefDbName);
+        var dbsAfter = await GetAllDatabaseNames();
+        dbsAfter = dbsBefore.Where(x => x.StartsWith("Xunit")).ToList();
+
+        // Assert
+        Assert.Equal(2, dbsBefore.Count);
+        Assert.Equal(1, dbsAfter.Count);
+        Assert.Contains(dbsBefore, x => x == _ragItemDbName);
+        Assert.Contains(dbsBefore, x => x == _ragProjectDefDbName);
+        Assert.Contains(dbsAfter, x => x == _ragItemDbName);
+        Assert.DoesNotContain(dbsAfter, x => x == _ragProjectDefDbName);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";
@@ -1314,6 +1335,23 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
             result.AddRange(item);
         }
         return result;
+    }
+
+    private async Task<List<string>> GetAllDatabaseNames()
+    {
+        var databaseList = new List<string>();
+        var iterator = _cosmosClient.GetDatabaseQueryIterator<DatabaseProperties>();
+
+        while (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            foreach (var database in response)
+            {
+                databaseList.Add(database.Id);
+            }
+        }
+
+        return databaseList;
     }
 
     private async Task<List<EmbeddingEvent>> GetAllEmbeddingEvents()
