@@ -407,7 +407,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     {
         var embeddingContainer = await GetEmbeddingContainer(ragProject);
 
-        if (string.IsNullOrEmpty(embedding.Id))
+        if (string.IsNullOrEmpty(embedding.Id) || forceCreateWithId)
         {
             embedding.Created = _dateTimeProvider.OffsetUtcNow;
             embedding.Updated = _dateTimeProvider.OffsetUtcNow;
