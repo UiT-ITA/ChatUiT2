@@ -59,7 +59,7 @@ builder.Services.AddSingleton<AdminService>();
 builder.Services.AddSingleton<CosmosClient>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    string connectionString = configuration["ConnectionStrings:RagProjectDef"] ?? string.Empty;
+    string connectionString = configuration.GetConnectionString("RagProjectDef") ?? string.Empty;
     if(string.IsNullOrEmpty(connectionString))
     {
         ILogger logger = sp.GetRequiredService<ILogger<Program>>();
