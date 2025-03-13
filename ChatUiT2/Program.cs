@@ -59,8 +59,16 @@ builder.Services.AddSingleton<AdminService>();
 builder.Services.AddSingleton<CosmosClient>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    string connectionString = configuration.GetConnectionString("RagProjectDef");
-    return new CosmosClient(connectionString);
+    string connectionString = configuration["ConnectionStrings:RagProjectDef"] ?? string.Empty;
+    if(string.IsNullOrEmpty(connectionString))
+    {
+        ILogger logger = sp.GetRequiredService<ILogger<Program>>();
+        logger.LogError("CosmosDB connection string is not set. Failed to register Cosmos db client");
+        return null!;
+    } else
+    {
+        return new CosmosClient(connectionString);
+    }
 });
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
 builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseServiceCosmosDbNoSql>();
