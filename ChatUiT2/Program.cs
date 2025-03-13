@@ -59,7 +59,7 @@ builder.Services.AddSingleton<AdminService>();
 builder.Services.AddSingleton<CosmosClient>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();
-    string connectionString = configuration["ConnectionStrings:RagProjectDef"];
+    string connectionString = configuration.GetConnectionString("RagProjectDef");
     return new CosmosClient(connectionString);
 });
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();

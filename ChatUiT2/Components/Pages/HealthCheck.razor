@@ -355,7 +355,7 @@
         ragDbStatusLoading = true;
         try
         {
-            var connStrRag = configuration.GetConnectionString("MongoDbRagProjectDef");
+            var connStrRag = configuration.GetConnectionString("RagProjectDef");
             if (!string.IsNullOrEmpty(connStrRag))
             {
                 connStrForDisplayRag = GetConnectionStringForDisplay(connStrRag);
