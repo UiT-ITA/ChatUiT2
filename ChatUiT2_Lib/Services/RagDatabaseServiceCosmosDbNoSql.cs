@@ -1008,8 +1008,18 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     /// <exception cref="ArgumentException"></exception>
     public async Task DeleteDatabase(string id)
     {
-        var database = _cosmosClient.GetDatabase(id);
-        await database.DeleteAsync();
+        try
+        {
+            var database = _cosmosClient.GetDatabase(id);
+            await database.DeleteAsync();
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            // Handle the case where the database does not exist
+            Console.WriteLine($"Database with id '{id}' does not exist.");
+            _logger.LogInformation("The database {databaseId} was not found. No delete operation performed.",
+                                   id);
+        }
     }
 
     public void Dispose()
