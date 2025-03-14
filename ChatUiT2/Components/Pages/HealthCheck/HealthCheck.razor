@@ -8,31 +8,14 @@
 <MudText Typo="Typo.h5">Applikasjonstilstand</MudText>
 
 <MudPaper Class="mt-4 pa-4" Elevation="3">
-    Tester forbindelse til eksterne dependencies.
+    Tester forbindelse til eksterne dependencies. 123
 </MudPaper>
 
 
 <HealthCheckRagDbStatus></HealthCheckRagDbStatus>
 
-<MudPaper Class="mt-4 pa-4" Elevation="3">
-    <MudText Typo="Typo.h6">Chat database status</MudText>
-    <MudText>Connection string: @connStrForDisplayChat</MudText>
-    @if (chatDbStatusLoading)
-    {
-        <MudText>Testing connection</MudText>
-        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
-    }
-    else
-    {
-        <MudText Typo="Typo.h6">Chat database status</MudText>
-        <MudText Class="mt-4">@chatDbError</MudText>
-        @if (string.IsNullOrEmpty(chatDbError) == true)
-        {
-            <MudText>Chat users document count: @chatDbUsersCount</MudText>
-        }
-    }
-</MudPaper>
-
+<HealthCheckChatDbStatus></HealthCheckChatDbStatus>
+  
 <MudPaper Class="mt-4 pa-4" Elevation="3">
     <MudText Typo="Typo.h6">OpenAi chat default model status</MudText>
     <MudText>DeploymentName: @defaultModel?.DeploymentName</MudText>
@@ -169,15 +152,10 @@
     [Inject] IRabbitMqService rabbitMqService { get; set; }
     [Inject] IRagDatabaseService ragDatabaseService { get; set; }
 
-    private bool chatDbStatusLoading = true;
-    private string? chatDbError = null;
-    private int? chatDbUsersCount = 0;
-    private string? connStrForDisplayChat = null;
-
     private string keyVaultName = string.Empty;
     private string aspnetCoreEnv = string.Empty;
-    private string ragDbName = string.Empty;
-    private string ragProjectCollectionName = string.Empty;
+
+    private string chatDbError = string.Empty;
 
     private AiModel? defaultModel = null;
     private ModelConfig? defaultModelConfig = null;
@@ -217,7 +195,6 @@
             CheckEnv();
             checkModels();
             checkEndpointsConfig();
-            CheckChatDbStatus();
             checkOpenAiConnectionEmbedding();
             checkOpenAiConnectionChat();
             CheckRabbitMq();
@@ -293,36 +270,6 @@
     private void CheckEnv()
     {
         aspnetCoreEnv = configuration["ASPNETCORE_ENVIRONMENT"];
-    }
-
-    private void CheckRagConfig()
-    {
-        ragDbName = configuration["RagProjectDefCollection"];
-        ragProjectCollectionName = configuration["RagProjectDefCollection"];
-    }
-
-    private async Task CheckChatDbStatus()
-    {
-        chatDbStatusLoading = true;
-        try
-        {
-            var connStrChat = configuration.GetConnectionString("MongoDb");
-            if (!string.IsNullOrEmpty(connStrChat))
-            {
-                connStrForDisplayChat = GetConnectionStringForDisplay(connStrChat);
-            }
-            else
-            {
-                connStrForDisplayChat = "Unable to get connection string from dbContext";
-            }
-            chatDbUsersCount = (await databaseService.GetUsers()).Count();
-        }
-        catch (Exception e)
-        {
-            chatDbError = $"Error with database: {e.Message}";
-        }
-        chatDbStatusLoading = false;
-        StateHasChanged();
     }
 
     private string? GetConnectionStringForDisplay(string connectionString)

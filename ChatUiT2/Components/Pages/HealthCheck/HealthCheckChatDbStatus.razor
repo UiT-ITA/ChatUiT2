@@ -1,0 +1,71 @@
+﻿@attribute [Authorize(Roles = "Admin,SuperUser")]
+@using System.Text.RegularExpressions
+@using ChatUiT2.Interfaces
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">Chat database status</MudText>
+    <MudText>Connection string: @connStrForDisplayChat</MudText>
+    @if (chatDbStatusLoading)
+    {
+        <MudText>Testing connection</MudText>
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Typo="Typo.h6">Chat database status</MudText>
+        <MudText Class="mt-4">@chatDbError</MudText>
+        @if (string.IsNullOrEmpty(chatDbError) == true)
+        {
+            <MudText>Chat users document count: @chatDbUsersCount</MudText>
+        }
+    }
+</MudPaper>
+
+@code {
+    [Inject] IConfiguration configuration { get; set; }
+    [Inject] IDatabaseService databaseService { get; set; }
+
+    private bool chatDbStatusLoading = true;
+    private string? chatDbError = null;
+    private int? chatDbUsersCount = 0;
+    private string? connStrForDisplayChat = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CheckChatDbStatus();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CheckChatDbStatus()
+    {
+        chatDbStatusLoading = true;
+        try
+        {
+            var connStrChat = configuration.GetConnectionString("MongoDb");
+            if (!string.IsNullOrEmpty(connStrChat))
+            {
+                connStrForDisplayChat = GetConnectionStringForDisplay(connStrChat);
+            }
+            else
+            {
+                connStrForDisplayChat = "Unable to get connection string from dbContext";
+            }
+            chatDbUsersCount = (await databaseService.GetUsers()).Count();
+        }
+        catch (Exception e)
+        {
+            chatDbError = $"Error with database: {e.Message}";
+        }
+        chatDbStatusLoading = false;
+        StateHasChanged();
+    }
+
+    private string? GetConnectionStringForDisplay(string connectionString)
+    {
+        var connStrDebug = Regex.Replace(connectionString, "//.+?@", "//xxxxx:xxxxx@");
+        return connStrDebug;
+    }
+}
