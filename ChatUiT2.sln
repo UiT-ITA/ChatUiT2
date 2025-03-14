@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.github\workflows\espen_merge_rag_t-kibeta-chatuit-web(preproduction).yml = .github\workflows\espen_merge_rag_t-kibeta-chatuit-web(preproduction).yml
 		.github\workflows\master_chatuit2(staging).yml = .github\workflows\master_chatuit2(staging).yml
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatUiT2_Lib", "ChatUiT2_Lib\ChatUiT2_Lib.csproj", "{455D3E46-9921-4D26-994C-7D960A021678}"
