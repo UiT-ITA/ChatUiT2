@@ -19,100 +19,14 @@
 
 <HealthCheckMqStatus></HealthCheckMqStatus>
 
-<MudPaper Class="mt-4 pa-4" Elevation="3">
-    <MudText Typo="Typo.h6">Config variables</MudText>
-    <MudText>Environment: @aspnetCoreEnv</MudText>
-    <MudText>Keyvault: @keyVaultName</MudText>
-    <MudText>OpenAi endpoint: @openAiEndpoint</MudText>
-</MudPaper>
-
-<MudPaper Class="mt-4 pa-4" Elevation="3">
-    <MudText Typo="Typo.h6">DefaultModel</MudText>
-    <MudText>DeploymentName: @defaultModel?.DeploymentName</MudText>
-    <MudText>Name: @defaultModel?.DisplayName</MudText>
-    <MudText>Deployment: @defaultModel?.Endpoint</MudText>
-</MudPaper>
-
-<MudPaper Class="mt-4 pa-4" Elevation="3">
-    <MudText Typo="Typo.h6">NamingModel</MudText>
-    <MudText>DeploymentName: @namingModel?.DeploymentName</MudText>
-    <MudText>Name: @namingModel?.DisplayName</MudText>
-    <MudText>Deployment: @namingModel?.Endpoint</MudText>
-</MudPaper>
-
-@foreach (var endpoint in modelEndpoints)
-{
-    <MudPaper Class="mt-4 pa-4" Elevation="3">
-        <MudText Typo="Typo.h6">ModelEndpoint</MudText>
-        <MudText>Name: @endpoint?.Name</MudText>
-        <MudText>Url: @endpoint?.Url</MudText>
-    </MudPaper>
-}
-
+<HealthCheckConfigVariableStatus></HealthCheckConfigVariableStatus>
 
 @code {
-    [Inject] IConfiguration configuration { get; set; }
-    [Inject] ISettingsService settingsService { get; set; }
-    [Inject] IDatabaseService databaseService { get; set; }
-    [Inject] IUserService userService { get; set; }
-    [Inject] ILogger<UserService> userLogger { get; set; }
-    [Inject] IRagDatabaseService ragDatabaseService { get; set; }
-
-    private string keyVaultName = string.Empty;
-    private string aspnetCoreEnv = string.Empty;
-
-    private AiModel? defaultModel = null;
-    private ModelConfig? defaultModelConfig = null;
-    private AiModel? embeddingModel = null;
-    private ModelConfig? embeddingModelConfig = null;
-    private AiModel? namingModel = null;
-    private string openAiEndpoint = string.Empty;
-
-    private List<ModelEndpoint> modelEndpoints = [];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            CheckKeyVault();
-            CheckEnv();
-            checkModels();
-            checkEndpointsConfig();
-            StateHasChanged();
         }
-    }
-
-    private void checkEndpointsConfig()
-    {
-        var endpointSection = configuration.GetSection("Endpoints");
-        modelEndpoints = endpointSection.Get<List<ModelEndpoint>>() ?? [];
-    }
-
-    private void checkModels()
-    {
-        defaultModel = settingsService.DefaultModel;
-        embeddingModel = settingsService.EmbeddingModel;
-        namingModel = settingsService.NamingModel;
-
-        var modelSection = configuration.GetSection("Models");
-        var models = modelSection.Get<List<ModelConfig>>();
-        embeddingModelConfig = models?.FirstOrDefault(m => m.DisplayName == embeddingModel.DisplayName);
-        defaultModelConfig = models?.FirstOrDefault(m => m.DisplayName == defaultModel.DisplayName);
-    }
-
-    private void CheckKeyVault()
-    {
-        keyVaultName = configuration.GetConnectionString("KeyVault");
-    }
-
-    private void CheckEnv()
-    {
-        aspnetCoreEnv = configuration["ASPNETCORE_ENVIRONMENT"];
-    }
-
-    private string? GetConnectionStringForDisplay(string connectionString)
-    {
-        var connStrDebug = Regex.Replace(connectionString, "//.+?@", "//xxxxx:xxxxx@");
-        return connStrDebug;
     }
 }
