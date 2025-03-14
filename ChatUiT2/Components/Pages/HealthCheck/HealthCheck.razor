@@ -358,7 +358,7 @@
             var connStrRag = configuration.GetConnectionString("RagProjectDef");
             if (!string.IsNullOrEmpty(connStrRag))
             {
-                connStrForDisplayRag = GetConnectionStringForDisplay(connStrRag);
+                connStrForDisplayRag = GetCosmosNosqlConnectionStringForDisplay(connStrRag);
             }
             else
             {
@@ -379,6 +379,15 @@
         var connStrDebug = Regex.Replace(connectionString, "//.+?@", "//xxxxx:xxxxx@");
         return connStrDebug;
     }
+
+    private string? GetCosmosNosqlConnectionStringForDisplay(string connectionString)
+    {
+        string pattern = @"(AccountKey=)[^;]+";
+        string replacement = "$1xxxxx";
+        return Regex.Replace(connectionString, pattern, replacement);
+    }
+
+
 
     private async Task CheckRabbitMq()
     {
