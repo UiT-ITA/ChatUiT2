@@ -25,6 +25,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
 
     // Client
     private CosmosClient _cosmosClient;
+    private readonly IChatToolsService _chatToolsService;
 
     // CosmosDb defs
     private readonly string _ragProjectDefDbName = string.Empty;
@@ -42,17 +43,19 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                                            ISettingsService settingsService,
                                            IMemoryCache memoryCache,
                                            ILogger<RagDatabaseServiceCosmosDbNoSql> logger,
-                                           CosmosClient cosmosClient)
+                                           CosmosClient cosmosClient,
+                                           IChatToolsService chatToolsService)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
         this._settingsService = settingsService;
         this._memoryCache = memoryCache;
         this._logger = logger;
-        this._chatService = new ChatService(null, this._settingsService, logger);
+        this._chatToolsService = chatToolsService;
+        this._chatService = new ChatService(null, this._settingsService, logger, chatToolsService);
         this._ragProjectDefDbName = _configuration["RagProjectDefDatabaseName"] ?? string.Empty;
         this._ragProjectDefContainerName = _configuration["RagProjectDefContainerName"] ?? string.Empty;
-        this._cosmosClient = cosmosClient;
+        this._cosmosClient = cosmosClient;        
     }
 
     private async Task<Container> GetRagProjectDefContainer()
@@ -257,6 +260,50 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                 while (iterator.HasMoreResults)
                 {
                     var responseItems = await iterator.ReadNextAsync();
+                    ragProject.ContentItems.AddRange(responseItems);
+                }
+            }
+
+            return ragProject;
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+    public async Task<RagProject?> GetRagProjectByName(string projectName, bool loadItems = false)
+    {
+        if (string.IsNullOrEmpty(projectName))
+        {
+            throw new ArgumentException("projectName must be set to get project");
+        }
+        var ragProjectContainer = await GetRagProjectDefContainer();
+        try
+        {
+            var query = new QueryDefinition("SELECT * FROM c WHERE c.Name = @projectName")
+                .WithParameter("@projectName", projectName);
+            var iterator = ragProjectContainer.GetItemQueryIterator<RagProject>(query);
+            var response = await iterator.ReadNextAsync();
+            var ragProject = response.FirstOrDefault();
+            
+            if (ragProject == null)
+            {
+                // Not found
+                return null;
+            }
+
+            // Get the items for the project
+            if (loadItems)
+            {
+                var itemContainer = await GetItemContainer(ragProject);
+                query = new QueryDefinition("SELECT * FROM c WHERE c.RagProjectId = @projectId")
+                    .WithParameter("@projectId", ragProject.Id);
+                var itemIterator = itemContainer.GetItemQueryIterator<ContentItem>(query);
+                ragProject.ContentItems = new List<ContentItem>();
+                while (iterator.HasMoreResults)
+                {
+                    var responseItems = await itemIterator.ReadNextAsync();
                     ragProject.ContentItems.AddRange(responseItems);
                 }
             }

@@ -19,15 +19,21 @@ namespace ChatUiT2.Services;
 
 public class ChatService : IChatService
 {
+    private readonly IChatToolsService _chatToolsService;
+
     private IUserService _userService { get; set; }
     private ISettingsService _settingsService { get; set; }
     private ILogger _logger { get; set; }
 
-    public ChatService(IUserService userService, ISettingsService settingsService, ILogger logger)
+    public ChatService(IUserService userService, 
+                       ISettingsService settingsService,
+                       ILogger logger,
+                       IChatToolsService chatToolsService)
     {
         _userService = userService;
         _settingsService = settingsService;
         _logger = logger;
+        this._chatToolsService = chatToolsService;
     }
 
     public async Task GetChatResponse(WorkItemChat chat)
@@ -138,7 +144,7 @@ public class ChatService : IChatService
     {
         try
         {
-            var openAIService = new OpenAIService(model, _userService, _logger);
+            var openAIService = new OpenAIService(model, _userService, _logger, _chatToolsService);
 
             int inputTokens = openAIService.GetTokens(chat);
             await openAIService.GetStreamingResponse(chat, responseMessage, allowImages: model.Capabilities.Vision);
@@ -171,7 +177,7 @@ public class ChatService : IChatService
 
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _userService, _logger);
+            var openAIService = new OpenAIService(model, _userService, _logger, _chatToolsService);
             
             name = await openAIService.GetResponse(namingChat);
         }
@@ -213,7 +219,7 @@ public class ChatService : IChatService
 
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _userService, _logger);
+            var openAIService = new OpenAIService(model, _userService, _logger, _chatToolsService);
 
             result = await openAIService.GetResponse(chat);
         }
@@ -229,7 +235,7 @@ public class ChatService : IChatService
     {
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _userService, _logger);
+            var openAIService = new OpenAIService(model, _userService, _logger, _chatToolsService);
 
             return await openAIService.GetEmbedding(text);
         }
@@ -242,6 +248,8 @@ public class ChatService : IChatService
 
 public class OpenAIService
 {
+    private readonly IChatToolsService _chatToolsService;
+
     private AiModel _model { get; set; }
     private IUserService _userService { get; set; }
     private ILogger _logger { get; set; }
@@ -250,7 +258,10 @@ public class OpenAIService
     private AzureOpenAIClient _azureOpenAiClient { get; set; }
     private EmbeddingClient _embeddingClient { get; set; }
 
-    public OpenAIService(AiModel model, IUserService userService, ILogger logger)
+    public OpenAIService(AiModel model, 
+                         IUserService userService,
+                         ILogger logger,
+                         IChatToolsService chatToolsService)
     {
         if (model.DeploymentType != DeploymentType.AzureOpenAI)
         {
@@ -262,6 +273,7 @@ public class OpenAIService
         _model = model;
         _userService = userService;
         _logger = logger;
+        this._chatToolsService = chatToolsService;
     }
 
     public async Task<string> GetResponse(WorkItemChat chat, bool allowFiles = false)
@@ -389,7 +401,7 @@ public class OpenAIService
                         responseMessage.Content += "\n" + GetToolNotice(toolCall);
                     }
 
-                    ToolChatMessage toolMessage = new(toolCall.Id, await ChatTools.HandleToolCall(toolCall));
+                    ToolChatMessage toolMessage = new(toolCall.Id, await _chatToolsService.HandleToolCall(toolCall));
 
                     messages.Add(toolMessage);
                     

@@ -1323,6 +1323,54 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.DoesNotContain(dbsAfter, x => x == _ragProjectDefDbName);
     }
 
+    [Fact]
+    public async Task GetRagProjectByName_NormalRun_ShouldReturnItem()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Project",
+            Description = "Test Description",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            },
+            ContentItems = new List<ContentItem>
+            {
+                new ContentItem
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 1"
+                },
+                new ContentItem
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 2"
+                }
+            }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var item in ragProject.ContentItems)
+        {
+            item.RagProjectId = ragProject.Id;
+            await _ragItemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
+        }
+        var result = await _service.GetRagProjectByName(ragProject.Name);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(ragProject.Name, result.Name);
+        Assert.Equal(ragProject.Description, result.Description);
+        Assert.Empty(result.ContentItems);
+    }
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";

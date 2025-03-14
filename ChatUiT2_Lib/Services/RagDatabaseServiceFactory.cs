@@ -20,11 +20,13 @@ public class RagDatabaseServiceFactory
     public static readonly string CopyToRagDatabase = "CopyToRagDatabase";
 
     private readonly IDictionary<string, IRagDatabaseService> _clients;
+    private readonly IChatToolsService _chatToolsService;
 
-    public RagDatabaseServiceFactory(IServiceProvider sp)
+    public RagDatabaseServiceFactory(IServiceProvider sp,
+                                     IChatToolsService chatToolsService)
     {
         _clients = new Dictionary<string, IRagDatabaseService>();
-
+        this._chatToolsService = chatToolsService;
         var config = sp.GetRequiredService<IConfiguration>();
         var dateTimeProvider = sp.GetRequiredService<IDateTimeProvider>();
         var settingsService = sp.GetRequiredService<ISettingsService>();
@@ -39,7 +41,8 @@ public class RagDatabaseServiceFactory
                                                             settingsService,
                                                             memCache,
                                                             logger,
-                                                            cosmosClientMain);
+                                                            cosmosClientMain,
+                                                            chatToolsService);
         _clients.Add(MainRagDatabase, mainService);
 
         // Copy to service
@@ -50,8 +53,9 @@ public class RagDatabaseServiceFactory
                                                                 settingsService,
                                                                 memCache,
                                                                 logger,
-                                                                cosmosClientCopyTo);
-        _clients.Add(CopyToRagDatabase, copyToService);
+                                                                cosmosClientCopyTo,
+                                                                chatToolsService);
+        _clients.Add(CopyToRagDatabase, copyToService);        
     }
 
     public IRagDatabaseService GetClient(string name)

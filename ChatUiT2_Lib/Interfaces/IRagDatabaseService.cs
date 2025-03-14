@@ -44,4 +44,5 @@ public interface IRagDatabaseService
     public Task<List<string>> GetEmbeddingIdsByProject(RagProject ragProject);
     public Task<List<string>> GetAllDatabaseIdsAsync();
     public Task DeleteDatabase(string id);
+    Task<RagProject?> GetRagProjectByName(string projectName, bool loadItems = false);
 }

@@ -76,6 +76,7 @@ public class UserService : IUserService
 
 
     SemaphoreSlim _semaphoreSlim = new SemaphoreSlim(1, 1);
+    private readonly IChatToolsService _chatToolsService;
 
     public UserService( IConfiguration configuration, 
                         ISettingsService configService, 
@@ -86,7 +87,8 @@ public class UserService : IUserService
                         IUpdateService updateService,
                         IJSRuntime jSRuntime,
                         ILogger<UserService> logger,
-                        NavigationManager navigationManager)
+                        NavigationManager navigationManager,
+                        IChatToolsService chatToolsService)
     {
         _configuration = configuration;
         _settingsService = configService;
@@ -95,13 +97,12 @@ public class UserService : IUserService
         _keyVaultService = keyVaultService;
         _jsRuntime = jSRuntime;
         _navigationManager = navigationManager;
+        this._chatToolsService = chatToolsService;
         //_storageService = storageService;
         _updateService = updateService;
         _logger = logger;
 
-
-
-        _chatService = new ChatService(this, configService, logger);
+        _chatService = new ChatService(this, configService, logger, _chatToolsService);
 
         CurrentWorkItem = new WorkItemChat();
 
