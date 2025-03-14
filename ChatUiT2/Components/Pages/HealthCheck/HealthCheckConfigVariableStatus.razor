@@ -25,6 +25,13 @@
     <MudText>Deployment: @namingModel?.Endpoint</MudText>
 </MudPaper>
 
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">EmbeddingModel</MudText>
+    <MudText>DeploymentName: @embeddingModel?.DeploymentName</MudText>
+    <MudText>Name: @embeddingModel?.DisplayName</MudText>
+    <MudText>Deployment: @embeddingModel?.Endpoint</MudText>
+</MudPaper>
+
 @foreach (var endpoint in modelEndpoints)
 {
     <MudPaper Class="mt-4 pa-4" Elevation="3">
