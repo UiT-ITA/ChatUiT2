@@ -82,7 +82,7 @@
     [Inject] IUserService userService { get; set; }
     [Inject] ILogger<UserService> userLogger { get; set; }
     [Inject] IRagDatabaseService ragDatabaseService { get; set; }
-    [Inject] IChatToolsService chatToolsService { get; set; }
+    [Inject] IChatService chatService { get; set; }
 
 
     private string chatDbError = string.Empty;
@@ -137,8 +137,6 @@
 
     private async Task checkOpenAiConnectionChat()
     {
-        IChatService chatService = new ChatService(userService, settingsService, userLogger, chatToolsService);
-
         chatTestStatusLoading = true;
         try
         {

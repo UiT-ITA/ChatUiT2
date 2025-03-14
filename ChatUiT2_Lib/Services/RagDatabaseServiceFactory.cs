@@ -20,13 +20,10 @@ public class RagDatabaseServiceFactory
     public static readonly string CopyToRagDatabase = "CopyToRagDatabase";
 
     private readonly IDictionary<string, IRagDatabaseService> _clients;
-    private readonly IChatToolsService _chatToolsService;
-
-    public RagDatabaseServiceFactory(IServiceProvider sp,
-                                     IChatToolsService chatToolsService)
+    
+    public RagDatabaseServiceFactory(IServiceProvider sp, IChatService chatService)
     {
         _clients = new Dictionary<string, IRagDatabaseService>();
-        this._chatToolsService = chatToolsService;
         var config = sp.GetRequiredService<IConfiguration>();
         var dateTimeProvider = sp.GetRequiredService<IDateTimeProvider>();
         var settingsService = sp.GetRequiredService<ISettingsService>();
@@ -42,7 +39,7 @@ public class RagDatabaseServiceFactory
                                                             memCache,
                                                             logger,
                                                             cosmosClientMain,
-                                                            chatToolsService);
+                                                            chatService);
         _clients.Add(MainRagDatabase, mainService);
 
         // Copy to service
@@ -54,7 +51,7 @@ public class RagDatabaseServiceFactory
                                                                 memCache,
                                                                 logger,
                                                                 cosmosClientCopyTo,
-                                                                chatToolsService);
+                                                                chatService);
         _clients.Add(CopyToRagDatabase, copyToService);        
     }
 

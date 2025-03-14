@@ -10,6 +10,9 @@ using ChatUiT2.Services.Template;
 using Microsoft.ApplicationInsights.Extensibility;
 using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.Azure.Cosmos;
+using Microsoft.AspNetCore.Hosting;
+using MediatR;
+using ChatUiT2.Models.Mediatr;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,11 +78,19 @@ builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseServiceCosmosDbNoS
 
 // Scoped services
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IUsernameService, UsernameService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IAuthUserService, AuthUserService>();
 builder.Services.AddScoped<IUpdateService, UpdateService>();
 builder.Services.AddScoped<SpeechService>();
 builder.Services.AddScoped<LocalStorageService>();
+builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+
+// Mediatr for communication between services on for instance updateStream
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+builder.Services.AddScoped<INotificationHandler<StreamUpdatedEvent>, StreamUpdatedEventHandler>();
+builder.Services.AddScoped<INotificationHandler<UpdateWorkItemEvent>, UpdateWorkItemEventHandler>();
 
 // Transient services
 

@@ -25,7 +25,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
 
     // Client
     private CosmosClient _cosmosClient;
-    private readonly IChatToolsService _chatToolsService;
 
     // CosmosDb defs
     private readonly string _ragProjectDefDbName = string.Empty;
@@ -44,15 +43,14 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                                            IMemoryCache memoryCache,
                                            ILogger<RagDatabaseServiceCosmosDbNoSql> logger,
                                            CosmosClient cosmosClient,
-                                           IChatToolsService chatToolsService)
+                                           IChatService chatService)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
         this._settingsService = settingsService;
         this._memoryCache = memoryCache;
         this._logger = logger;
-        this._chatToolsService = chatToolsService;
-        this._chatService = new ChatService(null, this._settingsService, logger, chatToolsService);
+        this._chatService = chatService;
         this._ragProjectDefDbName = _configuration["RagProjectDefDatabaseName"] ?? string.Empty;
         this._ragProjectDefContainerName = _configuration["RagProjectDefContainerName"] ?? string.Empty;
         this._cosmosClient = cosmosClient;        

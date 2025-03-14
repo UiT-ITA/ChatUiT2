@@ -1,7 +1,9 @@
 ﻿using Azure.AI.OpenAI;
 using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
+using ChatUiT2.Models.Mediatr;
 using ChatUiT2.Tools;
+using MediatR;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using Microsoft.Extensions.Logging;
 using OpenAI;
@@ -19,21 +21,21 @@ namespace ChatUiT2.Services;
 
 public class ChatService : IChatService
 {
-    private readonly IChatToolsService _chatToolsService;
+    private readonly IUsernameService _usernameService;
+    private readonly IMediator _mediator;
 
-    private IUserService _userService { get; set; }
     private ISettingsService _settingsService { get; set; }
     private ILogger _logger { get; set; }
 
-    public ChatService(IUserService userService, 
-                       ISettingsService settingsService,
+    public ChatService(ISettingsService settingsService,
                        ILogger logger,
-                       IChatToolsService chatToolsService)
+                       IUsernameService usernameService,
+                       IMediator mediator)
     {
-        _userService = userService;
         _settingsService = settingsService;
         _logger = logger;
-        this._chatToolsService = chatToolsService;
+        this._usernameService = usernameService;
+        this._mediator = mediator;
     }
 
     public async Task GetChatResponse(WorkItemChat chat)
@@ -44,7 +46,7 @@ public class ChatService : IChatService
 
         _logger.LogInformation("Type: {LogType} User: {User} WorkItem {ChatId} Model: {Model}",
             "ChatRequest",
-            _userService.UserName,
+            await _usernameService.GetUsername(),
             chat.Id,
             model.DeploymentName);
 
@@ -65,8 +67,8 @@ public class ChatService : IChatService
 
             chat.Messages.Add(responseMessage);
             chat.Updated = DateTimeTools.GetTimestamp();
-            await _userService.UpdateWorkItem(chat);
-            _userService.StreamUpdated();
+            await _mediator.Publish(new UpdateWorkItemEvent { Chat = chat });
+            await _mediator.Publish(new StreamUpdatedEvent());
 
             if (model.DeploymentType == DeploymentType.AzureOpenAI)
             {
@@ -82,7 +84,7 @@ public class ChatService : IChatService
 
 
                 chat.Name = await GetName(chat);
-                _userService.StreamUpdated();
+                await _mediator.Publish(new StreamUpdatedEvent());
 
             }
         }
@@ -92,7 +94,7 @@ public class ChatService : IChatService
 
             responseMessage = userMessage;
             responseMessage.Status = ChatMessageStatus.Working;
-            _userService.StreamUpdated();
+            await _mediator.Publish(new StreamUpdatedEvent());
 
             var tempMessages = new List<Models.ChatMessage>();
             foreach (var message in chat.Messages)
@@ -137,14 +139,14 @@ public class ChatService : IChatService
 
 
         chat.Updated = DateTimeTools.GetTimestamp();
-        await _userService.UpdateWorkItem(chat);
+        await _mediator.Publish(new UpdateWorkItemEvent { Chat = chat });
     }
 
     private async Task HandleAzureOpenai(WorkItemChat chat, AiModel model, Models.ChatMessage responseMessage)
     {
         try
         {
-            var openAIService = new OpenAIService(model, _userService, _logger, _chatToolsService);
+            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator);
 
             int inputTokens = openAIService.GetTokens(chat);
             await openAIService.GetStreamingResponse(chat, responseMessage, allowImages: model.Capabilities.Vision);
@@ -177,7 +179,7 @@ public class ChatService : IChatService
 
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _userService, _logger, _chatToolsService);
+            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator);
             
             name = await openAIService.GetResponse(namingChat);
         }
@@ -219,7 +221,7 @@ public class ChatService : IChatService
 
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _userService, _logger, _chatToolsService);
+            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator);
 
             result = await openAIService.GetResponse(chat);
         }
@@ -235,7 +237,7 @@ public class ChatService : IChatService
     {
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _userService, _logger, _chatToolsService);
+            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator);
 
             return await openAIService.GetEmbedding(text);
         }
@@ -246,22 +248,22 @@ public class ChatService : IChatService
     }
 }
 
-public class OpenAIService
+public class OpenAIService : IOpenAIService
 {
-    private readonly IChatToolsService _chatToolsService;
+    private readonly IMediator _mediator;
 
     private AiModel _model { get; set; }
-    private IUserService _userService { get; set; }
+    private IUsernameService _usernameService { get; set; }
     private ILogger _logger { get; set; }
     private List<ChatTool> _tools { get; set; } = new List<ChatTool>();
     private ChatClient _client { get; set; }
     private AzureOpenAIClient _azureOpenAiClient { get; set; }
     private EmbeddingClient _embeddingClient { get; set; }
 
-    public OpenAIService(AiModel model, 
-                         IUserService userService,
-                         ILogger logger,
-                         IChatToolsService chatToolsService)
+    public OpenAIService(AiModel model,
+                         IUsernameService usernameService,
+                         ILogger logger,                         
+                         IMediator mediator)
     {
         if (model.DeploymentType != DeploymentType.AzureOpenAI)
         {
@@ -271,14 +273,14 @@ public class OpenAIService
         _client = _azureOpenAiClient.GetChatClient(model.DeploymentName);
         _embeddingClient = _azureOpenAiClient.GetEmbeddingClient(model.DeploymentName);
         _model = model;
-        _userService = userService;
+        _usernameService = usernameService;
         _logger = logger;
-        this._chatToolsService = chatToolsService;
+        this._mediator = mediator;
     }
 
     public async Task<string> GetResponse(WorkItemChat chat, bool allowFiles = false)
     {
-        var messages = GetOpenAiMessages(chat, _model.MaxContext - chat.Settings.MaxTokens , allowFiles);
+        var messages = GetOpenAiMessages(chat, _model.MaxContext - chat.Settings.MaxTokens, allowFiles);
 
         var options = new ChatCompletionOptions()
         {
@@ -333,7 +335,11 @@ public class OpenAIService
         int outputTokens = GetTokens(responseMessage.Content);
 
         _logger.LogInformation("Type: {LogType}, User: {User}, Model: {Model} Input: {Input}, Output: {Output}",
-                            "ChatRequest", _userService.UserName, _model.DeploymentName, inputTokens, outputTokens);
+                               "ChatRequest",
+                               await _usernameService.GetUsername(),
+                               _model.DeploymentName,
+                               inputTokens,
+                               outputTokens);
 
 
 
@@ -353,7 +359,7 @@ public class OpenAIService
             {
                 responseMessage.Content += update.Text;
                 contentBuilder.Append(update.Text);
-                _userService.StreamUpdated();
+                await _mediator.Publish(new StreamUpdatedEvent());
             }
 
             foreach (var update in chatCompletionUpdate.ToolCallUpdates)
@@ -376,7 +382,7 @@ public class OpenAIService
             }
             else if (chatCompletionUpdate.FinishReason == ChatFinishReason.ToolCalls)
             {
-                _userService.StreamUpdated();
+                await _mediator.Publish(new StreamUpdatedEvent());
 
                 var toolList = toolCalls.Build();
                 var assistantMessage = new AssistantChatMessage(toolList);
@@ -401,10 +407,10 @@ public class OpenAIService
                         responseMessage.Content += "\n" + GetToolNotice(toolCall);
                     }
 
-                    ToolChatMessage toolMessage = new(toolCall.Id, await _chatToolsService.HandleToolCall(toolCall));
+                    ToolChatMessage toolMessage = new(toolCall.Id, await ChatTools.HandleToolCall(toolCall));
 
                     messages.Add(toolMessage);
-                    
+
                 }
                 await CompleteChatStreamingAsync(messages, options, responseMessage);
 
@@ -463,7 +469,7 @@ public class OpenAIService
             var message = chat.Messages[i];
             if (message.Status == ChatMessageStatus.Error) continue;
             int messageTokens = GetTokens(message.Content);
-            
+
             int fileTokens = 0;
             foreach (var file in message.Files)
             {
@@ -512,7 +518,7 @@ public class OpenAIService
             {
                 requestMessage = GetOpenAIMessage(message);
             }
-            
+
 
             messages.Insert(1, requestMessage);
             availableTokens -= messageTokens;
