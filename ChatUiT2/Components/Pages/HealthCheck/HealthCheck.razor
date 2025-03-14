@@ -1,9 +1,5 @@
 ﻿@page "/healthcheck"
 @attribute [Authorize(Roles = "Admin,SuperUser")]
-@using System.Text.RegularExpressions
-@using OpenAI.Embeddings
-@using ChatUiT2.Interfaces
-@using ChatUiT2.Services
 
 <MudText Typo="Typo.h5">Applikasjonstilstand</MudText>
 
