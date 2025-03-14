@@ -12,23 +12,7 @@
 </MudPaper>
 
 
-<MudPaper Class="mt-4 pa-4" Elevation="3">
-    <MudText Typo="Typo.h6">Rag database status</MudText>
-    <MudText>Connection string: @connStrForDisplayRag</MudText>
-    @if (ragDbStatusLoading)
-    {
-        <MudText>Testing connection</MudText>
-        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
-    }
-    else
-    {
-        <MudText Class="mt-4">@ragDbError</MudText>
-        @if (string.IsNullOrEmpty(ragDbError) == true)
-        {
-            <MudText>Rag projects document count: @ragDbProjectsCount</MudText>
-        }
-    }
-</MudPaper>
+<HealthCheckRagDbStatus></HealthCheckRagDbStatus>
 
 <MudPaper Class="mt-4 pa-4" Elevation="3">
     <MudText Typo="Typo.h6">Chat database status</MudText>
@@ -149,8 +133,6 @@
     <MudText Typo="Typo.h6">Config variables</MudText>
     <MudText>Environment: @aspnetCoreEnv</MudText>
     <MudText>Keyvault: @keyVaultName</MudText>
-    <MudText>Rag db name: @ragDbName</MudText>
-    <MudText>Rag projects collection name: @ragProjectCollectionName</MudText>
     <MudText>OpenAi endpoint: @openAiEndpoint</MudText>
 </MudPaper>
 
@@ -181,21 +163,16 @@
 @code {
     [Inject] IConfiguration configuration { get; set; }
     [Inject] ISettingsService settingsService { get; set; }
-    [Inject] IRagDatabaseService ragDatabaseService { get; set; }
     [Inject] IDatabaseService databaseService { get; set; }
     [Inject] IUserService userService { get; set; }
     [Inject] ILogger<UserService> userLogger { get; set; }
     [Inject] IRabbitMqService rabbitMqService { get; set; }
-
-    private bool ragDbStatusLoading = true;
-    private string? ragDbError = null;
-    private int? ragDbProjectsCount = 0;
-    private string? connStrForDisplayChat = null;
+    [Inject] IRagDatabaseService ragDatabaseService { get; set; }
 
     private bool chatDbStatusLoading = true;
     private string? chatDbError = null;
     private int? chatDbUsersCount = 0;
-    private string? connStrForDisplayRag = null;
+    private string? connStrForDisplayChat = null;
 
     private string keyVaultName = string.Empty;
     private string aspnetCoreEnv = string.Empty;
@@ -241,8 +218,6 @@
             checkModels();
             checkEndpointsConfig();
             CheckChatDbStatus();
-            CheckRagDbStatus();
-            CheckRagConfig();
             checkOpenAiConnectionEmbedding();
             checkOpenAiConnectionChat();
             CheckRabbitMq();
@@ -328,7 +303,7 @@
 
     private async Task CheckChatDbStatus()
     {
-        ragDbStatusLoading = true;
+        chatDbStatusLoading = true;
         try
         {
             var connStrChat = configuration.GetConnectionString("MongoDb");
@@ -344,33 +319,9 @@
         }
         catch (Exception e)
         {
-            ragDbError = $"Error with database: {e.Message}";
+            chatDbError = $"Error with database: {e.Message}";
         }
         chatDbStatusLoading = false;
-        StateHasChanged();
-    }
-
-    private async Task CheckRagDbStatus()
-    {
-        ragDbStatusLoading = true;
-        try
-        {
-            var connStrRag = configuration.GetConnectionString("RagProjectDef");
-            if (!string.IsNullOrEmpty(connStrRag))
-            {
-                connStrForDisplayRag = GetCosmosNosqlConnectionStringForDisplay(connStrRag);
-            }
-            else
-            {
-                connStrForDisplayRag = "Unable to get connection string from dbContext";
-            }
-            ragDbProjectsCount = (await ragDatabaseService.GetAllRagProjects()).Count();
-        }
-        catch (Exception e)
-        {
-            ragDbError = $"Error with database: {e.Message}";
-        }
-        ragDbStatusLoading = false;
         StateHasChanged();
     }
 
@@ -379,14 +330,6 @@
         var connStrDebug = Regex.Replace(connectionString, "//.+?@", "//xxxxx:xxxxx@");
         return connStrDebug;
     }
-
-    private string? GetCosmosNosqlConnectionStringForDisplay(string connectionString)
-    {
-        string pattern = @"(AccountKey=)[^;]+";
-        string replacement = "$1xxxxx";
-        return Regex.Replace(connectionString, pattern, replacement);
-    }
-
 
 
     private async Task CheckRabbitMq()
