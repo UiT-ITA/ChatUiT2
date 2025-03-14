@@ -29,7 +29,7 @@ public class RagDatabaseServiceFactory
         var dateTimeProvider = sp.GetRequiredService<IDateTimeProvider>();
         var settingsService = sp.GetRequiredService<ISettingsService>();
         var memCache = sp.GetRequiredService<IMemoryCache>();
-        var logger = sp.GetRequiredService<ILogger<RagDatabaseService>>();
+        var logger = sp.GetRequiredService<ILogger<RagDatabaseServiceCosmosDbNoSql>>();
 
         // Main service
         string connectionString = config["ConnectionStrings:RagProjectDef"];

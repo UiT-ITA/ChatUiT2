@@ -34,14 +34,14 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly ISettingsService _settingsService;
     private readonly IMemoryCache _memoryCache;
-    private readonly ILogger<RagDatabaseService> _logger;
+    private readonly ILogger<RagDatabaseServiceCosmosDbNoSql> _logger;
     private readonly IChatService _chatService;
 
     public RagDatabaseServiceCosmosDbNoSql(IConfiguration configuration,
                                            IDateTimeProvider dateTimeProvider,
                                            ISettingsService settingsService,
                                            IMemoryCache memoryCache,
-                                           ILogger<RagDatabaseService> logger,
+                                           ILogger<RagDatabaseServiceCosmosDbNoSql> logger,
                                            CosmosClient cosmosClient)
     {
         this._configuration = configuration;
