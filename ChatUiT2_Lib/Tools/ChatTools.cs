@@ -14,34 +14,19 @@ namespace ChatUiT2.Tools;
 public static class ChatTools
 {
 
-    private static ChatTool getCurrentLocationTool = ChatTool.CreateFunctionTool(
-        functionName: "getCurrentLocation",
-        functionDescription: "Get the current location of the user"
-    );
-
-    private static ChatTool getCurrentDateTimeTool = ChatTool.CreateFunctionTool(
-        functionName: "getCurrentDateTime",
-        functionDescription: "Get the current date and time"
-    );
-
-    private static ChatTool getWeatherTool = ChatTool.CreateFunctionTool(
-        functionName: "getWeather",
-        functionDescription: "Get the weather for a given location and date",
+    private static ChatTool getTopdeskDataTool = ChatTool.CreateFunctionTool(
+        functionName: "getTopdesk",
+        functionDescription: "Get documentation from IT-support at UiT",
         functionParameters: BinaryData.FromString("""
             {
                 "type": "object",
                 "properties": {
-                    "location": {
+                    "query": {
                         "type": "string",
-                        "description": "The city and state, e.g. Boston, MA"
-                    },
-                    "unit": {
-                        "type": "string",
-                        "enum": [ "celsius", "fahrenheit" ],
-                        "description": "The temperature unit to use. Infer this from the specified location."
+                        "description": "The isolated question to search the database for. Question must be formulated in norwegian"
                     }
                 },
-                "required": [ "location" ]
+                "required": [ "query" ]
             }
             """)
     );
@@ -84,24 +69,10 @@ public static class ChatTools
     {
         new ChatToolDescription
         {
-            DisplayName = "Location",
-            Description = "Allow the AI to access your location if needed",
-            Icon = Icons.Material.Filled.LocationOn,
-            Tool = getCurrentLocationTool,
-        },
-        new ChatToolDescription
-        {
-            DisplayName = "DateTime",
-            Description = "Get the current date and time",
-            Icon = Icons.Material.Filled.Schedule,
-            Tool = getCurrentDateTimeTool
-        },
-        new ChatToolDescription
-        {
-            DisplayName = "Weather",
-            Description = "Get the weather for a location",
+            DisplayName = "Topdesk",
+            Description = "Get documentation from Orakelet",
             Icon = Icons.Material.Filled.WbSunny,
-            Tool = getWeatherTool
+            Tool = getTopdeskDataTool
         },
         new ChatToolDescription
         {
@@ -119,24 +90,11 @@ public static class ChatTools
         }
     };
 
-    public static string GetLocation()
-    {
-        Console.WriteLine("GetLocation");
-        return "Tromsø, NO";
-    }
 
-    public static string GetDateTime()
+    public static string GetTopdesk(string query)
     {
-        Console.WriteLine("GetDateTime");
-        // Get the current date (date, month, year) and time (hours, minutes) as string. ex: 18.10.2021 14:30
-        return DateTime.Now.ToString("dd.MM.yyyy HH:mm");
-    }
-
-    public static string GetWeather(string location, string unit = "celsius")
-    {
-        Console.WriteLine($"GetWeather: {location}, {unit}");
-        // Get the weather for the given location and date
-        return "The weather in " + location + " is 20°C";
+        
+        return "Logg inn med ditt brukernavn og passord som er abc123@uit.no. Ikke bruk epost for pålogging! For hjelp med passord gå til resetmittpassord.uit.no";
     }
 
     public static string GenerateImage(string description)
@@ -251,26 +209,16 @@ public static class ChatTools
             using JsonDocument argumentsDocument = JsonDocument.Parse(toolCall.FunctionArguments);
             switch (toolCall.FunctionName)
             {
-                case "getCurrentLocation":
-                    return GetLocation();
-                case "getCurrentDateTime":
-                    return GetDateTime();
-                case "getWeather":
-                    if (!argumentsDocument.RootElement.TryGetProperty("location", out JsonElement locationElement))
+                case "getTopdesk":
+                    if (!argumentsDocument.RootElement.TryGetProperty("query", out JsonElement locationElement))
                     {
-                        return "This tool needs a valid location";
+                        return "This tool needs a valid query";
                     }
                     else
                     {
-                        string location = locationElement.GetString()!;
-                        if (argumentsDocument.RootElement.TryGetProperty("unit", out JsonElement unitElement))
-                        {
-                            return GetWeather(location, unitElement.GetString()!);
-                        }
-                        else
-                        {
-                            return GetWeather(location);
-                        }
+                        string query = locationElement.GetString()!;
+                        
+                        return GetTopdesk(query);
                     }
                 case "GetWikipediaEntry":
                     if (!argumentsDocument.RootElement.TryGetProperty("topic", out JsonElement topicElement))
