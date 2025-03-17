@@ -4,6 +4,7 @@ using ChatUiT2.Tools;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Configuration;
 using MudBlazor;
+using OpenAI.Chat;
 using System.Text.Json;
 
 namespace ChatUiT2.Services;

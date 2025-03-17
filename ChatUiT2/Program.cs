@@ -81,9 +81,9 @@ builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseServiceCosmosDbNoS
 // Scoped services
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IChatService, ChatService>();
-builder.Services.AddScoped<IChatToolsService, ChatToolsService>();
-builder.Services.AddScoped<IUsernameService, UsernameService>();
-builder.Services.AddScoped<IAuthUserService, AuthUserService>();
+builder.Services.AddTransient<IChatToolsService, ChatToolsService>();
+builder.Services.AddTransient<IUsernameService, UsernameService>();
+builder.Services.AddTransient<IAuthUserService, AuthUserService>();
 builder.Services.AddScoped<IUpdateService, UpdateService>();
 builder.Services.AddScoped<SpeechService>();
 builder.Services.AddScoped<LocalStorageService>();
@@ -94,7 +94,7 @@ builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ChatService).Assembly));
 builder.Services.AddTransient<INotificationHandler<StreamUpdatedEvent>, StreamUpdatedEventHandler>();
 builder.Services.AddTransient<INotificationHandler<UpdateWorkItemEvent>, UpdateWorkItemEventHandler>();
-builder.Services.AddTransient<IRequestHandler<EmbeddingForTextRequest, OpenAIEmbedding>, EmbeddingForTextRequestHandler>();
+builder.Services.AddTransient<IRequestHandler<GetUsernameRequest, string>, GetUsernameRequestHandler>();
 builder.Services.AddTransient<IRequestHandler<GetChatResponseAsStringRequest, string>, GetChatResponseAsStringRequestHandler>();
 builder.Services.AddTransient<IRequestHandler<RagSearchRequest, List<RagSearchResult>>, RagSearchRequestHandler>();
 builder.Services.AddTransient<IRequestHandler<GetRagProjectByNameRequest, ChatUiT2.Models.RagProject.RagProject?>, GetRagProjectByNameRequestHandler>();

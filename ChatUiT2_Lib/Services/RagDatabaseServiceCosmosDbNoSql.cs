@@ -28,6 +28,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     // Client
     private CosmosClient _cosmosClient;
     private readonly IMediator _mediator;
+    private readonly IChatToolsService _chatToolsService;
 
     // CosmosDb defs
     private readonly string _ragProjectDefDbName = string.Empty;
@@ -45,7 +46,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                                            IMemoryCache memoryCache,
                                            ILogger<RagDatabaseServiceCosmosDbNoSql> logger,
                                            CosmosClient cosmosClient,
-                                           IMediator mediator)
+                                           IMediator mediator,                                           
+                                           IChatToolsService chatToolsService)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
@@ -56,6 +58,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         this._ragProjectDefContainerName = _configuration["RagProjectDefContainerName"] ?? string.Empty;
         this._cosmosClient = cosmosClient;
         this._mediator = mediator;
+        this._chatToolsService = chatToolsService;
     }
 
     private async Task<Container> GetRagProjectDefContainer()
@@ -68,7 +71,9 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     public async Task<OpenAIEmbedding> GetEmbeddingForText(string text)
     {
         var model = _settingsService.EmbeddingModel;
-        return await _mediator.Send(new EmbeddingForTextRequest(text, model));
+        string username = await _mediator.Send(new GetUsernameRequest());
+        var openAIService = new OpenAIService(model, username, _logger, _mediator, _chatToolsService);
+        return await openAIService.GetEmbedding(text);
     }
 
     public async Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerateMin = 5, int numToGenerateMax = 20)

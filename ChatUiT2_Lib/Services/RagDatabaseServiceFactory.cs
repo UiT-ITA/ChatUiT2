@@ -30,17 +30,19 @@ public class RagDatabaseServiceFactory
         var settingsService = sp.GetRequiredService<ISettingsService>();
         var memCache = sp.GetRequiredService<IMemoryCache>();
         var logger = sp.GetRequiredService<ILogger<RagDatabaseServiceCosmosDbNoSql>>();
+        var chatToolsService = sp.GetRequiredService<IChatToolsService>();
 
         // Main service
         string connectionString = config["ConnectionStrings:RagProjectDef"];
         var cosmosClientMain = new CosmosClient(connectionString);
         var mainService = new RagDatabaseServiceCosmosDbNoSql(config,
-                                                            dateTimeProvider,
-                                                            settingsService,
-                                                            memCache,
-                                                            logger,
-                                                            cosmosClientMain,
-                                                            mediator);
+                                                              dateTimeProvider,
+                                                              settingsService,
+                                                              memCache,
+                                                              logger,
+                                                              cosmosClientMain,
+                                                              mediator,
+                                                              chatToolsService);
         _clients.Add(MainRagDatabase, mainService);
 
         // Copy to service
@@ -52,7 +54,8 @@ public class RagDatabaseServiceFactory
                                                                 memCache,
                                                                 logger,
                                                                 cosmosClientCopyTo,
-                                                                mediator);
+                                                                mediator,
+                                                                chatToolsService);
         _clients.Add(CopyToRagDatabase, copyToService);        
     }
 

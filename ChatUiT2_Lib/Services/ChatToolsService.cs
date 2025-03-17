@@ -25,8 +25,6 @@ public class ChatToolsService : IChatToolsService
 
     public async Task<string> GetTopdesk(string query)
     {
-        var test1 = await _mediator.Send(new EmbeddingForTextRequest("abc", new AiModel()));
-
         GetRagProjectByNameRequest getRagProjectReq = new("TopdeskKnowledgeItems", false);
         RagProject? ragProject = await _mediator.Send(getRagProjectReq);
         if (ragProject == null)
