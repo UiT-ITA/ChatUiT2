@@ -16,6 +16,8 @@ using System.Net;
 using System.Collections.ObjectModel;
 using Microsoft.Extensions.AI;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
+using MediatR;
+using ChatUiT2.Models.Mediatr;
 
 namespace ChatUiT2.Services;
 
@@ -25,6 +27,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
 
     // Client
     private CosmosClient _cosmosClient;
+    private readonly IMediator _mediator;
 
     // CosmosDb defs
     private readonly string _ragProjectDefDbName = string.Empty;
@@ -35,7 +38,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     private readonly ISettingsService _settingsService;
     private readonly IMemoryCache _memoryCache;
     private readonly ILogger<RagDatabaseServiceCosmosDbNoSql> _logger;
-    private readonly IChatService _chatService;
 
     public RagDatabaseServiceCosmosDbNoSql(IConfiguration configuration,
                                            IDateTimeProvider dateTimeProvider,
@@ -43,17 +45,17 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                                            IMemoryCache memoryCache,
                                            ILogger<RagDatabaseServiceCosmosDbNoSql> logger,
                                            CosmosClient cosmosClient,
-                                           IChatService chatService)
+                                           IMediator mediator)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
         this._settingsService = settingsService;
         this._memoryCache = memoryCache;
         this._logger = logger;
-        this._chatService = chatService;
         this._ragProjectDefDbName = _configuration["RagProjectDefDatabaseName"] ?? string.Empty;
         this._ragProjectDefContainerName = _configuration["RagProjectDefContainerName"] ?? string.Empty;
-        this._cosmosClient = cosmosClient;        
+        this._cosmosClient = cosmosClient;
+        this._mediator = mediator;
     }
 
     private async Task<Container> GetRagProjectDefContainer()
@@ -65,10 +67,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
 
     public async Task<OpenAIEmbedding> GetEmbeddingForText(string text)
     {
-        string name;
         var model = _settingsService.EmbeddingModel;
-
-        return await _chatService.GetEmbedding(text, model);
+        return await _mediator.Send(new EmbeddingForTextRequest(text, model));
     }
 
     public async Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerateMin = 5, int numToGenerateMax = 20)
@@ -88,7 +88,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             Role = ChatMessageRole.User,
             Content = content
         });
-        var chatResponse = await _chatService.GetChatResponseAsString(chat);
+        var getChatRespRequest = new GetChatResponseAsStringRequest(chat);
+        var chatResponse = await _mediator.Send(getChatRespRequest);
         return JsonSerializer.Deserialize<QuestionsFromTextResult>(chatResponse);
     }
 
@@ -572,7 +573,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             Content = $"My question is {searchTerm}"
         });
 
-        return await _chatService.GetChatResponseAsString(chat);
+        var getChatRespRequest = new GetChatResponseAsStringRequest(chat);
+        return await _mediator.Send(getChatRespRequest);
     }
 
     public async Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId)

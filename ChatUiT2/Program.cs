@@ -13,6 +13,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.AspNetCore.Hosting;
 using MediatR;
 using ChatUiT2.Models.Mediatr;
+using OpenAI.Embeddings;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,9 +89,11 @@ builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 
 // Mediatr for communication between services on for instance updateStream
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
-builder.Services.AddScoped<INotificationHandler<StreamUpdatedEvent>, StreamUpdatedEventHandler>();
-builder.Services.AddScoped<INotificationHandler<UpdateWorkItemEvent>, UpdateWorkItemEventHandler>();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(EmbeddingForTextRequest).Assembly));
+builder.Services.AddTransient<INotificationHandler<StreamUpdatedEvent>, StreamUpdatedEventHandler>();
+builder.Services.AddTransient<INotificationHandler<UpdateWorkItemEvent>, UpdateWorkItemEventHandler>();
+builder.Services.AddTransient<IRequestHandler<EmbeddingForTextRequest, OpenAIEmbedding>, EmbeddingForTextRequestHandler>();
+builder.Services.AddTransient<IRequestHandler<GetChatResponseAsStringRequest, string>, GetChatResponseAsStringRequestHandler>();
 
 // Transient services
 

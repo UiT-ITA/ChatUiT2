@@ -28,7 +28,7 @@ public class ChatService : IChatService
     private ILogger _logger { get; set; }
 
     public ChatService(ISettingsService settingsService,
-                       ILogger logger,
+                       ILogger<ChatService> logger,
                        IUsernameService usernameService,
                        IMediator mediator)
     {

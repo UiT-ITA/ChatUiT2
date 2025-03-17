@@ -1,6 +1,7 @@
 ﻿
 using ChatUiT2.Interfaces;
 using ChatUiT2.Services;
+using MediatR;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -21,7 +22,7 @@ public class RagDatabaseServiceFactory
 
     private readonly IDictionary<string, IRagDatabaseService> _clients;
     
-    public RagDatabaseServiceFactory(IServiceProvider sp, IChatService chatService)
+    public RagDatabaseServiceFactory(IServiceProvider sp, IMediator mediator)
     {
         _clients = new Dictionary<string, IRagDatabaseService>();
         var config = sp.GetRequiredService<IConfiguration>();
@@ -39,7 +40,7 @@ public class RagDatabaseServiceFactory
                                                             memCache,
                                                             logger,
                                                             cosmosClientMain,
-                                                            chatService);
+                                                            mediator);
         _clients.Add(MainRagDatabase, mainService);
 
         // Copy to service
@@ -51,7 +52,7 @@ public class RagDatabaseServiceFactory
                                                                 memCache,
                                                                 logger,
                                                                 cosmosClientCopyTo,
-                                                                chatService);
+                                                                mediator);
         _clients.Add(CopyToRagDatabase, copyToService);        
     }
 
