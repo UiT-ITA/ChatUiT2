@@ -23,6 +23,7 @@ public class ChatService : IChatService
 {
     private readonly IUsernameService _usernameService;
     private readonly IMediator _mediator;
+    private readonly IChatToolsService _chatToolsService;
 
     private ISettingsService _settingsService { get; set; }
     private ILogger _logger { get; set; }
@@ -30,12 +31,14 @@ public class ChatService : IChatService
     public ChatService(ISettingsService settingsService,
                        ILogger<ChatService> logger,
                        IUsernameService usernameService,
-                       IMediator mediator)
+                       IMediator mediator,
+                       IChatToolsService chatToolsService)
     {
         _settingsService = settingsService;
         _logger = logger;
         this._usernameService = usernameService;
         this._mediator = mediator;
+        this._chatToolsService = chatToolsService;
     }
 
     public async Task GetChatResponse(WorkItemChat chat)
@@ -146,7 +149,7 @@ public class ChatService : IChatService
     {
         try
         {
-            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator);
+            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator, _chatToolsService);
 
             int inputTokens = openAIService.GetTokens(chat);
             await openAIService.GetStreamingResponse(chat, responseMessage, allowImages: model.Capabilities.Vision);
@@ -179,7 +182,7 @@ public class ChatService : IChatService
 
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator);
+            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator, _chatToolsService);
             
             name = await openAIService.GetResponse(namingChat);
         }
@@ -221,7 +224,7 @@ public class ChatService : IChatService
 
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator);
+            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator, _chatToolsService);
 
             result = await openAIService.GetResponse(chat);
         }
@@ -237,7 +240,7 @@ public class ChatService : IChatService
     {
         if (model.DeploymentType == DeploymentType.AzureOpenAI)
         {
-            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator);
+            var openAIService = new OpenAIService(model, _usernameService, _logger, _mediator, _chatToolsService);
 
             return await openAIService.GetEmbedding(text);
         }
@@ -251,6 +254,7 @@ public class ChatService : IChatService
 public class OpenAIService : IOpenAIService
 {
     private readonly IMediator _mediator;
+    private readonly IChatToolsService _chatToolsService;
 
     private AiModel _model { get; set; }
     private IUsernameService _usernameService { get; set; }
@@ -263,7 +267,8 @@ public class OpenAIService : IOpenAIService
     public OpenAIService(AiModel model,
                          IUsernameService usernameService,
                          ILogger logger,                         
-                         IMediator mediator)
+                         IMediator mediator,
+                         IChatToolsService chatToolsService)
     {
         if (model.DeploymentType != DeploymentType.AzureOpenAI)
         {
@@ -276,6 +281,7 @@ public class OpenAIService : IOpenAIService
         _usernameService = usernameService;
         _logger = logger;
         this._mediator = mediator;
+        this._chatToolsService = chatToolsService;
     }
 
     public async Task<string> GetResponse(WorkItemChat chat, bool allowFiles = false)
@@ -406,8 +412,8 @@ public class OpenAIService : IOpenAIService
                     {
                         responseMessage.Content += "\n" + GetToolNotice(toolCall);
                     }
-
-                    ToolChatMessage toolMessage = new(toolCall.Id, await ChatTools.HandleToolCall(toolCall));
+                    
+                    ToolChatMessage toolMessage = new(toolCall.Id, await _chatToolsService.HandleToolCall(toolCall));
 
                     messages.Add(toolMessage);
 

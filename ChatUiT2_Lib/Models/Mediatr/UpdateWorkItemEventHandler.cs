@@ -12,12 +12,11 @@ public class UpdateWorkItemEventHandler : INotificationHandler<UpdateWorkItemEve
         _userService = userService;
     }
 
-    public Task Handle(UpdateWorkItemEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(UpdateWorkItemEvent notification, CancellationToken cancellationToken)
     {
         if(notification.Chat != null)
         {
-            _userService.UpdateWorkItem(notification.Chat);
+            await _userService.UpdateWorkItem(notification.Chat);
         }
-        return Task.CompletedTask;
     }
 }

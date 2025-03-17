@@ -9,10 +9,12 @@ public class EmbeddingForTextRequestHandler : IRequestHandler<EmbeddingForTextRe
 
     public EmbeddingForTextRequestHandler(IChatService chatService)
     {
-        this._chatService = chatService;
+        _chatService = chatService;
     }
     public async Task<OpenAIEmbedding> Handle(EmbeddingForTextRequest request, CancellationToken cancellationToken)
     {
-        return await _chatService.GetEmbedding(request.TextToEmbed, request.AiModel);
+        await Task.Delay(1000);
+        //return await _chatService.GetEmbedding(request.TextToEmbed, request.AiModel);
+        return null;
     }
 }
