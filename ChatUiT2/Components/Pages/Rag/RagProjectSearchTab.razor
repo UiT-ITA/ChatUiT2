@@ -1,6 +1,7 @@
 ﻿@using ChatUiT2.Models.RagProject
 @using ChatUiT2.Models
 @using ChatUiT2.Interfaces
+@using ChatUiT2.Services
 
 <MudText>
     Her er kan du gjøre test søk for dette RAG prosjektet.
@@ -105,9 +106,10 @@
 </MudPaper>
 
 @code {
-    [Inject] private IRagDatabaseService ragTopdeskService { get; set; } = null!;
+    [Inject] private IRagSearchService ragSearchService { get; set; } = null!;
     [Inject] ISnackbar Snackbar { get; set; } = null!;
     [Inject] ISettingsService settingsService { get; set; }
+    [Inject] ILogger logger { get; set; }
 
     [Parameter]
     public RagProject? RagProject { get; set; }
@@ -134,9 +136,12 @@
         try
         {
             tableIsLoading = true;
-            var result = await ragTopdeskService.DoGenericRagSearch(RagProject, searchTerm, numResults, minScore);
+            var model = settingsService.EmbeddingModel;
+            var openAIService = new OpenAIService(model, "System", logger, null!, null!);
+            var embedding = await openAIService.GetEmbedding(searchTerm);
+            var result = await ragSearchService.DoGenericRagSearch(RagProject, embedding, numResults, minScore);
             tableRagResultList = result;
-            llmQuestionresponse = await ragTopdeskService.SendRagSearchToLlm(result, searchTerm);
+            llmQuestionresponse = await ragSearchService.SendRagSearchToLlm(result, searchTerm);
         }
         catch (Exception e)
         {

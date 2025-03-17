@@ -82,7 +82,10 @@
     [Inject] IUserService userService { get; set; }
     [Inject] ILogger<UserService> userLogger { get; set; }
     [Inject] IRagDatabaseService ragDatabaseService { get; set; }
+    [Inject] IRagGeneratorService ragGeneratorService { get; set; }
+    [Inject] IRagSearchService ragSearchService { get; set; }
     [Inject] IChatService chatService { get; set; }
+    [Inject] IUsernameService usernameService { get; set; }
 
 
     private string chatDbError = string.Empty;
@@ -124,7 +127,7 @@
         embeddingTestStatusLoading = true;
         try
         {
-            embeddingTest = await ragDatabaseService.GetEmbeddingForText("Test text");
+            embeddingTest = await ragGeneratorService.GetEmbeddingForText("Test text", await usernameService.GetUsername());
 
         }
         catch (Exception e)
@@ -149,7 +152,7 @@
             };
             chat.Type = WorkItemType.Chat;
             chat.Settings.Prompt = $"Can you confirm that you received this message?\n\n";
-            chatResponse = await chatService.GetChatResponseAsString(chat, defaultModel);
+            chatResponse = await ragSearchService.GetChatResponseAsString(chat, defaultModel);
         }
         catch (Exception e)
         {

@@ -202,35 +202,6 @@ public class ChatService : IChatService
         return name;
     }
 
-    /// <summary>
-    /// When you just want the response as a string
-    /// No streaming handling needed
-    /// </summary>
-    /// <param name="chat"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    public async Task<string> GetChatResponseAsString(WorkItemChat chat, AiModel? model = null)
-    {
-        string result = string.Empty;
-        if(model == null)
-        {
-            model = _settingsService.DefaultModel;
-        }
-
-        if (model.DeploymentType == DeploymentType.AzureOpenAI)
-        {
-            var openAIService = new OpenAIService(model, await _usernameService.GetUsername(), _logger, _mediator, _chatToolsService);
-
-            result = await openAIService.GetResponse(chat);
-        }
-        else
-        {
-            throw new Exception("Unsupported deployment type: " + model.DeploymentType);
-        }
-
-        return result;
-    }
-
     public async Task<OpenAIEmbedding> GetEmbedding(string text, AiModel model)
     {
         if (model.DeploymentType == DeploymentType.AzureOpenAI)

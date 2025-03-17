@@ -11,28 +11,45 @@ using System.Text;
 using Tiktoken.Encodings;
 using MediatR;
 using ChatUiT2.Models.Mediatr;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace ChatUiT2.Services;
 
 public class ChatToolsService : IChatToolsService
 {
     private readonly IMediator _mediator;
+    private readonly IRagSearchService _ragSearchService;
+    private readonly ISettingsService _settingsService;
+    private readonly ILogger<ChatToolsService> _logger;
+    private readonly IRagDatabaseService _ragDatabaseService;
 
-    public ChatToolsService(IMediator mediator)
+    public ChatToolsService(IMediator mediator,
+                            IRagSearchService ragSearchService,
+                            ISettingsService settingsService,
+                            ILogger<ChatToolsService> logger,
+                            IRagDatabaseService ragDatabaseService)
     {
         this._mediator = mediator;
+        this._ragSearchService = ragSearchService;
+        this._settingsService = settingsService;
+        this._logger = logger;
+        this._ragDatabaseService = ragDatabaseService;
     }
 
     public async Task<string> GetTopdesk(string query)
     {
-        GetRagProjectByNameRequest getRagProjectReq = new("TopdeskKnowledgeItems", false);
-        RagProject? ragProject = await _mediator.Send(getRagProjectReq);
+        RagProject? ragProject = await _ragDatabaseService.GetRagProjectByName("TopdeskKnowledgeItems");
         if (ragProject == null)
         {
             return "Could not find the TopdeskKnowledgeItems project";
         }
-        RagSearchRequest ragSearchReq = new(ragProject, query, 3, 0.5d);
-        var ragSearchResult = await _mediator.Send(ragSearchReq);
+
+        var model = _settingsService.EmbeddingModel;
+        var openAIService = new OpenAIService(model, "System", _logger, _mediator, null!);
+        var embedding = await openAIService.GetEmbedding(query);
+
+        var ragSearchResult = await _ragSearchService.DoGenericRagSearch(ragProject, embedding, 3, 0.6d);
         StringBuilder stringResult = new();
         stringResult.Append("Here are some knowledge item articles that i want you to base your answer on.\n\n");
         foreach (var result in ragSearchResult)

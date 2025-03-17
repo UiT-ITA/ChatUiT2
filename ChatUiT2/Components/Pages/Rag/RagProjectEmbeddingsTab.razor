@@ -138,9 +138,11 @@
 
 @code {
     [Inject] IRagDatabaseService ragTopdeskService { get; set; }
+    [Inject] IRagGeneratorService ragGeneratorService { get; set; }
     [Inject] ISnackbar Snackbar { get; set; }
     [Inject] IConfiguration configuration { get; set; }
     [Inject] IRabbitMqService rabbitMqService { get; set; } = null!;
+    [Inject] IUsernameService usernameService { get; set; } = null!;
 
     [Parameter]
     public RagProject? RagProject { get; set; }
@@ -236,7 +238,7 @@
     {
         try
         {
-            selectedItem1.RagTextEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(selectedItem1.RagTextEmbedding.Originaltext)).ToFloats().ToArray();
+            selectedItem1.RagTextEmbedding.Embedding = (await ragGeneratorService.GetEmbeddingForText(selectedItem1.RagTextEmbedding.Originaltext, await usernameService.GetUsername())).ToFloats().ToArray();
             await SaveEmbedding(selectedItem1);
         }
         catch (Exception e)

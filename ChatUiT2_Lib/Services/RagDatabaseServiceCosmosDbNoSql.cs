@@ -27,8 +27,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
 
     // Client
     private CosmosClient _cosmosClient;
-    private readonly IMediator _mediator;
-    private readonly IChatToolsService _chatToolsService;
 
     // CosmosDb defs
     private readonly string _ragProjectDefDbName = string.Empty;
@@ -45,9 +43,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                                            ISettingsService settingsService,
                                            IMemoryCache memoryCache,
                                            ILogger<RagDatabaseServiceCosmosDbNoSql> logger,
-                                           CosmosClient cosmosClient,
-                                           IMediator mediator,                                           
-                                           IChatToolsService chatToolsService)
+                                           CosmosClient cosmosClient)
     {
         this._configuration = configuration;
         this._dateTimeProvider = dateTimeProvider;
@@ -57,8 +53,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         this._ragProjectDefDbName = _configuration["RagProjectDefDatabaseName"] ?? string.Empty;
         this._ragProjectDefContainerName = _configuration["RagProjectDefContainerName"] ?? string.Empty;
         this._cosmosClient = cosmosClient;
-        this._mediator = mediator;
-        this._chatToolsService = chatToolsService;
     }
 
     private async Task<Container> GetRagProjectDefContainer()
@@ -66,36 +60,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         // Create the project def database if it does not exist
         var ragProjectDefDatabase = await _cosmosClient.CreateDatabaseIfNotExistsAsync(_ragProjectDefDbName);
         return (await ragProjectDefDatabase.Database.CreateContainerIfNotExistsAsync(_ragProjectDefContainerName, "/id")).Container;
-    }
-
-    public async Task<OpenAIEmbedding> GetEmbeddingForText(string text)
-    {
-        var model = _settingsService.EmbeddingModel;
-        string username = await _mediator.Send(new GetUsernameRequest());
-        var openAIService = new OpenAIService(model, username, _logger, _mediator, _chatToolsService);
-        return await openAIService.GetEmbedding(text);
-    }
-
-    public async Task<QuestionsFromTextResult?> GenerateQuestionsFromContent(string content, int numToGenerateMin = 5, int numToGenerateMax = 20)
-    {
-        AiModel gpt4MiniModel = _settingsService.GetModel("GPT-4o-Mini");
-        WorkItemChat chat = new();
-        chat.Settings = new ChatSettings()
-        {
-            MaxTokens = gpt4MiniModel.MaxTokens,
-            Model = gpt4MiniModel.DeploymentName,
-            Temperature = 0.5f
-        };
-        chat.Type = WorkItemType.Chat;
-        chat.Settings.Prompt = $"Using the input that is a knowledge article, generate between {numToGenerateMin} and {numToGenerateMax} questions a person may ask that this article answers. Generate the questions in norwegian language. Give me the answer as json in the following format: {{ \"Questions\" : [ \"question1\", \"question2\" ] }}. Return the json string only no other information. Do not include ```json literal.";
-        chat.Messages.Add(new ChatUiT2.Models.ChatMessage()
-        {
-            Role = ChatMessageRole.User,
-            Content = content
-        });
-        var getChatRespRequest = new GetChatResponseAsStringRequest(chat);
-        var chatResponse = await _mediator.Send(getChatRespRequest);
-        return JsonSerializer.Deserialize<QuestionsFromTextResult>(chatResponse);
     }
 
     private async Task<Container> GetItemContainer(RagProject ragProject)
@@ -497,7 +461,11 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public async Task AddRagTextEmbedding(RagProject ragProject, string itemId, EmbeddingSourceType embedType, string originalText = "")
+    public async Task AddRagTextEmbedding(RagProject ragProject, 
+                                          string itemId, 
+                                          EmbeddingSourceType embedType,
+                                          OpenAIEmbedding embedding,
+                                          string originalText = "")
     {
         if (ragProject == null)
         {
@@ -521,65 +489,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             TextType = embedType
         };
         int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"]);
-        newEmbedding.Embedding = (await GetEmbeddingForText(newEmbedding.Originaltext)).ToFloats().Slice(0, numDimensions).ToArray();
+        newEmbedding.Embedding = embedding.ToFloats().Slice(0, numDimensions).ToArray();
         await SaveRagEmbedding(ragProject, newEmbedding);
-    }
-
-    public async Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item)
-    {
-        try
-        {
-            string textContent = GetItemContentString(item);
-            var questionsFromLlm = await GenerateQuestionsFromContent(textContent,
-                                                                      ragProject.Configuration?.MinNumberOfQuestionsPerItem ?? 5,
-                                                                      ragProject.Configuration?.MaxNumberOfQuestionsPerItem ?? 20);
-            if (questionsFromLlm != null)
-            {
-                foreach (var question in questionsFromLlm.Questions)
-                {
-                    await AddRagTextEmbedding(ragProject, item.Id, EmbeddingSourceType.Question, question);
-                }
-            }
-            else
-            {
-                throw new Exception("No questions generated by LLM");
-            }
-        }
-        catch (Exception e)
-        {
-            throw new Exception($"Noe feilet ved generering av spørsmål for item {item.Id} {e.Message}");
-        }
-    }
-
-    public async Task<string> SendRagSearchToLlm(List<RagSearchResult> ragSearchResults, string searchTerm)
-    {
-        AiModel defaultModel = _settingsService.DefaultModel;
-        WorkItemChat chat = new();
-        chat.Settings = new ChatSettings()
-        {
-            MaxTokens = defaultModel.MaxTokens,
-            Model = defaultModel.DeploymentName,
-            Temperature = 0.5f
-        };
-        chat.Type = WorkItemType.Chat;
-        chat.Settings.Prompt = $"Use the information in the knowledge articles the user provides to answer the user question. Answer in the same language as the user is asking in.\n\n";
-        for (int i = 0; i < ragSearchResults.Count(); i++)
-        {
-            chat.Messages.Add(new ChatMessage()
-            {
-                Role = ChatMessageRole.User,
-                Content = $"## Knowledge article {i}\n\n{ragSearchResults.ElementAt(i).SourceContent}\n\n"
-            });
-        }
-
-        chat.Messages.Add(new ChatMessage()
-        {
-            Role = ChatMessageRole.User,
-            Content = $"My question is {searchTerm}"
-        });
-
-        var getChatRespRequest = new GetChatResponseAsStringRequest(chat);
-        return await _mediator.Send(getChatRespRequest);
     }
 
     public async Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId)
@@ -627,43 +538,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                 break;
         }
         return textContent;
-    }
-
-    public async Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, string searchTerm, int numResults = 3, double minMatchScore = 0.8)
-    {
-        List<RagSearchResult> result = [];
-        
-        var userPhraseEmbedding = await GetEmbeddingForText(searchTerm);
-        int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"]);
-        var floatsUser = userPhraseEmbedding.ToFloats().Slice(0, numDimensions).ToArray();
-        var embeddingContainer = await GetEmbeddingContainer(ragProject);
-        var queryDef = new QueryDefinition(
-            query: $"SELECT TOP {numResults} c.Originaltext as EmbeddingText, c.SourceItemId as SourceId, VectorDistance(c.Embedding,@embedding) AS MatchScore FROM c ORDER BY VectorDistance(c.Embedding,@embedding)"
-        ).WithParameter("@embedding", floatsUser);
-        
-        using FeedIterator<RagSearchResult> feed = embeddingContainer.GetItemQueryIterator<RagSearchResult>(
-            queryDefinition: queryDef
-        );
-        while (feed.HasMoreResults)
-        {
-            FeedResponse<RagSearchResult> response = await feed.ReadNextAsync();
-            foreach (var item in response)
-            {
-                item.Source = ragProject.Name;
-                result.Add(item);
-            }
-        }
-
-        // Get details about ContentItem
-        foreach (var res in result)
-        {
-            var contentItem = await GetContentItemById(ragProject, res.SourceId);
-            res.ContentUrl = contentItem.ViewUrl;
-            res.SourceAltId = contentItem.SourceSystemAltId;
-            res.SourceContent = GetItemContentString(contentItem);
-        }
-
-        return result;
     }
 
     public Task DeleteContentItem(RagProject ragProject, ContentItem item)
@@ -756,58 +630,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         {
             await container.DeleteItemAsync<EmbeddingEvent>(item.Id, new PartitionKey(item.ContentItemId));
         }
-    }
-
-    public async Task GenerateRagParagraphsFromContent(RagProject ragProject, ContentItem item, int minParagraphSize = 150)
-    {
-        try
-        {
-            string textContent = GetItemContentString(item);
-            var paragraphs = SplitTextIntoParagraphs(textContent);
-            foreach (var paragraph in paragraphs)
-            {
-                if (paragraph.Length < minParagraphSize)
-                {
-                    continue;
-                }
-                await AddRagTextEmbedding(ragProject, item.Id, EmbeddingSourceType.Paragraph, paragraph);
-            }
-        }
-        catch (Exception e)
-        {
-            throw new Exception($"Noe feilet ved generering av paragraph embeddings for item {item.Id} {e.Message}");
-        }
-    }
-
-    public string ReplaceHtmlLinebreaksWithNewline(string text)
-    {
-        // Regular expression to match all variants of <br> tags
-        string pattern = @"<br\s*/?>";
-        string result = Regex.Replace(text, pattern, "\n", RegexOptions.IgnoreCase);
-        return result;
-    }
-
-    public string RemoveAllHtmlTagsFromString(string text)
-    {
-        var sanitizer = new HtmlSanitizer();
-        sanitizer.AllowedTags.Clear();
-        sanitizer.KeepChildNodes = true;
-        return sanitizer.Sanitize(text);
-    }
-
-    public IEnumerable<string> SplitTextIntoParagraphs(string text, bool removeHtmlTags = true, bool convertBrTagsToNewlines = true)
-    {
-        if (convertBrTagsToNewlines)
-        {
-            text = ReplaceHtmlLinebreaksWithNewline(text);
-        }
-        if (removeHtmlTags)
-        {
-            text = RemoveAllHtmlTagsFromString(text);
-        }
-        string pattern = @"\n\s*\n";
-        string strWithNormalizedDoubleNewline = Regex.Replace(text, pattern, "\n\n", RegexOptions.IgnoreCase);
-        return strWithNormalizedDoubleNewline.Split(new string[] { "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
     }
 
     public async Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
@@ -1072,6 +894,40 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             _logger.LogInformation("The database {databaseId} was not found. No delete operation performed.",
                                    id);
         }
+    }
+
+    public async Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, float[] floatsUser, int numResults = 3, double minMatchScore = 0.8)
+    {
+        List<RagSearchResult> result = [];
+
+        var embeddingContainer = await GetEmbeddingContainer(ragProject);
+        var queryDef = new QueryDefinition(
+            query: $"SELECT TOP {numResults} c.Originaltext as EmbeddingText, c.SourceItemId as SourceId, VectorDistance(c.Embedding,@embedding) AS MatchScore FROM c ORDER BY VectorDistance(c.Embedding,@embedding)"
+        ).WithParameter("@embedding", floatsUser);
+
+        using FeedIterator<RagSearchResult> feed = embeddingContainer.GetItemQueryIterator<RagSearchResult>(
+            queryDefinition: queryDef
+        );
+        while (feed.HasMoreResults)
+        {
+            FeedResponse<RagSearchResult> response = await feed.ReadNextAsync();
+            foreach (var item in response)
+            {
+                item.Source = ragProject.Name;
+                result.Add(item);
+            }
+        }
+
+        // Get details about ContentItem
+        foreach (var res in result)
+        {
+            var contentItem = await GetContentItemById(ragProject, res.SourceId);
+            res.ContentUrl = contentItem.ViewUrl;
+            res.SourceAltId = contentItem.SourceSystemAltId;
+            res.SourceContent = GetItemContentString(contentItem);
+        }
+
+        return result;
     }
 
     public void Dispose()
