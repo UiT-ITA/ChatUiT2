@@ -51,10 +51,12 @@ public class ChatToolsService : IChatToolsService
 
         var ragSearchResult = await _ragSearchService.DoGenericRagSearch(ragProject, embedding, 3, 0.6d);
         StringBuilder stringResult = new();
-        stringResult.Append("Here are some knowledge item articles that i want you to base your answer on.\n\n");
+        stringResult.Append("Here are some knowledge item articles that i want you to base your answer on.\n");
+        stringResult.Append("Include links to the articles that were most relevant for finding the answer using url and title of article.");
+        stringResult.Append("Append the article number in paranthesis after title and use the concatinated string as link text.\n\n");
         foreach (var result in ragSearchResult)
         {
-            stringResult.Append($"-- Article start id {result.SourceId} url to article {result.ContentUrl}\n");
+            stringResult.Append($"-- Article start id {result.SourceId} url to article is {result.ContentUrl} title of article is \"{result.ContentTitle}\" article number is {result.SourceAltId}\n");
             stringResult.Append(result.SourceContent);
             stringResult.Append($"-- Article end id {result.SourceId}\n\n");
         }

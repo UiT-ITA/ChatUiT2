@@ -8,6 +8,7 @@ public class RagSearchResult
     public string SourceId { get; set; }
     public string SourceAltId { get; set; }
     public string ContentUrl { get; set; }
+    public string ContentTitle { get; set; }
 
     public string SourceContent { get; set; }
 }

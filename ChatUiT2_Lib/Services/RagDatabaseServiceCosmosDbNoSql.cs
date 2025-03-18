@@ -925,6 +925,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             res.ContentUrl = contentItem.ViewUrl;
             res.SourceAltId = contentItem.SourceSystemAltId;
             res.SourceContent = GetItemContentString(contentItem);
+            res.ContentTitle = contentItem.Title;
         }
 
         return result;
