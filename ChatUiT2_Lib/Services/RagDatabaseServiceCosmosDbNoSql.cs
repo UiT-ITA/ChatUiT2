@@ -488,9 +488,13 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             RagProjectId = ragProject?.Id ?? string.Empty,
             TextType = embedType
         };
-        int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"]);
+        int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"] ?? "0");
+        if (numDimensions <= 0)
+        {
+            throw new Exception("Invalid number of dimensions for rag embeddings. Check appsettings");
+        }
         newEmbedding.Embedding = embedding.ToFloats().Slice(0, numDimensions).ToArray();
-        await SaveRagEmbedding(ragProject, newEmbedding);
+        await SaveRagEmbedding(ragProject!, newEmbedding);
     }
 
     public async Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId)
@@ -922,10 +926,14 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         foreach (var res in result)
         {
             var contentItem = await GetContentItemById(ragProject, res.SourceId);
-            res.ContentUrl = contentItem.ViewUrl;
-            res.SourceAltId = contentItem.SourceSystemAltId;
-            res.SourceContent = GetItemContentString(contentItem);
-            res.ContentTitle = contentItem.Title;
+            if(contentItem == null)
+            {
+                continue;
+            }
+            res.ContentUrl = contentItem?.ViewUrl ?? string.Empty;
+            res.SourceAltId = contentItem?.SourceSystemAltId ?? string.Empty;
+            res.SourceContent = GetItemContentString(contentItem!);
+            res.ContentTitle = contentItem?.Title ?? string.Empty;
         }
 
         return result;

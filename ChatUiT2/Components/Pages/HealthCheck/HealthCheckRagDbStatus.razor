@@ -25,8 +25,8 @@
 </MudPaper>
 
 @code {
-    [Inject] IConfiguration configuration { get; set; }
-    [Inject] IRagDatabaseService ragDatabaseService { get; set; }
+    [Inject] IConfiguration configuration { get; set; } = null!;
+    [Inject] IRagDatabaseService ragDatabaseService { get; set; } = null!;
 
     private bool ragDbStatusLoading = true;
     private string? ragDbError = null;
@@ -40,7 +40,7 @@
     {
         if (firstRender)
         {
-            CheckRagDbStatus();
+            await CheckRagDbStatus();
             CheckRagConfig();
             StateHasChanged();
         }

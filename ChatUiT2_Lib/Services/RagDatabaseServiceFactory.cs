@@ -32,7 +32,7 @@ public class RagDatabaseServiceFactory
         var logger = sp.GetRequiredService<ILogger<RagDatabaseServiceCosmosDbNoSql>>();
 
         // Main service
-        string connectionString = config["ConnectionStrings:RagProjectDef"];
+        string connectionString = config["ConnectionStrings:RagProjectDef"] ?? string.Empty;
         var cosmosClientMain = new CosmosClient(connectionString);
         var mainService = new RagDatabaseServiceCosmosDbNoSql(config,
                                                               dateTimeProvider,
@@ -43,7 +43,7 @@ public class RagDatabaseServiceFactory
         _clients.Add(MainRagDatabase, mainService);
 
         // Copy to service
-        string connectionStringCopyTo = config["ConnectionStrings:CopyToRagProjectDef"];
+        string connectionStringCopyTo = config["ConnectionStrings:CopyToRagProjectDef"] ?? string.Empty;
         var cosmosClientCopyTo = new CosmosClient(connectionStringCopyTo);
         var copyToService = new RagDatabaseServiceCosmosDbNoSql(config,
                                                                 dateTimeProvider,

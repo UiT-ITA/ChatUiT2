@@ -58,7 +58,7 @@
 
     private List<ModelEndpoint> modelEndpoints = [];
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
         {
@@ -90,11 +90,11 @@
 
     private void CheckKeyVault()
     {
-        keyVaultName = configuration.GetConnectionString("KeyVault");
+        keyVaultName = configuration.GetConnectionString("KeyVault") ?? string.Empty;
     }
 
     private void CheckEnv()
     {
-        aspnetCoreEnv = configuration["ASPNETCORE_ENVIRONMENT"];
+        aspnetCoreEnv = configuration["ASPNETCORE_ENVIRONMENT"] ?? string.Empty;
     }
 }

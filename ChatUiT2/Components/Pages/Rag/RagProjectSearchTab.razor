@@ -109,15 +109,15 @@
 @code {
     [Inject] private IRagSearchService ragSearchService { get; set; } = null!;
     [Inject] ISnackbar Snackbar { get; set; } = null!;
-    [Inject] ISettingsService settingsService { get; set; }
-    [Inject] ILogger logger { get; set; }
+    [Inject] ISettingsService settingsService { get; set; } = null!;
+    [Inject] ILogger logger { get; set; } = null!;
 
     [Parameter]
     public RagProject? RagProject { get; set; }
 
     private List<RagSearchResult> tableRagResultList = [];
     private bool tableIsLoading = false;
-    private MudTable<RagSearchResult> table;
+    private MudTable<RagSearchResult>? table;
     private string searchTerm = string.Empty;
     private string llmQuestionresponse = string.Empty;
     private int numResults = 3;
@@ -136,13 +136,19 @@
     {
         try
         {
-            tableIsLoading = true;
-            var model = settingsService.EmbeddingModel;
-            var openAIService = new OpenAIService(model, "System", logger, null!, null!);
-            var embedding = await openAIService.GetEmbedding(searchTerm);
-            var result = await ragSearchService.DoGenericRagSearch(RagProject, embedding, numResults, minScore);
-            tableRagResultList = result;
-            llmQuestionresponse = await ragSearchService.SendRagSearchToLlm(result, searchTerm);
+            if(RagProject != null)
+            {
+                tableIsLoading = true;
+                var model = settingsService.EmbeddingModel;
+                var openAIService = new OpenAIService(model, "System", logger, null!, null!);
+                var embedding = await openAIService.GetEmbedding(searchTerm);
+                var result = await ragSearchService.DoGenericRagSearch(RagProject, embedding, numResults, minScore);
+                tableRagResultList = result;
+                llmQuestionresponse = await ragSearchService.SendRagSearchToLlm(result, searchTerm);
+            } else
+            {
+                Snackbar.Add("Fant ikke prosjektet", Severity.Error);
+            }
         }
         catch (Exception e)
         {

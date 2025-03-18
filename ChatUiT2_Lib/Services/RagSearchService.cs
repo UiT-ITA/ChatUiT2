@@ -37,7 +37,11 @@ public class RagSearchService : IRagSearchService
 
     public async Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, OpenAIEmbedding userPhraseEmbedding, int numResults = 3, double minMatchScore = 0.8)
     {
-        int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"]);
+        int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"] ?? "0");
+        if(numDimensions <= 0)
+        {
+            throw new Exception("Invalid number of dimensions for rag embeddings. Check appsettings");
+        }
         var floatsUser = userPhraseEmbedding.ToFloats().Slice(0, numDimensions).ToArray();
 
         return await _ragDatabaseService.DoGenericRagSearch(ragProject, floatsUser, numResults, minMatchScore);

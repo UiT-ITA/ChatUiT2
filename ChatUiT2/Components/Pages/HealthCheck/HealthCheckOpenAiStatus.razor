@@ -78,15 +78,15 @@
 </MudPaper>
 
 @code {
-    [Inject] IConfiguration configuration { get; set; }
-    [Inject] ISettingsService settingsService { get; set; }
-    [Inject] IUserService userService { get; set; }
-    [Inject] ILogger<UserService> userLogger { get; set; }
-    [Inject] IRagDatabaseService ragDatabaseService { get; set; }
-    [Inject] IRagGeneratorService ragGeneratorService { get; set; }
-    [Inject] IRagSearchService ragSearchService { get; set; }
-    [Inject] IChatService chatService { get; set; }
-    [Inject] IUsernameService usernameService { get; set; }
+    [Inject] IConfiguration configuration { get; set; } = null!;
+    [Inject] ISettingsService settingsService { get; set; } = null!;
+    [Inject] IUserService userService { get; set; } = null!;
+    [Inject] ILogger<UserService> userLogger { get; set; } = null!;
+    [Inject] IRagDatabaseService ragDatabaseService { get; set; } = null!;
+    [Inject] IRagGeneratorService ragGeneratorService { get; set; } = null!;
+    [Inject] IRagSearchService ragSearchService { get; set; } = null!;
+    [Inject] IChatService chatService { get; set; } = null!;
+    [Inject] IUsernameService usernameService { get; set; } = null!;
 
 
     private string chatDbError = string.Empty;
@@ -109,7 +109,7 @@
     private ModelEndpoint? chatModelEndpoint = null;
     private string chatResponse = string.Empty;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if (firstRender)
         {
@@ -147,8 +147,8 @@
             WorkItemChat chat = new();
             chat.Settings = new ChatSettings()
             {
-                MaxTokens = defaultModel.MaxTokens,
-                Model = defaultModel.DeploymentName,
+                MaxTokens = defaultModel?.MaxTokens ?? 1024,
+                Model = defaultModel?.DeploymentName ?? string.Empty,
                 Temperature = 0.5f
             };
             chat.Type = WorkItemType.Chat;

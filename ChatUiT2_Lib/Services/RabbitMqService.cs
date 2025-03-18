@@ -34,10 +34,10 @@ public class RabbitMqService : IRabbitMqService
             password = "guest";
         }
         _factory.Password = password;
-        _factory.VirtualHost = _configuration["RabbitMq:VirtualHost"];
-        _factory.HostName = _configuration["RabbitMq:HostName"];
+        _factory.VirtualHost = _configuration["RabbitMq:VirtualHost"] ?? string.Empty;
+        _factory.HostName = _configuration["RabbitMq:HostName"] ?? string.Empty;
         _factory.Port = _configuration.GetValue<int>("RabbitMq:Port");
-        _factory.Ssl.ServerName = _configuration["RabbitMq:HostName"];        
+        _factory.Ssl.ServerName = _configuration["RabbitMq:HostName"] ?? string.Empty;        
     }
     public async Task SendRagMessage(RagMqMessage message)
     {
@@ -129,7 +129,7 @@ public class RabbitMqService : IRabbitMqService
     public string GetRoutingKey(RagMqMessage message)
     {
         string opName = Enum.GetName(typeof(RagMqMessageOperations), message.Operation) ?? string.Empty;
-        string baseRoutingKey = _configuration["RabbitMq:BaseRoutingKey"];
+        string baseRoutingKey = _configuration["RabbitMq:BaseRoutingKey"] ?? string.Empty;
         if(string.IsNullOrEmpty(baseRoutingKey))
         {
             throw new ArgumentException("Missing operation in message");

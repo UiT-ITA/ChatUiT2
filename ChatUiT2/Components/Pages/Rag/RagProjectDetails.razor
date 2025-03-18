@@ -38,7 +38,7 @@ else
     [Parameter]
     public string? RagProjectId { get; set; }
 
-    private RagProject ragProject;
+    private RagProject? ragProject;
     private bool isLoading = true;
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -47,6 +47,10 @@ else
             if (!string.IsNullOrEmpty(RagProjectId))
             {
                 ragProject = await ragDatabaseService.GetRagProjectById(RagProjectId, true);
+            }
+            if(ragProject == null)
+            {
+                Snackbar.Add("Fant ikke prosjektet", Severity.Error);
             }
             isLoading = false;
             StateHasChanged();

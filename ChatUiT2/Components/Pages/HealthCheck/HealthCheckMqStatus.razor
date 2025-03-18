@@ -54,11 +54,11 @@
     private async Task CheckRabbitMq()
     {
         mqStatusLoading = true;
-        mqVhost = configuration["RabbitMq:VirtualHost"];
-        mqHost = configuration["RabbitMq:HostName"];
-        mqPort = configuration["RabbitMq:Port"];
-        mqExchange = configuration["RabbitMq:ExchangeName"];
-        mqUsername = configuration["RabbitMq:Username"];
+        mqVhost = configuration["RabbitMq:VirtualHost"] ?? string.Empty;
+        mqHost = configuration["RabbitMq:HostName"] ?? string.Empty;
+        mqPort = configuration["RabbitMq:Port"] ?? string.Empty;
+        mqExchange = configuration["RabbitMq:ExchangeName"] ?? string.Empty;
+        mqUsername = configuration["RabbitMq:Username"] ?? string.Empty;
         mqPasswordHasValue = string.IsNullOrEmpty(configuration["RabbitMq:Password"]) == false;
         try
         {

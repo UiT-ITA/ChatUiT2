@@ -98,7 +98,7 @@
             try
             {
                 RagProject?.Configuration.EmbeddingTypes.Remove(embeddingSourceType);
-                await ragDatabaseService.SaveRagProject(RagProject);
+                await ragDatabaseService.SaveRagProject(RagProject!);
                 Snackbar.Add($"Prosjekt endringer lagret", Severity.Success);
             }
             catch (Exception e)
