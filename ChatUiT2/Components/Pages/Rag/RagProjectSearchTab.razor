@@ -2,6 +2,7 @@
 @using ChatUiT2.Models
 @using ChatUiT2.Interfaces
 @using ChatUiT2.Services
+@attribute [Authorize(Roles = "Admin,RagAdmin")]
 
 <MudText>
     Her er kan du gjøre test søk for dette RAG prosjektet.

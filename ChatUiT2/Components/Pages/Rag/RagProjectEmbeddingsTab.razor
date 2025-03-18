@@ -1,6 +1,7 @@
 ﻿@using ChatUiT2.Interfaces
 @using ChatUiT2.Models.RagProject;
 @using ChatUiT2.Models.RabbitMq
+@attribute [Authorize(Roles = "Admin,RagAdmin")]
 
 <MudText>
     Her er informasjon om alle embeddings som er lagt inn i embeddings collection for dette RAG prosjektet.

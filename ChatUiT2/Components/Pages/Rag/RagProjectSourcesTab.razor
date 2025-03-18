@@ -1,5 +1,6 @@
 ﻿@using ChatUiT2.Models.RagProject
 @using ChatUiT2.Interfaces
+@attribute [Authorize(Roles = "Admin,RagAdmin")]
 
 <MudText>
     Her er alle kilde artikler som RAG databasen inneholder.
