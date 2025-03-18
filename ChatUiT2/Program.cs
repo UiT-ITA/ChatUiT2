@@ -8,13 +8,7 @@ using MudBlazor.Services;
 using Microsoft.Identity.Web.UI;
 using ChatUiT2.Services.Template;
 using Microsoft.ApplicationInsights.Extensibility;
-using DocumentFormat.OpenXml.Office2016.Drawing.ChartDrawing;
 using Microsoft.Azure.Cosmos;
-using Microsoft.AspNetCore.Hosting;
-using MediatR;
-using ChatUiT2.Models.Mediatr;
-using OpenAI.Embeddings;
-using ChatUiT2.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -94,8 +88,6 @@ builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 
 // Mediatr for communication between services on for instance updateStream
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ChatService).Assembly));
-builder.Services.AddTransient<INotificationHandler<StreamUpdatedEvent>, StreamUpdatedEventHandler>();
-builder.Services.AddTransient<INotificationHandler<UpdateWorkItemEvent>, UpdateWorkItemEventHandler>();
 
 // Transient services
 
