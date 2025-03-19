@@ -100,13 +100,10 @@
     private OpenAIEmbedding? embeddingTest = null;
     private string? embeddingDbError = null;
     private bool embeddingTestStatusLoading = true;
-    private ModelEndpoint? embeddingModelEndpoint = null;
     private string openAiEndpoint = string.Empty;
 
-    private OpenAIEmbedding? chatTest = null;
     private string? chatApiError = null;
     private bool chatTestStatusLoading = true;
-    private ModelEndpoint? chatModelEndpoint = null;
     private string chatResponse = string.Empty;
 
     protected override void OnAfterRender(bool firstRender)
@@ -117,8 +114,10 @@
             embeddingModel = settingsService.EmbeddingModel;
             namingModel = settingsService.NamingModel;
 
-            checkOpenAiConnectionEmbedding();
-            checkOpenAiConnectionChat();
+            List<Task> initTasks = new();
+            initTasks.Add(checkOpenAiConnectionEmbedding());
+            initTasks.Add(checkOpenAiConnectionChat());
+            Task.WhenAll(initTasks).Wait();
             StateHasChanged();
         }
     }

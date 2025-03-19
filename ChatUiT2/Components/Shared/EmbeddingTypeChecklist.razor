@@ -25,7 +25,7 @@
         public bool IsChecked { get; set; }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnAfterRender(bool firstRender)
     {
         if(firstRender)
         {
@@ -37,7 +37,11 @@
     {
         foreach (var val in Enum.GetValues(typeof(EmbeddingSourceType)))
         {
-            string label = Enum.GetName(typeof(EmbeddingSourceType), val);
+            if(val == null)
+            {
+                continue;
+            }
+            string label = Enum.GetName(typeof(EmbeddingSourceType), val) ?? "Enum value not found";
             EmbeddingTypeListItem item = new EmbeddingTypeListItem()
             {
                 Label = label,

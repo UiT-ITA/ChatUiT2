@@ -76,18 +76,22 @@
 
     private async Task EnableEmbeddingType(EmbeddingSourceType embeddingSourceType)
     {
-        if (RagProject?.Configuration?.EmbeddingTypes.Contains(embeddingSourceType) == false)
+        try
         {
-            try
+            if (RagProject != null && RagProject?.Configuration?.EmbeddingTypes.Contains(embeddingSourceType) == false)
             {
                 RagProject?.Configuration.EmbeddingTypes.Add(embeddingSourceType);
-                await ragDatabaseService.SaveRagProject(RagProject);
+                await ragDatabaseService.SaveRagProject(RagProject!);
                 Snackbar.Add($"Prosjekt endringer lagret", Severity.Success);
             }
-            catch (Exception e)
+            else
             {
-                Snackbar.Add($"Failed to save project: {e.Message}", Severity.Error);
+                Snackbar.Add($"Kunne ikke slå på embedding type", Severity.Info);
             }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Failed to save project: {e.Message}", Severity.Error);
         }
     }
 

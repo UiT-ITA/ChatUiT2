@@ -2,13 +2,13 @@
 
 public class RagSearchResult
 {
-    public string EmbeddingText { get; set; }
+    public string EmbeddingText { get; set; } = string.Empty;
     public double MatchScore { get; set; }
-    public string Source { get; set; }
-    public string SourceId { get; set; }
-    public string SourceAltId { get; set; }
-    public string ContentUrl { get; set; }
-    public string ContentTitle { get; set; }
+    public string Source { get; set; } = string.Empty;
+    public string SourceId { get; set; } = string.Empty;
+    public string SourceAltId { get; set; } = string.Empty;
+    public string ContentUrl { get; set; } = string.Empty;
+    public string ContentTitle { get; set; } = string.Empty;
 
-    public string SourceContent { get; set; }
+    public string SourceContent { get; set; } = string.Empty;
 }

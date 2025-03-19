@@ -17,7 +17,7 @@ public class ContentItem
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
     [JsonProperty(PropertyName = "id")]
-    public string? Id { get; set; }
+    public string Id { get; set; } = string.Empty;
     [BsonElement("SystemName")]
     public string SystemName { get; set; } = string.Empty;
     [BsonElement("DataType")]

@@ -29,8 +29,8 @@
 </MudPaper>
 
 @code {
-    [Inject] IConfiguration configuration { get; set; }
-    [Inject] IRabbitMqService rabbitMqService { get; set; }
+    [Inject] IConfiguration configuration { get; set; } = null!;
+    [Inject] IRabbitMqService rabbitMqService { get; set; } = null!;
 
     private string mqVhost = string.Empty;
     private string mqHost = string.Empty;

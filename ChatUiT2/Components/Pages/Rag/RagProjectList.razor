@@ -133,16 +133,16 @@
         StateHasChanged();
     }
 
-    private async Task CheckIfEnterPressed(KeyboardEventArgs e)
+    private void CheckIfEnterPressed(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
             // Call your function here
-            await DoSearch();
+            DoSearch();
         }
     }
 
-    private async Task DoSearch()
+    private void DoSearch()
     {
         tableIsLoading = true;
         tableRagProjectList = [];
@@ -160,9 +160,16 @@
             query = query?.Where(x => x.RagProject.Name != null &&
                                       x.RagProject.Name.Contains(nameSearch, StringComparison.OrdinalIgnoreCase));
         }
-        foreach (var item in query.ToList())
+        if(query != null)
         {
-            tableRagProjectList.Add(item);
+            foreach (var item in query.ToList())
+            {
+                tableRagProjectList.Add(item);
+            }
+        }
+        else
+        {
+            Snackbar.Add("Query er null", Severity.Info, config => { });
         }
         tableIsLoading = false;
         StateHasChanged();

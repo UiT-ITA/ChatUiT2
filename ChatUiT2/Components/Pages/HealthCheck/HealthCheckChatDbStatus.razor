@@ -23,8 +23,8 @@
 </MudPaper>
 
 @code {
-    [Inject] IConfiguration configuration { get; set; }
-    [Inject] IDatabaseService databaseService { get; set; }
+    [Inject] IConfiguration configuration { get; set; } = null!;
+    [Inject] IDatabaseService databaseService { get; set; } = null!;
 
     private bool chatDbStatusLoading = true;
     private string? chatDbError = null;

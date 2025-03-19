@@ -14,7 +14,7 @@ public class RagTextEmbedding
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
     [JsonProperty(PropertyName = "id")]
-    public string Id { get; set; }
+    public string Id { get; set; } = string.Empty;
     /// <summary>
     /// The actual embedding
     /// </summary>

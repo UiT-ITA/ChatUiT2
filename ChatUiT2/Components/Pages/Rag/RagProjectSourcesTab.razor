@@ -135,7 +135,7 @@ else
 </MudDrawer>
 
 @code {
-    [Inject] IRagDatabaseService ragTopdeskService { get; set; }
+    [Inject] IRagDatabaseService ragTopdeskService { get; set; } = null!;
     [Inject] ISnackbar Snackbar { get; set; } = null!;
 
     [Parameter]
@@ -183,6 +183,11 @@ else
     {
         try
         {
+            if(RagProject == null)
+            {
+                Snackbar.Add($"Fant ikke RAG prosjekt", Severity.Error, config => { });
+                return;
+            }
             isLoading = true;
             tableItems = [];
             IQueryable<ContentItem>? query = RagProject.ContentItems.AsQueryable();
@@ -196,7 +201,14 @@ else
                 query = query?.Where(x => x.Title.Contains(titleSearch, StringComparison.OrdinalIgnoreCase) ||
                                           x.Title.Contains(titleSearch, StringComparison.OrdinalIgnoreCase));
             }
-            tableItems = query.ToList();
+            if(query != null)
+            {
+                tableItems = query.ToList();
+            }
+            else
+            {
+                Snackbar.Add("Query er null", Severity.Info, config => { });
+            }
         }
         catch (Exception e)
         {
@@ -213,10 +225,17 @@ else
     {
         try
         {
-            await ragTopdeskService.DeleteContentItem(RagProject, item);
-            RagProject.ContentItems.RemoveAll(x => x.Id == item.Id);
-            Snackbar.Add($"Embedding slettet", Severity.Success, config => { });
-            DoSearch();
+            if(RagProject != null)
+            {
+                await ragTopdeskService.DeleteContentItem(RagProject, item);
+                RagProject.ContentItems.RemoveAll(x => x.Id == item.Id);
+                Snackbar.Add($"Embedding slettet", Severity.Success, config => { });
+                DoSearch();
+            }
+            else
+            {
+                Snackbar.Add($"Fant ikke RAG prosjekt", Severity.Error, config => { });
+            }
         }
         catch (Exception e)
         {

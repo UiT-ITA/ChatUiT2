@@ -327,7 +327,7 @@
         }
         catch (Exception e)
         {
-            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject.Id} {e.Message}", Severity.Error, config => { });
+            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject?.Id} {e.Message}", Severity.Error, config => { });
         }
         await LoadDbEmbeddings();
         StateHasChanged();

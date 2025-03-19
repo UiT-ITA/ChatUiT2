@@ -43,8 +43,8 @@
 }
 
 @code {
-    [Inject] IConfiguration configuration { get; set; }
-    [Inject] ISettingsService settingsService { get; set; }
+    [Inject] IConfiguration configuration { get; set; } = null!;
+    [Inject] ISettingsService settingsService { get; set; } = null!;
 
     private string keyVaultName = string.Empty;
     private string aspnetCoreEnv = string.Empty;
