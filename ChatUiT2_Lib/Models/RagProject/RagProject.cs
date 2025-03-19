@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
+using Newtonsoft.Json;
 
 namespace ChatUiT2.Models.RagProject;
 
@@ -10,10 +11,11 @@ namespace ChatUiT2.Models.RagProject;
 public class RagProject
 {
     /// <summary>
-    /// MongoDB Id
+    /// Id
     /// </summary>
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
+    [JsonProperty(PropertyName = "id")]
     public string? Id { get; set; }
     [BsonElement("Name")]
     public string Name { get; set; } = string.Empty;
@@ -35,6 +37,7 @@ public class RagProject
     [BsonElement("Configuration")]
     public RagConfiguration? Configuration { get; set; }
     [BsonIgnore]
+    [JsonIgnore]
     public List<ContentItem> ContentItems { get; set; } = [];    
     [BsonElement("Created")]
     public DateTimeOffset Created { get; set; } = DateTimeOffset.MinValue;

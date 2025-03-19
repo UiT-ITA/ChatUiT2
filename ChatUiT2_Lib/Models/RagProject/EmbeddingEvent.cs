@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
+using Newtonsoft.Json;
 
 namespace ChatUiT2.Models.RagProject;
 
@@ -14,6 +15,7 @@ public class EmbeddingEvent
     /// </summary>
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
+    [JsonProperty(PropertyName = "id")]
     public string? Id { get; set; }
     [BsonElement("RagProjectId")]
     public string RagProjectId { get; set; } = string.Empty;
@@ -29,6 +31,9 @@ public class EmbeddingEvent
     public bool IsProcessing { get; set; }
     [BsonElement("EmbeddingSourceType")]
     public EmbeddingSourceType EmbeddingSourceType { get; set; }
+    [BsonElement("_etag")]
+    [JsonProperty(PropertyName = "_etag")]
+    public string? ETag { get; set; }
 }
 
 public enum EmbeddingEventType

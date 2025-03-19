@@ -1,0 +1,84 @@
+﻿@attribute [Authorize(Roles = "Admin,SuperUser")]
+@using System.Text.RegularExpressions
+@using ChatUiT2.Interfaces
+@using ChatUiT2.Services
+@attribute [Authorize(Roles = "Admin,SuperUser,HealthCheck")]
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6" Class="mb-4">Rag database status</MudText>
+    <MudText>Rag db name: @ragDbName</MudText>
+    <MudText>Rag projects collection name: @ragProjectCollectionName</MudText>
+    <MudText>Connection string: @connStrForDisplayRag</MudText>
+    @if (ragDbStatusLoading)
+    {
+        <MudText>Testing connection</MudText>
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Class="mt-4">@ragDbError</MudText>
+        @if (string.IsNullOrEmpty(ragDbError) == true)
+        {
+            <MudText>Rag projects document count: @ragDbProjectsCount</MudText>
+        }
+    }
+</MudPaper>
+
+@code {
+    [Inject] IConfiguration configuration { get; set; } = null!;
+    [Inject] IRagDatabaseService ragDatabaseService { get; set; } = null!;
+
+    private bool ragDbStatusLoading = true;
+    private string? ragDbError = null;
+    private int? ragDbProjectsCount = 0;
+    private string ragDbName = string.Empty;
+    private string ragProjectCollectionName = string.Empty;
+    private string? connStrForDisplayRag = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CheckRagDbStatus();
+            CheckRagConfig();
+            StateHasChanged();
+        }
+    }
+
+    private void CheckRagConfig()
+    {
+        ragDbName = configuration["RagProjectDefDatabaseName"] ?? "Not found in config";
+        ragProjectCollectionName = configuration["RagProjectDefContainerName"] ?? "Not found in config";
+    }
+
+    private async Task CheckRagDbStatus()
+    {
+        ragDbStatusLoading = true;
+        try
+        {
+            var connStrRag = configuration.GetConnectionString("RagProjectDef");
+            if (!string.IsNullOrEmpty(connStrRag))
+            {
+                connStrForDisplayRag = GetCosmosNosqlConnectionStringForDisplay(connStrRag);
+            }
+            else
+            {
+                connStrForDisplayRag = "Unable to get connection string from dbContext";
+            }
+            ragDbProjectsCount = (await ragDatabaseService.GetAllRagProjects()).Count();
+        }
+        catch (Exception e)
+        {
+            ragDbError = $"Error with database: {e.Message}";
+        }
+        ragDbStatusLoading = false;
+        StateHasChanged();
+    }
+
+    private string? GetCosmosNosqlConnectionStringForDisplay(string connectionString)
+    {
+        string pattern = @"(AccountKey=)[^;]+";
+        string replacement = "$1xxxxx";
+        return Regex.Replace(connectionString, pattern, replacement);
+    }
+}

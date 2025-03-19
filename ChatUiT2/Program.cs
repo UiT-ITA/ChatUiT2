@@ -8,6 +8,7 @@ using MudBlazor.Services;
 using Microsoft.Identity.Web.UI;
 using ChatUiT2.Services.Template;
 using Microsoft.ApplicationInsights.Extensibility;
+using Microsoft.Azure.Cosmos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,16 +55,39 @@ builder.Services.AddSingleton<IDatabaseService, DatabaseService>();
 builder.Services.AddSingleton<IKeyVaultService, KeyVaultService>();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddSingleton<AdminService>();
+builder.Services.AddSingleton<CosmosClient>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    string connectionString = configuration.GetConnectionString("RagProjectDef") ?? string.Empty;
+    if(string.IsNullOrEmpty(connectionString))
+    {
+        ILogger logger = sp.GetRequiredService<ILogger<Program>>();
+        logger.LogError("CosmosDB connection string is not set. Failed to register Cosmos db client");
+        return null!;
+    } else
+    {
+        return new CosmosClient(connectionString);
+    }
+});
 builder.Services.AddSingleton<IRabbitMqService, RabbitMqService>();
-builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseService>();
+builder.Services.AddSingleton<IRagDatabaseService, RagDatabaseServiceCosmosDbNoSql>();
 
 // Scoped services
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IChatService, ChatService>();
+builder.Services.AddScoped<IChatToolsService, ChatToolsService>();
+builder.Services.AddScoped<IUsernameService, UsernameService>();
 builder.Services.AddScoped<IAuthUserService, AuthUserService>();
 builder.Services.AddScoped<IUpdateService, UpdateService>();
 builder.Services.AddScoped<SpeechService>();
 builder.Services.AddScoped<LocalStorageService>();
+builder.Services.AddScoped<IRagSearchService, RagSearchService>();
+builder.Services.AddScoped<IRagGeneratorService, RagGeneratorService>();
+//builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+
+// Mediatr for communication between services on for instance updateStream
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ChatService).Assembly));
 
 // Transient services
 

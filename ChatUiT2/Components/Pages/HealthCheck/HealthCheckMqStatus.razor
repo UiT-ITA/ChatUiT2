@@ -1,0 +1,74 @@
+﻿@attribute [Authorize(Roles = "Admin,SuperUser")]
+@using System.Text.RegularExpressions
+@using OpenAI.Embeddings
+@using ChatUiT2.Interfaces
+@using ChatUiT2.Services
+@attribute [Authorize(Roles = "Admin,SuperUser,HealthCheck")]
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">Mq status</MudText>
+    <MudText>Hostname: @mqHost</MudText>
+    <MudText>Virtualhost: @mqVhost</MudText>
+    <MudText>Port: @mqPort</MudText>
+    <MudText>Exchange: @mqExchange</MudText>
+    <MudText>Username: @mqUsername</MudText>
+    <MudText>Password has value: @mqPasswordHasValue</MudText>
+    @if (mqStatusLoading)
+    {
+        <MudText>Testing rabbitMq connection</MudText>
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Class="mt-4">@mqError</MudText>
+        @if (string.IsNullOrEmpty(mqError) == true)
+        {
+            <MudText>RabbitMq queue count: @mqCount</MudText>
+        }
+    }
+</MudPaper>
+
+@code {
+    [Inject] IConfiguration configuration { get; set; } = null!;
+    [Inject] IRabbitMqService rabbitMqService { get; set; } = null!;
+
+    private string mqVhost = string.Empty;
+    private string mqHost = string.Empty;
+    private string mqPort = string.Empty;
+    private string mqExchange = string.Empty;
+    private string mqUsername = string.Empty;
+    private bool mqPasswordHasValue = false;
+    private uint mqCount;
+    private string? mqError;
+    private bool mqStatusLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await CheckRabbitMq();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CheckRabbitMq()
+    {
+        mqStatusLoading = true;
+        mqVhost = configuration["RabbitMq:VirtualHost"] ?? string.Empty;
+        mqHost = configuration["RabbitMq:HostName"] ?? string.Empty;
+        mqPort = configuration["RabbitMq:Port"] ?? string.Empty;
+        mqExchange = configuration["RabbitMq:ExchangeName"] ?? string.Empty;
+        mqUsername = configuration["RabbitMq:Username"] ?? string.Empty;
+        mqPasswordHasValue = string.IsNullOrEmpty(configuration["RabbitMq:Password"]) == false;
+        try
+        {
+            mqCount = await rabbitMqService.GetQueueCount(configuration["RabbitMq:CreateItemEmbeddingQueueName"] ?? "MissingQueue");
+        }
+        catch (Exception e)
+        {
+            mqError = $"Error getting count from rabbitMq queue: {e.Message}";
+        }
+        mqStatusLoading = false;
+        StateHasChanged();
+    }
+}

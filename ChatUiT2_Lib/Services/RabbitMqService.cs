@@ -34,10 +34,10 @@ public class RabbitMqService : IRabbitMqService
             password = "guest";
         }
         _factory.Password = password;
-        _factory.VirtualHost = _configuration["RabbitMq:VirtualHost"];
-        _factory.HostName = _configuration["RabbitMq:HostName"];
+        _factory.VirtualHost = _configuration["RabbitMq:VirtualHost"] ?? string.Empty;
+        _factory.HostName = _configuration["RabbitMq:HostName"] ?? string.Empty;
         _factory.Port = _configuration.GetValue<int>("RabbitMq:Port");
-        _factory.Ssl.ServerName = _configuration["RabbitMq:HostName"];        
+        _factory.Ssl.ServerName = _configuration["RabbitMq:HostName"] ?? string.Empty;        
     }
     public async Task SendRagMessage(RagMqMessage message)
     {
@@ -59,9 +59,13 @@ public class RabbitMqService : IRabbitMqService
             {
                 string jsonString = JsonSerializer.Serialize(message);
                 var body = Encoding.UTF8.GetBytes(jsonString);
-                var ex = _configuration["RabbitMq:ExchangeName"];
+                string ex = _configuration["RabbitMq:ExchangeName"] ?? string.Empty;
+                if(string.IsNullOrEmpty(ex))
+                {
+                    throw new ArgumentException("Exchange name not found in configuration", "RabbitMq:ExchangeName");
+                }
                 BasicProperties basicProperties = new();
-                tasks.Add(channel.BasicPublishAsync<BasicProperties>(exchange: _configuration["RabbitMq:ExchangeName"],
+                tasks.Add(channel.BasicPublishAsync<BasicProperties>(exchange: ex,
                                                                      routingKey: GetRoutingKey(message),
                                                                      mandatory: false,
                                                                      basicProperties: basicProperties,
@@ -128,8 +132,12 @@ public class RabbitMqService : IRabbitMqService
 
     public string GetRoutingKey(RagMqMessage message)
     {
-        string opName = Enum.GetName(typeof(RagMqMessageOperations), message.Operation) ?? string.Empty;
-        string baseRoutingKey = _configuration["RabbitMq:BaseRoutingKey"];
+        string opName = string.Empty;
+        if (message.Operation != null)
+        {
+            opName = Enum.GetName(typeof(RagMqMessageOperations), message.Operation) ?? string.Empty;
+        }
+        string baseRoutingKey = _configuration["RabbitMq:BaseRoutingKey"] ?? string.Empty;
         if(string.IsNullOrEmpty(baseRoutingKey))
         {
             throw new ArgumentException("Missing operation in message");
@@ -137,6 +145,10 @@ public class RabbitMqService : IRabbitMqService
         if (string.IsNullOrEmpty(baseRoutingKey))
         {
             throw new ArgumentException("Base routing key not found in configuration");
+        }
+        if (string.IsNullOrEmpty(opName))
+        {
+            throw new ArgumentException("opName not found when generating Base routing key ");
         }
         switch (message.Operation)
         {

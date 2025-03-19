@@ -2,6 +2,7 @@
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson;
 using OpenAI.Embeddings;
+using Newtonsoft.Json;
 
 namespace ChatUiT2.Models.RagProject;
 
@@ -12,7 +13,8 @@ public class RagTextEmbedding
     /// </summary>
     [BsonId]
     [BsonRepresentation(BsonType.ObjectId)]
-    public string Id { get; set; }
+    [JsonProperty(PropertyName = "id")]
+    public string Id { get; set; } = string.Empty;
     /// <summary>
     /// The actual embedding
     /// </summary>

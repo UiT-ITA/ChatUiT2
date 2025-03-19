@@ -1,6 +1,7 @@
 ﻿@page "/ragprojects"
 @using ChatUiT2.Interfaces
 @using ChatUiT2.Models.RagProject
+@attribute [Authorize(Roles = "Admin,RagAdmin")]
 
 <PageTitle>Topdesk knowledge items</PageTitle>
 
@@ -18,7 +19,7 @@
             </MudButton>
         </ActivatorContent>
     </MudFileUpload>
-    <br/>
+    <br />
     <MudLink Href="/ragexamples/studieprogram.json">Eksempel fil studieprogram</MudLink>
 </MudPaper>
 
@@ -34,7 +35,7 @@
                           Immediate="true"
                           Placeholder="Skriv prosjektnavn du vil søke etter"
                           Adornment="Adornment.Start"
-                          IconSize="Size.Medium"                          
+                          IconSize="Size.Medium"
                           Class="mt-0"
                           OnKeyDown="CheckIfEnterPressed">
             </MudTextField>
@@ -132,16 +133,16 @@
         StateHasChanged();
     }
 
-    private async Task CheckIfEnterPressed(KeyboardEventArgs e)
+    private void CheckIfEnterPressed(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
             // Call your function here
-            await DoSearch();
+            DoSearch();
         }
     }
 
-    private async Task DoSearch()
+    private void DoSearch()
     {
         tableIsLoading = true;
         tableRagProjectList = [];
@@ -159,9 +160,16 @@
             query = query?.Where(x => x.RagProject.Name != null &&
                                       x.RagProject.Name.Contains(nameSearch, StringComparison.OrdinalIgnoreCase));
         }
-        foreach (var item in query.ToList())
+        if(query != null)
         {
-            tableRagProjectList.Add(item);
+            foreach (var item in query.ToList())
+            {
+                tableRagProjectList.Add(item);
+            }
+        }
+        else
+        {
+            Snackbar.Add("Query er null", Severity.Info, config => { });
         }
         tableIsLoading = false;
         StateHasChanged();

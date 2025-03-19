@@ -1,0 +1,164 @@
+﻿@attribute [Authorize(Roles = "Admin,SuperUser")]
+@using OpenAI.Embeddings
+@using ChatUiT2.Interfaces
+@using ChatUiT2.Services
+@attribute [Authorize(Roles = "Admin,SuperUser,HealthCheck")]
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">OpenAi chat default model status</MudText>
+    <MudText>DeploymentName: @defaultModel?.DeploymentName</MudText>
+    <MudText>Name: @defaultModel?.DisplayName</MudText>
+    <MudText>Deployment: @defaultModel?.Endpoint</MudText>
+    @if (string.IsNullOrEmpty(defaultModel?.ApiKey) == false)
+    {
+        <MudText>Endpoint key has value</MudText>
+    }
+    else
+    {
+        <MudText>Endpoint key is null or empty</MudText>
+    }
+    @if (defaultModelConfig != null)
+    {
+        <MudText>Default model deployment endpoint config name: @defaultModelConfig.DeploymentEndpoint</MudText>
+    }
+    else
+    {
+        <MudText>Default model config is null</MudText>
+    }
+    @if (chatTestStatusLoading)
+    {
+        <MudText>Testing chat api</MudText>
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Class="mt-4">@chatDbError</MudText>
+        @if (string.IsNullOrEmpty(chatDbError) == true)
+        {
+            <MudText>Chat response: @chatResponse</MudText>
+        }
+    }
+</MudPaper>
+
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h6">OpenAi embedding creation status</MudText>
+    <MudText>DeploymentName: @embeddingModel?.DeploymentName</MudText>
+    <MudText>Name: @embeddingModel?.DisplayName</MudText>
+    <MudText>Deployment: @embeddingModel?.Endpoint</MudText>
+    @if (string.IsNullOrEmpty(embeddingModel?.ApiKey) == false)
+    {
+        <MudText>Endpoint key has value</MudText>
+    }
+    else
+    {
+        <MudText>Endpoint key is null or empty</MudText>
+    }
+    @if (embeddingModelConfig != null)
+    {
+        <MudText>Embedding model deployment endpoint config name: @embeddingModelConfig.DeploymentEndpoint</MudText>
+    }
+    else
+    {
+        <MudText>Embedding model config is null</MudText>
+    }
+    @if (embeddingTestStatusLoading)
+    {
+        <MudText>Testing embedding api</MudText>
+        <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+    }
+    else
+    {
+        <MudText Class="mt-4">@embeddingDbError</MudText>
+        @if (string.IsNullOrEmpty(embeddingDbError) == true)
+        {
+            <MudText>Embedding vector dimension count: @embeddingTest?.ToFloats().ToArray().Count()</MudText>
+        }
+    }
+</MudPaper>
+
+@code {
+    [Inject] IConfiguration configuration { get; set; } = null!;
+    [Inject] ISettingsService settingsService { get; set; } = null!;
+    [Inject] IUserService userService { get; set; } = null!;
+    [Inject] ILogger<UserService> userLogger { get; set; } = null!;
+    [Inject] IRagDatabaseService ragDatabaseService { get; set; } = null!;
+    [Inject] IRagGeneratorService ragGeneratorService { get; set; } = null!;
+    [Inject] IRagSearchService ragSearchService { get; set; } = null!;
+    [Inject] IChatService chatService { get; set; } = null!;
+    [Inject] IUsernameService usernameService { get; set; } = null!;
+
+
+    private string chatDbError = string.Empty;
+
+    private AiModel? defaultModel = null;
+    private ModelConfig? defaultModelConfig = null;
+    private AiModel? embeddingModel = null;
+    private ModelConfig? embeddingModelConfig = null;
+    private AiModel? namingModel = null;
+
+    private OpenAIEmbedding? embeddingTest = null;
+    private string? embeddingDbError = null;
+    private bool embeddingTestStatusLoading = true;
+    private string openAiEndpoint = string.Empty;
+
+    private string? chatApiError = null;
+    private bool chatTestStatusLoading = true;
+    private string chatResponse = string.Empty;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            defaultModel = settingsService.DefaultModel;
+            embeddingModel = settingsService.EmbeddingModel;
+            namingModel = settingsService.NamingModel;
+
+            List<Task> initTasks = new();
+            initTasks.Add(checkOpenAiConnectionEmbedding());
+            initTasks.Add(checkOpenAiConnectionChat());
+            Task.WhenAll(initTasks).Wait();
+            StateHasChanged();
+        }
+    }
+
+    private async Task checkOpenAiConnectionEmbedding()
+    {
+        embeddingTestStatusLoading = true;
+        try
+        {
+            embeddingTest = await ragGeneratorService.GetEmbeddingForText("Test text", await usernameService.GetUsername());
+
+        }
+        catch (Exception e)
+        {
+            embeddingDbError = $"Error getting embedding: {e.Message}";
+        }
+        embeddingTestStatusLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task checkOpenAiConnectionChat()
+    {
+        chatTestStatusLoading = true;
+        try
+        {
+            WorkItemChat chat = new();
+            chat.Settings = new ChatSettings()
+            {
+                MaxTokens = defaultModel?.MaxTokens ?? 1024,
+                Model = defaultModel?.DeploymentName ?? string.Empty,
+                Temperature = 0.5f
+            };
+            chat.Type = WorkItemType.Chat;
+            chat.Settings.Prompt = $"Can you confirm that you received this message?\n\n";
+            chatResponse = await ragSearchService.GetChatResponseAsString(chat, defaultModel);
+        }
+        catch (Exception e)
+        {
+            chatApiError = $"Error getting chat response: {e.Message}";
+        }
+        chatTestStatusLoading = false;
+        StateHasChanged();
+    }
+}

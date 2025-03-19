@@ -1,0 +1,18 @@
+﻿@page "/healthcheck"
+@attribute [Authorize(Roles = "Admin,SuperUser,HealthCheck")]
+
+<MudText Typo="Typo.h5">Applikasjonstilstand</MudText>
+
+<MudPaper Class="mt-4 pa-4" Elevation="3">
+    Tester forbindelse til eksterne dependencies.
+</MudPaper>
+
+<HealthCheckRagDbStatus></HealthCheckRagDbStatus>
+
+<HealthCheckChatDbStatus></HealthCheckChatDbStatus>
+  
+<HealthCheckOpenAiStatus></HealthCheckOpenAiStatus>
+
+<HealthCheckMqStatus></HealthCheckMqStatus>
+
+<HealthCheckConfigVariableStatus></HealthCheckConfigVariableStatus>

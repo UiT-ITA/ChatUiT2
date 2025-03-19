@@ -4,6 +4,7 @@ using ChatUiT2.Tools;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Configuration;
 using MudBlazor;
+using OpenAI.Chat;
 using System.Text.Json;
 
 namespace ChatUiT2.Services;
@@ -17,7 +18,6 @@ public class SettingsService : ISettingsService
     public AiModel EmbeddingModel { get; set; } = null!;
 
     private readonly IConfiguration _configuration;
-
 
     public SettingsService(IConfiguration configuration)
     {
@@ -167,6 +167,7 @@ public class SettingsService : ISettingsService
 
         foreach (var tool in tools)
         {
+            Console.WriteLine($"Mapping tool {tool}");
             var toolDescription = ChatTools.Tools.FirstOrDefault(t => t.DisplayName == tool);
             if (toolDescription != null)
             {

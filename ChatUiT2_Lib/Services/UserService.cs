@@ -86,7 +86,8 @@ public class UserService : IUserService
                         IUpdateService updateService,
                         IJSRuntime jSRuntime,
                         ILogger<UserService> logger,
-                        NavigationManager navigationManager)
+                        NavigationManager navigationManager,
+                        IChatService chatService)
     {
         _configuration = configuration;
         _settingsService = configService;
@@ -99,9 +100,7 @@ public class UserService : IUserService
         _updateService = updateService;
         _logger = logger;
 
-
-
-        _chatService = new ChatService(this, configService, logger);
+        _chatService = chatService;
 
         CurrentWorkItem = new WorkItemChat();
 

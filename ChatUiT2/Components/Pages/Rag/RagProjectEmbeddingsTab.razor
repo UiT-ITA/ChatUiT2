@@ -1,6 +1,7 @@
 ﻿@using ChatUiT2.Interfaces
 @using ChatUiT2.Models.RagProject;
 @using ChatUiT2.Models.RabbitMq
+@attribute [Authorize(Roles = "Admin,RagAdmin")]
 
 <MudText>
     Her er informasjon om alle embeddings som er lagt inn i embeddings collection for dette RAG prosjektet.
@@ -96,12 +97,12 @@
     </ToolBarContent>
     <HeaderContent>
         <MudTh></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.Originaltext)">Text</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ModelProvider)">Provider</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.Model)">Model</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.TextType)">Type</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ContentItem.SourceSystemId)">Source system id</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding.ContentItem.SourceSystemAltId)">Source system alt id</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.Originaltext : string.Empty)">Text</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.ModelProvider : string.Empty)">Provider</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.Model : string.Empty)">Model</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding!.TextType!)">Type</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.ContentItem!.SourceSystemId : string.Empty)">Source system id</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.ContentItem!.SourceSystemAltId : string.Empty)">Source system alt id</MudTableSortLabel></MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd>
@@ -118,7 +119,7 @@
         <MudTd>
         </MudTd>
         <MudTextField T="string"
-                      @bind-Value="context.RagTextEmbedding.Originaltext"
+                      @bind-Value="context.RagTextEmbedding!.Originaltext"
                       Immediate="true"
                       Placeholder="Text som skal embeddes"
                       Adornment="Adornment.Start"
@@ -137,22 +138,22 @@
 </MudTable>
 
 @code {
-    [Inject] IRagDatabaseService ragTopdeskService { get; set; }
-    [Inject] ISnackbar Snackbar { get; set; }
-    [Inject] IConfiguration configuration { get; set; }
+    [Inject] IRagDatabaseService ragTopdeskService { get; set; } = null!;
+    [Inject] IRagGeneratorService ragGeneratorService { get; set; } = null!;
+    [Inject] ISnackbar Snackbar { get; set; } = null!;
+    [Inject] IConfiguration configuration { get; set; } = null!;
     [Inject] IRabbitMqService rabbitMqService { get; set; } = null!;
+    [Inject] IUsernameService usernameService { get; set; } = null!;
 
     [Parameter]
     public RagProject? RagProject { get; set; }
 
     private List<RagTextEmbeddingViewItem> tableEmbeddings = [];
     private List<RagTextEmbeddingViewItem> allEmbeddings = [];
-    private MudTable<RagTextEmbeddingViewItem> table;
-    private RagTextEmbeddingViewItem selectedItem1 = null;
-    private RagTextEmbeddingViewItem elementBeforeEdit;
-    private int numToGenerate = 20;
+    private MudTable<RagTextEmbeddingViewItem>? table;
+    private RagTextEmbeddingViewItem? selectedItem1 = null;
+    private RagTextEmbeddingViewItem? elementBeforeEdit;
     private string sourceIdSearch = string.Empty;
-    private string sortField = "SourceSystemId";
     private bool isLoading = true;
     private bool countsIsLoading = true;
     private int numberOfItemsMissingEmbeddings = 0;
@@ -204,6 +205,16 @@
     {
         try
         {
+            if(RagProject == null)
+            {
+                Snackbar.Add($"Fant ikke rag prosjekt", Severity.Error, config => { });
+                return;
+            }
+            if(item.RagTextEmbedding == null)
+            {
+                Snackbar.Add($"Embedding er null", Severity.Error, config => { });
+                return;
+            }
             await ragTopdeskService.SaveRagEmbedding(RagProject, item.RagTextEmbedding);
             if (reloadData)
             {
@@ -221,13 +232,13 @@
     {
         RagTextEmbeddingViewItem element = (RagTextEmbeddingViewItem)elementObj;
         element.IsEditing = true;
-        elementBeforeEdit = new()
+        RagTextEmbeddingViewItem ragTextEmbeddingViewBackup = new();
+        RagTextEmbedding? ragTextEmbeddingBackup = element.RagTextEmbedding;
+        if(ragTextEmbeddingBackup != null)
         {
-            RagTextEmbedding = new()
-            {
-                Originaltext = element.RagTextEmbedding.Originaltext,
-            }
-        };
+            ragTextEmbeddingBackup.Originaltext = element.RagTextEmbedding!.Originaltext!;
+        }
+        elementBeforeEdit = ragTextEmbeddingViewBackup;
         StateHasChanged();
     }
 
@@ -236,8 +247,15 @@
     {
         try
         {
-            selectedItem1.RagTextEmbedding.Embedding = (await ragTopdeskService.GetEmbeddingForText(selectedItem1.RagTextEmbedding.Originaltext)).ToFloats().ToArray();
-            await SaveEmbedding(selectedItem1);
+            if(selectedItem1?.RagTextEmbedding?.Embedding != null)
+            {
+                selectedItem1.RagTextEmbedding.Embedding = (await ragGeneratorService.GetEmbeddingForText(selectedItem1.RagTextEmbedding.Originaltext, await usernameService.GetUsername())).ToFloats().ToArray();
+                await SaveEmbedding(selectedItem1);
+            }
+            else
+            {
+                Snackbar.Add($"Embedding er null", Severity.Error, config => { });
+            }
         }
         catch (Exception e)
         {
@@ -248,6 +266,16 @@
     private void ResetItemToOriginalValues(object elementObj)
     {
         RagTextEmbeddingViewItem element = (RagTextEmbeddingViewItem)elementObj;
+        if(element.RagTextEmbedding == null)
+        {
+            Snackbar.Add($"Embedding er null", Severity.Error, config => { });
+            return;
+        }
+        if(elementBeforeEdit?.RagTextEmbedding == null)
+        {
+            Snackbar.Add($"Embedding er null", Severity.Error, config => { });
+            return;
+        }
         element.RagTextEmbedding.Originaltext = elementBeforeEdit.RagTextEmbedding.Originaltext;
     }
 
@@ -255,6 +283,16 @@
     {
         try
         {
+            if (RagProject == null)
+            {
+                Snackbar.Add($"Fant ikke rag prosjekt", Severity.Error, config => { });
+                return;
+            }
+            if (item.RagTextEmbedding == null)
+            {
+                Snackbar.Add($"Embedding er null", Severity.Error, config => { });
+                return;
+            }
             await ragTopdeskService.DeleteRagEmbedding(RagProject, item.RagTextEmbedding);
             Snackbar.Add($"Embedding slettet", Severity.Success, config => { });
             await LoadDbEmbeddings();
@@ -271,18 +309,25 @@
 
         try
         {
-            RagMqMessage message = new()
+            if (RagProject?.Id != null)
             {
-                Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
-                RagProjectId = RagProject.Id,
-                SourceItemMongoDbId = string.Empty,
-                EmbeddingType = null
-            };
-            await rabbitMqService.SendRagMessage(message);
+                RagMqMessage message = new()
+                {
+                    Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
+                    RagProjectId = RagProject.Id,
+                    SourceItemMongoDbId = string.Empty,
+                    EmbeddingType = null
+                };
+                await rabbitMqService.SendRagMessage(message);
+            }
+            else
+            {
+                Snackbar.Add($"Fant ikke rag prosjekt", Severity.Error, config => { });
+            }
         }
         catch (Exception e)
         {
-            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject.Id} {e.Message}", Severity.Error, config => { });
+            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject?.Id} {e.Message}", Severity.Error, config => { });
         }
         await LoadDbEmbeddings();
         StateHasChanged();
@@ -292,17 +337,24 @@
     {
         try
         {
-            RagMqMessage message = new()
+            if(RagProject?.Id != null)
             {
-                Operation = RagMqMessageOperations.CancelAllEmbeddingsProcessing,
-                RagProjectId = RagProject.Id,
-                SourceItemMongoDbId = string.Empty
-            };
-            await rabbitMqService.SendRagMessage(message);
+                RagMqMessage message = new()
+                {
+                    Operation = RagMqMessageOperations.CancelAllEmbeddingsProcessing,
+                    RagProjectId = RagProject.Id,
+                    SourceItemMongoDbId = string.Empty
+                };
+                await rabbitMqService.SendRagMessage(message);
+            }
+            else
+            {
+                Snackbar.Add($"Fant ikke rag prosjekt", Severity.Error, config => { });
+            }
         }
         catch (Exception e)
         {
-            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject.Id} {e.Message}", Severity.Error, config => { });
+            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject?.Id} {e.Message}", Severity.Error, config => { });
         }
         await LoadDbEmbeddings();
         StateHasChanged();
@@ -326,10 +378,20 @@
             IQueryable<RagTextEmbeddingViewItem>? query = allEmbeddings.AsQueryable();
             if (string.IsNullOrEmpty(sourceIdSearch) == false)
             {
-                query = query?.Where(x => x.RagTextEmbedding.ContentItem.SourceSystemId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase) ||
-                                          x.RagTextEmbedding.ContentItem.SourceSystemAltId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase));
+                query = query?.Where(x => x.RagTextEmbedding != null && x.RagTextEmbedding.ContentItem != null &&
+                                          (
+                                            x.RagTextEmbedding.ContentItem.SourceSystemId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase) ||
+                                            x.RagTextEmbedding.ContentItem.SourceSystemAltId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase)
+                                    ));
             }
-            tableEmbeddings = query.ToList();
+            if(query != null)
+            {
+                tableEmbeddings = query.ToList();
+            }
+            else
+            {
+                Snackbar.Add($"Query er null", Severity.Error, config => { });
+            }
         }
         catch (Exception e)
         {
@@ -347,23 +409,31 @@
         countsIsLoading = true;
         await RefreshEmbeddingEvents();
         await RefreshItemsWithoutEmbeddingsCount();
-        await RefreshProcessingCount();
+        RefreshProcessingCount();
         countsIsLoading = false;
         StateHasChanged();
     }
 
-    private async Task RefreshProcessingCount()
+    private void RefreshProcessingCount()
     {
         nrOfContentItemsInQueue = embeddingEvents.Count();
     }
 
     private async Task RefreshItemsWithoutEmbeddingsCount()
     {
+        if(RagProject == null)
+        {
+            return;
+        }
         numberOfItemsMissingEmbeddings = await ragTopdeskService.GetNrOfContentItemsWithNoEmbeddings(RagProject);
     }
 
     private async Task RefreshEmbeddingEvents()
     {
+        if (RagProject == null)
+        {
+            return;
+        }
         embeddingEvents = await ragTopdeskService.GetEmbeddingEventsByProjectId(RagProject);
     }
 
@@ -371,10 +441,17 @@
     {
         try
         {
-            await ragTopdeskService.DeleteEmbeddingsForProject(RagProject);
-            await LoadDbEmbeddings();
-            DoSearch();
-            Snackbar.Add($"Alle embeddings for prosjekt er slettet", Severity.Success, config => { });
+            if (RagProject != null)
+            {
+                await ragTopdeskService.DeleteEmbeddingsForProject(RagProject);
+                await LoadDbEmbeddings();
+                DoSearch();
+                Snackbar.Add($"Alle embeddings for prosjekt er slettet", Severity.Success, config => { });
+            }
+            else
+            {
+                Snackbar.Add($"Fant ikke rag prosjekt", Severity.Error, config => { });
+            }
         }
         catch (Exception e)
         {
