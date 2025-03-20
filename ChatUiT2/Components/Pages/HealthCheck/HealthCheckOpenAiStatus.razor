@@ -106,7 +106,7 @@
     private bool chatTestStatusLoading = true;
     private string chatResponse = string.Empty;
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
@@ -117,7 +117,7 @@
             List<Task> initTasks = new();
             initTasks.Add(checkOpenAiConnectionEmbedding());
             initTasks.Add(checkOpenAiConnectionChat());
-            Task.WhenAll(initTasks).Wait();
+            await Task.WhenAll(initTasks);
             StateHasChanged();
         }
     }

@@ -1,0 +1,43 @@
+﻿<MudPaper Class="mt-4 pa-4" Elevation="3">
+    <MudText Typo="Typo.h5">Project build info</MudText>
+    <MudText Typo="Typo.caption">
+        Version: @Ver<br />
+        Date: @ToDateTime().ToString("dd/MM/yyyy HH:mm")
+    </MudText>
+</MudPaper>
+
+@code{
+    private string Ver => System.Reflection.Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString() ?? "error";
+
+    public static DateTime ToDateTime()
+    {
+        Version? ver = System.Reflection.Assembly.GetExecutingAssembly()?.GetName()?.Version ?? null;
+        if (ver is null) return DateTime.MinValue;
+
+        DateTime fromtime = new DateTime(2000, 1, 1, 0, 0, 0);
+        fromtime = fromtime.AddDays(ver.Build).AddSeconds(ver.Revision * 2);
+
+        // From timeZone
+#if DEBUG
+        var tz_f = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+        TimeSpan ts_f = tz_f.GetUtcOffset(fromtime);
+        var utcOffset = new DateTimeOffset(fromtime, ts_f);
+#else
+    var utcOffset = new DateTimeOffset(fromtime, TimeSpan.Zero);
+#endif
+
+        // To timeZone
+        var tz = TimeZoneInfo.FindSystemTimeZoneById("W. Europe Standard Time");
+        TimeSpan ts = tz.GetUtcOffset(utcOffset);
+        var dto = utcOffset.ToOffset(ts);
+        return dto.DateTime;
+    }
+
+
+    /*
+    <!--<FileVersion>1.5.*.*</FileVersion>-->
+    <AssemblyVersion>1.5.*</AssemblyVersion>                        FORMAT VIKTIG !!!
+    <!--<AssemblyFileVersion>1.5.*.*</AssemblyFileVersion>-->
+    <Deterministic>False</Deterministic>                            VIKTIG !!!
+    */
+}
