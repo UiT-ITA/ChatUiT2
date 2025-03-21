@@ -346,7 +346,10 @@
     {
         try
         {
-            await table.ReloadServerData();
+            if(table != null)
+            {
+                await table.ReloadServerData();
+            }
         }
         catch (Exception e)
         {
@@ -417,7 +420,14 @@
     private async Task<TableData<RagTextEmbeddingViewItem>> ServerReload(TableState state, CancellationToken cancellationToken)
     {
         tableIsLoading = true;
-        
+
+        if(RagProject == null)
+        {
+            Snackbar.Add($"Fant ikke rag prosjekt", Severity.Error, config => { });
+            tableIsLoading = false;
+            return new TableData<RagTextEmbeddingViewItem>() { TotalItems = 0, Items = new List<RagTextEmbeddingViewItem>() };
+        }
+
         var dbResult = await ragTopdeskService.SearchEmbeddingsByProject(RagProject, state.Page * state.PageSize, state.PageSize, sourceIdSearch);
 
         var totalItems = dbResult.Count();
@@ -428,7 +438,7 @@
         {
             tableData.Add(new()
             {
-                RagTextEmbedding = item                
+                RagTextEmbedding = item
             });
         }
 
@@ -436,6 +446,5 @@
         tableIsLoading = false;
 
         return new TableData<RagTextEmbeddingViewItem>() { TotalItems = totalItems, Items = tableData };
-
     }
 }
