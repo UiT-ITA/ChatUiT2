@@ -416,7 +416,12 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             }
         }
 
-        var queryDefinition = new QueryDefinition($"SELECT * FROM c WHERE {containsClauses} OFFSET @skip LIMIT @take")
+        string whereStart = string.Empty;
+        if(containsClauses.Length > 0)
+        {
+            whereStart = " WHERE";
+        }
+        var queryDefinition = new QueryDefinition($"SELECT * FROM c {whereStart} {containsClauses} OFFSET @skip LIMIT @take")
             .WithParameter("@skip", skip)
             .WithParameter("@take", take);
         if(!string.IsNullOrEmpty(itemSourceSystemId))
