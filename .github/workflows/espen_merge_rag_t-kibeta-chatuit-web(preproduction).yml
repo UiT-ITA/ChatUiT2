@@ -6,7 +6,7 @@ name: Build and deploy ASP.Net Core app to Azure Web App - t-kibeta-chatuit-web
 on:
   push:
     branches:
-      - espen_rag_nosql
+      - ki-beta-deploy
   workflow_dispatch:
 
 jobs:
