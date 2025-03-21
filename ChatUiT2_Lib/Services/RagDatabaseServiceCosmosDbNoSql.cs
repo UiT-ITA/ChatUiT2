@@ -18,6 +18,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using MediatR;
 using ChatUiT2.Models.Mediatr;
+using System.Collections.Generic;
 
 namespace ChatUiT2.Services;
 
@@ -383,6 +384,72 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     }
 
     /// <summary>
+    /// Search embeddings for a rag project db
+    /// </summary>
+    /// <param name="ragProject">The project to get for</param>    
+    /// <returns></returns>
+    public async Task<List<RagTextEmbedding>> SearchEmbeddingsByProject(RagProject ragProject,
+                                                                        int skip,
+                                                                        int take,
+                                                                        string itemSourceSystemId = "",
+                                                                        bool withSourceItem = false)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("Project id must be set to get embeddings");
+        }
+
+        var result = new List<RagTextEmbedding>();
+        var itemsContainer = await GetItemContainer(ragProject);
+        var embeddingContainer = await GetEmbeddingContainer(ragProject);
+
+        StringBuilder containsClauses = new();
+        if (!string.IsNullOrEmpty(itemSourceSystemId))
+        {   
+            if (containsClauses.Length == 0)
+            {
+                containsClauses.Append("ARRAY_CONTAINS(@sourceItemIds, c.SourceItemId)");
+            }
+            else
+            {
+                containsClauses.Append($" AND ARRAY_CONTAINS(@sourceItemIds, c.SourceItemId)");
+            }
+        }
+
+        var queryDefinition = new QueryDefinition($"SELECT * FROM c WHERE {containsClauses} OFFSET @skip LIMIT @take")
+            .WithParameter("@skip", skip)
+            .WithParameter("@take", take);
+        if(!string.IsNullOrEmpty(itemSourceSystemId))
+        {
+            var contentItems = await SearchContentItemBySourceId(ragProject, itemSourceSystemId);
+            var contentItemIds = contentItems.Select(x => x.Id).ToList();
+            queryDefinition = queryDefinition.WithParameter("@sourceItemIds", contentItemIds);
+        }
+
+        var queryIterator = embeddingContainer.GetItemQueryIterator<RagTextEmbedding>(queryDefinition);
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response);
+        }
+
+        if (withSourceItem)
+        {
+            foreach (var embedding in result)
+            {
+                var contentItem = await GetContentItemById(ragProject, embedding.SourceItemId);
+                if (contentItem != null)
+                {
+                    embedding.ContentItem = contentItem;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Get a list of unique content item ids from the embeddings container.
     /// Can be used to find all items that has embeddings
     /// </summary>
@@ -528,6 +595,29 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
 
         return cachedValue;
+    }
+
+    public async Task<List<ContentItem>> SearchContentItemBySourceId(RagProject ragProject, string sourceId)
+    {
+        if (string.IsNullOrEmpty(sourceId))
+        {
+            throw new ArgumentException("itemId must be set to get source item");
+        }
+
+        List<ContentItem> result = new();
+
+        // Key not in cache, so get data.
+        var itemContainer = await GetItemContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE CONTAINS(c.SourceSystemId, @sourceId) OR CONTAINS(c.SourceSystemAltId, @sourceId)")
+            .WithParameter("@sourceId", sourceId);
+        var queryIterator = itemContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response);
+        }
+        return result;
     }
 
     public string GetItemContentString(ContentItem item)
