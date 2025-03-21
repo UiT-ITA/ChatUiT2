@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ChatUiT2", "ChatUiT2\ChatUi
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{64C82353-0828-4D1E-91D6-1A91874FB145}"
 	ProjectSection(SolutionItems) = preProject
+		Create embeddings.drawio = Create embeddings.drawio
+		Create embeddings.drawio.png = Create embeddings.drawio.png
 		.github\workflows\espen_merge_rag_t-kibeta-chatuit-web(preproduction).yml = .github\workflows\espen_merge_rag_t-kibeta-chatuit-web(preproduction).yml
 		.github\workflows\master_chatuit2(staging).yml = .github\workflows\master_chatuit2(staging).yml
 		README.md = README.md
