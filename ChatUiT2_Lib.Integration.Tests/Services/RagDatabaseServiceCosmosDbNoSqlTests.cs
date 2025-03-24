@@ -1312,7 +1312,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         dbsBefore = dbsBefore.Where(x => x.StartsWith("Xunit")).ToList();
         await _service.DeleteDatabase(_ragProjectDefDbName);
         var dbsAfter = await GetAllDatabaseNames();
-        dbsAfter = dbsBefore.Where(x => x.StartsWith("Xunit")).ToList();
+        dbsAfter = dbsAfter.Where(x => x.StartsWith("Xunit")).ToList();
 
         // Assert
         Assert.Equal(2, dbsBefore.Count);
