@@ -22,19 +22,16 @@ public class RagGeneratorService : IRagGeneratorService
     private readonly IRagDatabaseService _ragDatabaseService;
     private readonly ISettingsService _settingsService;
     private readonly ILogger<RagGeneratorService> _logger;
-    private readonly IMediator _mediator;
     private readonly IUsernameService _usernameService;
 
     public RagGeneratorService(IRagDatabaseService ragDatabaseService,
                                 ISettingsService settingsService,
-                                ILogger<RagGeneratorService> logger,
-                                IMediator mediator,
+                                ILogger<RagGeneratorService> logger,                                
                                 IUsernameService usernameService)
     {
         this._ragDatabaseService = ragDatabaseService;
         this._settingsService = settingsService;
         this._logger = logger;
-        this._mediator = mediator;
         this._usernameService = usernameService;
     }
 
@@ -47,7 +44,7 @@ public class RagGeneratorService : IRagGeneratorService
                                                                       ragProject.Configuration?.MinNumberOfQuestionsPerItem ?? 5,
                                                                       ragProject.Configuration?.MaxNumberOfQuestionsPerItem ?? 20);
             var model = _settingsService.EmbeddingModel;
-            var openAIService = new OpenAIService(model, "System", _logger, _mediator, null!);
+            var openAIService = new OpenAIService(model, "System", _logger, null!, null!);
             var embedding = await openAIService.GetEmbedding(textContent);
             if (questionsFromLlm != null)
             {
@@ -130,7 +127,7 @@ public class RagGeneratorService : IRagGeneratorService
                 {
                     continue;
                 }
-                var openAIService = new OpenAIService(model, "System", _logger, _mediator, null!);
+                var openAIService = new OpenAIService(model, "System", _logger, null!, null!);
                 var embedding = await openAIService.GetEmbedding(textContent);
                 await _ragDatabaseService.AddRagTextEmbedding(ragProject, item.Id, EmbeddingSourceType.Paragraph, embedding, paragraph);
             }
@@ -175,7 +172,7 @@ public class RagGeneratorService : IRagGeneratorService
     public async Task<OpenAIEmbedding> GetEmbeddingForText(string text, string username)
     {
         var model = _settingsService.EmbeddingModel;
-        var openAIService = new OpenAIService(model, username, _logger, _mediator, null!);
+        var openAIService = new OpenAIService(model, username, _logger, null!, null!);
         return await openAIService.GetEmbedding(text);
     }
 }
