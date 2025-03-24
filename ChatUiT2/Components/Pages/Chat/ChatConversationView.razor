@@ -8,7 +8,9 @@
 
         @if (UserService.CurrentChat.Messages.Last().Status == ChatMessageStatus.TokenLimit)
         {
-            <MudButton FullWidth Variant="Variant.Outlined" OnClick="ContinueMessage" >Continue</MudButton>
+            @* Some error here... *@
+            @* <MudButton FullWidth Variant="Variant.Outlined" OnClick="ContinueMessage" >Continue</MudButton> *@
+
         }
     }
     else

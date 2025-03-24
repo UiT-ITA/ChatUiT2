@@ -1,0 +1,95 @@
+﻿<MudMenu EndIcon="@Icons.Material.Filled.KeyboardArrowDown" Dense PopoverClass="custom-menu-background"
+AnchorOrigin="Origin.TopLeft" TransformOrigin="Origin.BottomLeft">
+
+    <ActivatorContent>
+        <MudStack Row Spacing="0" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.body1" Class="px-0" Color="Color.Default">@UserService.CurrentChat.Settings.Model</MudText>
+            <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" Color="Color.Default" />
+        </MudStack>
+    </ActivatorContent>
+
+    <ChildContent>
+        <MudMenuItem>
+            @* <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Small" /> *@
+            <MudText Typo="Typo.h6">Select assistant</MudText>
+        </MudMenuItem>
+        <MudDivider />
+        @foreach (var assistant in Models)
+        {
+            <MudMenuItem OnClick="@(() => SelectAssistant(assistant))">
+                <AssistantView assistant="assistant" />
+            </MudMenuItem>
+        }
+        <MudDivider />
+        <MudMenuItem>
+            More assistants
+        </MudMenuItem>
+
+    </ChildContent>
+</MudMenu>
+
+<style>
+    .custom-menu-background {
+    background-color: var(--mud-palette-drawer-background);
+    }
+</style>
+
+@code {
+    [Inject] private ISettingsService SettingsService { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
+    [Inject] private IUserService UserService { get; set; } = null!;
+
+
+    private List<AiModel> Models { get; set; } = new List<AiModel>();
+
+    protected override void OnInitialized()
+    {
+        if (Models.Count == 0)
+        {
+            Models = SettingsService.Models;
+            StateHasChanged();
+        }
+    }
+
+    override protected void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            UpdateService.OnGlobalUpdate += StateHasChanged;
+
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
+    }
+
+
+    private string GetIcon(string model)
+    {
+        return model switch
+        {
+            "GPT-4o" => Icons.Material.Filled.HotelClass,
+            "GPT-4-Turbo" => Icons.Material.Filled.Star,
+            "GPT-35-Turbo" => Icons.Material.Filled.StarHalf,
+            "Orakel" => Icons.Material.Filled.PersonSearch,
+            _ => Icons.Material.Filled.StarOutline
+        };
+    }
+
+
+    public void SelectAssistant(AiModel assistant)
+    {
+        UserService.CurrentChat.Settings.Model = assistant.DisplayName;
+
+        if (UserService.CurrentChat.Settings.MaxTokens > assistant.Capabilities.MaxTokens)
+        {
+            UserService.CurrentChat.Settings.MaxTokens = assistant.Capabilities.MaxTokens;
+        }
+
+        UpdateService.Update(UpdateType.Global);
+    }
+
+}

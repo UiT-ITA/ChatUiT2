@@ -2,10 +2,10 @@
 
 @* Render message here *@
 
-<MudPaper Class="pa-0 ma-2 mb-6 hover-container" Elevation="0" Style=@($"max-width: 100%; min-width: 300px; border-radius: 16px; {(!isUserMessage ? "background-color: transparent;" : "")}")>
+<MudPaper Class="pa-0 ma-2 mb-6 hover-container" Elevation="0" Style=@($"max-width: 100%; min-width: 300px; border-radius: 16px; {(!isUserMessage ? "background-color: transparent;" : "background-color: var(--mud-palette-background-gray);")}")>
     <MudStack>
 
-        <MudStack Row Style=@($"{(isUserMessage ? "background-color: var(--mud-palette-background-grey);" : "")} border-top-left-radius: 16px; border-top-right-radius: 16px;")>
+        <MudStack Row Style=@($"{(isUserMessage ? "background-color: rgba(255,255,255,0.05);" : "")} border-top-left-radius: 16px; border-top-right-radius: 16px;")>
             <div style="width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; flex-shrink:0;">
                 <MudIcon Icon="@GetIcon()" Size="Size.Large" Style="opacity:0.6;"/>
             </div>

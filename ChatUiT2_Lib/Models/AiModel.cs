@@ -69,6 +69,8 @@ public class  ModelCapabilities
     public bool VoiceOutput = false;
     public bool VideoInput = false;
     public bool VideoOutput = false;
+    public bool Reasoning = false;
+    public bool FunctionCalling = false;
 
     public ChatReasoningEffortLevel? ReasoningEffortLevel = null;
 }
