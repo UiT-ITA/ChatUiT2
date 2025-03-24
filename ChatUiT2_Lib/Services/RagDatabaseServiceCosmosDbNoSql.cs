@@ -623,8 +623,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
 
         var container = await GetEmbeddingContainer(ragProject);
         var queryDefinition = new QueryDefinition("SELECT * FROM c");
-        var queryIterator = container.GetItemQueryIterator<EmbeddingEvent>(queryDefinition);
-        var allEmbeddings = new List<EmbeddingEvent>();
+        var queryIterator = container.GetItemQueryIterator<RagTextEmbedding>(queryDefinition);
+        var allEmbeddings = new List<RagTextEmbedding>();
         while (queryIterator.HasMoreResults)
         {
             var response = await queryIterator.ReadNextAsync();
@@ -632,7 +632,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
         foreach (var item in allEmbeddings)
         {
-            await container.DeleteItemAsync<EmbeddingEvent>(item.Id, new PartitionKey(item.ContentItemId));
+            await container.DeleteItemAsync<EmbeddingEvent>(item.Id, new PartitionKey(item.SourceItemId));
         }
     }
 
