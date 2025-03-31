@@ -8,45 +8,68 @@
 </MudTooltip>
 <style>
     .hover-expand {
-        height: 26px;
-        display: flex;
-        align-items: center;
-        border-radius: 16px;
-        overflow: hidden;
-        transition: max-width 0.2s ease-in, background-color 0.3s ease; /* Expand slower */
-        max-width: 26px; /* Initial max-width to show only the icon */
-        background-color: transparent; /* No background initially */
-        white-space: nowrap; /* Prevent text wrapping */
+    height: 26px;
+    display: flex;
+    align-items: center;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: max-width 0.2s ease-in, background-color 0.3s ease; /* Expand slower */
+    max-width: 26px; /* Initial max-width to show only the icon */
+    background-color: transparent; /* No background initially */
+    white-space: nowrap; /* Prevent text wrapping */
     }
 
-        .hover-expand:hover {
-            background-color: rgba(255, 255, 255, 0.1); /* Lighter background on hover */
-            max-width: 200px; /* Set a large enough max-width to accommodate the text */
-            transition: max-width 0.5s ease-out, background-color 0.3s ease; /* Contract faster */
-        }
+    .hover-expand:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Lighter background on hover */
+    max-width: 200px; /* Set a large enough max-width to accommodate the text */
+    transition: max-width 0.5s ease-out, background-color 0.3s ease; /* Contract faster */
+    }
 
-        .hover-expand .text {
-            transition: opacity 0.1s ease;
-            white-space: nowrap; /* Prevent text wrapping */
-            display: flex;
-            align-items: center; /* Center child content vertically */
-        }
+    .hover-expand .text {
+    transition: opacity 0.1s ease;
+    white-space: nowrap; /* Prevent text wrapping */
+    display: flex;
+    align-items: center; /* Center child content vertically */
+    }
 </style>
 @code {
+
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Parameter] public string Icon { get; set; } = null!;
     [Parameter] public EventCallback OnClick { get; set; }
     [Parameter] public string TooltipText { get; set; } = string.Empty;
     [Parameter] public bool IsActive { get; set; } = false;
     [Parameter] public RenderFragment ChildContent { get; set; } = null!;
     [Parameter] public bool IsExpanded { get; set; } = false;
+
+
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            UpdateService.OnGlobalUpdate += StateHasChanged;
+        }
+    }
+
+    private void Dispose()
+    {
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
+    }
+
+
     private async Task HandleClick()
     {
         await OnClick.InvokeAsync(null);
     }
+
+
     private string GetMaxWidthStyle()
     {
         return IsExpanded ? "max-width: 200px;" : string.Empty;
     }
+
+
     private string GetOpacityStyle()
     {
         return IsExpanded ? "opacity: 1;" : string.Empty;
