@@ -1,0 +1,37 @@
+﻿
+<div style="min-width: 100px;">
+    <MudStack Row Spacing="1">
+        <MudIcon Icon="@assistant.Icon" Size="Size.Small" />
+        <MudText Typo="Typo.body1">@assistant.DisplayName</MudText>
+
+        <MudSpacer />
+        <div style="width:20px;" />
+
+        @if (assistant.Capabilities.Reasoning)
+        {
+            <MudTooltip Text="Reasoning capabillities" Placement="Placement.Top">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Default" />
+            </MudTooltip>
+        }
+        @if (assistant.Capabilities.Vision)
+        {
+            <MudTooltip Text="Supports images" Placement="Placement.Top">
+                <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Default" />
+            </MudTooltip>
+        }
+        @if (assistant.Capabilities.FunctionCalling)
+        {
+            <MudTooltip Text="Is able to call functions" Placement="Placement.Top">
+                <MudIcon Icon="@Icons.Material.Filled.Functions" Color="Color.Default" />
+            </MudTooltip>
+        }
+
+    </MudStack>
+</div>
+
+
+@code {
+    [Parameter] public AiModel assistant { get; set; } = null!;
+
+}
+

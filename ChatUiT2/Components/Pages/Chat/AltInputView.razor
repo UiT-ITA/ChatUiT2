@@ -1,0 +1,351 @@
+﻿<div style="background-color: var(--mud-palette-background-gray); border-top-left-radius: 16px; border-top-right-radius: 16px; " class="mx-4">
+    <MudStack Row Spacing="0" AlignItems="AlignItems.Stretch" Justify="Justify.SpaceBetween">
+        <MudStack Spacing="0" Style="width: 100%">
+            @if (chatFiles.Count > 0)
+            {
+                <div class="px-2 pt-2" style="display: flex; flex-wrap: wrap; max-height: 160px; overflow-y: auto;">
+                    @foreach (var file in chatFiles)
+                    {
+                        <FileView File="@file" FileList="chatFiles" RemoveFunc="RemoveFile" RemoveTimestamp="false" />
+                    }
+                </div>
+            }
+
+            <MudTextField id="inputField" @bind-Value="prompt" Variant="Variant.Text" @onkeydown="HandleKeyPress"
+            AutoFocus AutoGrow Placeholder="Ask anything!" Lines="2" MaxLines="10"
+            Class="ml-4 pl-0 pr-4 pt-2" Underline="false" @ref="inputFieldRef"
+            TextUpdateSuppression="false" FullWidth DebounceInterval="50" />
+
+            @if (showSettings)
+            {
+                <MudStack Row Class="px-3 pb-2" Spacing="1">
+
+                    @* Assistant selector *@
+                    <FunctionDisplay Icon="@Icons.Material.Filled.Person" TooltipText="Select assistant to help you">
+                        <AssistantSelector />
+                    </FunctionDisplay>
+
+                    @* Attatch file *@
+                    <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles" Accept="@acceptedFiles" Class="ma-0 pa-0">
+                        <ActivatorContent>
+                            <FunctionDisplay Icon="@Icons.Material.Filled.AttachFile" TooltipText="Upload supported files from computer">
+                                <MudText Typo="Typo.body2">Upload file</MudText>
+                            </FunctionDisplay>
+                        </ActivatorContent>
+                    </MudFileUpload>
+
+                    @* Save chat to cloud *@
+                    <FunctionDisplay Icon="@(saveChat ? Icons.Material.Filled.Cloud : Icons.Material.Filled.CloudOff)" TooltipText="Should the chat be saved?" OnClick="ToggleSaveChat">
+                        <MudText Typo="Typo.body2">@(saveChat ? "Saved chat" : "Local chat")</MudText>
+                    </FunctionDisplay>
+
+                    @* Temperature slider *@
+                    <FunctionDisplay Icon="@Icons.Material.Filled.Thermostat" TooltipText="@($"Temperature: {UserService.CurrentChat.Settings.Temperature}")">
+                        <MudSlider Step="0.1f" Min="0" Max="1" @bind-Value="UserService.CurrentChat.Settings.Temperature" Color="Color.Info" Style="width: 75px;" />
+                    </FunctionDisplay>
+
+                    @* System prompt *@
+                    <FunctionDisplay Icon="@Icons.Material.Filled.Chat" TooltipText="Change the system message" OnClick="EditSystemMessage">
+                        <MudText Typo="Typo.body2">System message</MudText>
+                    </FunctionDisplay>
+
+                    @* Save as assistant *@
+                    <FunctionDisplay Icon="@Icons.Material.Filled.Save" TooltipText="Save as default settings for new conversations" OnClick="SaveAssistant">
+                        <MudText Typo="Typo.body2">Save settings</MudText>
+                    </FunctionDisplay>
+
+                </MudStack>
+            }
+        </MudStack>
+        <MudStack Spacing="0">
+
+            @if(!UserService.Waiting)
+            {
+                <MudTooltip Text="Send message" Placement="Placement.Left">
+                    <div class="custom-button" @onclick="SendMessage">
+                        <MudIcon Icon="@Icons.Material.Filled.Send"/>
+                    </div>
+                </MudTooltip>
+            }
+            else 
+            {
+                <MudTooltip Text="Generating response..." Placement="Placement.Left">
+                    <div class="custom-button">
+                        <MudProgressCircular Indeterminate="true" Style="height:28px; width: 28px;" />
+                    </div>
+                </MudTooltip>
+            }
+            <MudTooltip Text="Create new chat" Placement="Placement.Left">
+                @* <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Default" /> *@
+                @* <MudButton Style="width: 48px; height: 48px; min-width: 48px;" Class="pa-0 ma-0"> *@
+                @*     <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Large"/> *@
+
+                @* </MudButton> *@
+                <div class="custom-button" @onclick="NewChat">
+                    <MudIcon Icon="@Icons.Material.Filled.Add" Style="width: 32px; height: 32px;" />
+                </div>
+            </MudTooltip>
+            @* <MudToggleIconButton Color="Color.Default" Icon="@Icons.Material.Filled.KeyboardArrowUp" ToggledIcon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" @bind-toggled="showSettings" /> *@
+        </MudStack>
+    </MudStack>
+</div>
+
+<style>
+    .custom-button {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 24px;
+    }
+
+    .custom-button:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    }
+</style>
+
+
+@code {
+    [Inject] private IUserService UserService { get; set; } = null!;
+    [Inject] private IUpdateService UpdateService { get; set; } = null!;
+    [Inject] private IJSRuntime JS { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+
+
+    private List<ChatFile> chatFiles = new List<ChatFile>();
+    private WorkItemChat? CurrentChat = null;
+
+    private string acceptedFiles { get => FileTools.GetAcceptedFilesString(); }
+
+    private MudTextField<string> inputFieldRef = null!;
+
+    string prompt = "";
+
+    private bool showSettings = true;
+    private bool saveChat
+    {
+        get => UserService.CurrentWorkItem.Persistant;
+        set
+        {
+            UserService.SetSaveHistory(UserService.CurrentWorkItem, value);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (UserService.CurrentChat != CurrentChat)
+        {
+            Console.WriteLine("Chat changed");
+            await inputFieldRef.FocusAsync();
+            if (CurrentChat == null)
+            {
+                CurrentChat = UserService.CurrentChat;
+                return;
+            }
+            if (UserService.CurrentChat.Messages.Count == 0)
+            {
+                CurrentChat = UserService.CurrentChat;
+                return;
+            }
+            CurrentChat = UserService.CurrentChat;
+            ClearPrompt();
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Console.WriteLine("First render");
+            UpdateService.OnChatUpdate += StateHasChanged;
+            UpdateService.OnGlobalUpdate += StateHasChanged;
+        }
+    }
+
+    public void Dispose()
+    {
+        UpdateService.OnChatUpdate -= StateHasChanged;
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
+    }
+
+
+    private void ToggleSaveChat()
+    {
+        saveChat = !saveChat;
+    }
+
+    private async void EditSystemMessage()
+    {
+        var parameters = new DialogParameters { ["PromptText"] = UserService.CurrentChat.Settings.Prompt };
+        var options = new DialogOptions { CloseButton = false, NoHeader = true, MaxWidth = MaxWidth.ExtraExtraLarge };
+        var dialog = DialogService.Show<SystemPromptDialog>("Edit system prompt", parameters, options);
+        var result = await dialog.Result;
+        if (result != null && !result.Canceled)
+        {
+            UserService.CurrentChat.Settings.Prompt = result.Data as string;
+            Console.WriteLine($"Edited Prompt: {UserService.CurrentChat.Settings.Prompt}");
+        }
+    }
+
+    private void SaveAssistant()
+    {
+        UserService.SetDefaultChatSettings();
+    }
+
+
+    private async Task<ChatFile?> UploadFile(IBrowserFile file)
+    {
+        UserService.Waiting = true;
+        UpdateService.Update(UpdateType.ChatMessage);
+        try
+        {
+            byte[] bytes = new byte[file.Size];
+            using (var stream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024))
+            {
+                int totalBytesRead = 0;
+                Console.WriteLine("Starting to read..");
+                while (totalBytesRead < file.Size)
+                {
+                    int bytesToRead = Math.Min((int)file.Size - totalBytesRead, 81920); // Read in chunks of 81920 bytes
+                    int bytesRead = await stream.ReadAsync(bytes, totalBytesRead, bytesToRead);
+                    if (bytesRead == 0)
+                    {
+                        break; // end of the stream
+                    }
+                    totalBytesRead += bytesRead;
+                }
+
+                if (totalBytesRead != file.Size)
+                {
+                    throw new Exception("Failed to read the entire file.");
+                }
+            }
+
+            Console.WriteLine("Createing chatfile");
+            ChatFile chatFile = new ChatFile(file.Name, bytes);
+            Console.WriteLine("Done");
+
+            return chatFile;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Error reading file: " + e.Message);
+            Snackbar.Add("Failed to upload " + file.Name, Severity.Error);
+            return null;
+        }
+        finally
+        {
+            UserService.Waiting = false;
+            UpdateService.Update(UpdateType.ChatMessage);
+        }
+    }
+
+    private async Task UploadFiles(IReadOnlyList<IBrowserFile> newFiles)
+    {
+        try
+        {
+            foreach (var file in newFiles)
+            {
+                if (chatFiles.Select(x => x.FileName).Contains(file.Name))
+                {
+                    Snackbar.Add(file.Name + " is already uploaded", Severity.Info);
+                    continue;
+                }
+
+                if (file.Size > 100 * 1024 * 1024)
+                {
+                    Snackbar.Add(file.Name + " is " + file.Size / 1024 / 1024 + "MB. Maximum filesize is 100MB", Severity.Error);
+                    continue;
+                }
+
+                var chatFile = await UploadFile(file);
+                if (chatFile != null)
+                {
+                    // Lock mechanism to prevent concurrent modifications
+                    lock (chatFiles)
+                    {
+                        chatFiles.Add(chatFile);
+                    }
+
+                    StateHasChanged();
+                }
+                else
+                {
+                    Snackbar.Add("Failed to upload " + file.Name, Severity.Error);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine("Error uploading files: " + e.Message);
+            Console.WriteLine(e.StackTrace);
+        }
+        await Task.Delay(100);
+        UpdateService.Update(UpdateType.ChatMessage);
+    }
+
+    private void RemoveFile(ChatFile file)
+    {
+        Console.WriteLine("Removing: " + file.FileName);
+        lock (chatFiles)
+        {
+            chatFiles.Remove(file);
+        }
+        StateHasChanged();
+    }
+
+    private async void HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
+        {
+            Console.WriteLine("Enter pressed");
+
+            await Task.Delay(100);
+
+            // await inputFieldRef.FocusAsync();
+            // await inputFieldRef.ForceUpdate();
+            var tmp_prompt = inputFieldRef.Value;
+
+            Console.WriteLine("Prompt: " + tmp_prompt);
+
+            SendMessage();
+        }
+    }
+
+    private async void SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(prompt))
+        {
+            StateHasChanged();
+            return;
+        }
+
+        string sendPrompt = prompt;
+        List<ChatFile> files = chatFiles;
+
+        ClearPrompt();
+
+        await UserService.SendMessage(sendPrompt, files);
+        StateHasChanged();
+        await inputFieldRef.FocusAsync();
+    }
+
+    private async void ClearPrompt()
+    {
+        prompt = ""; // Clear the prompt immediately
+        StateHasChanged(); // Force UI update
+        await inputFieldRef.Clear();
+        inputFieldRef.ForceRender(false);
+        chatFiles = new List<ChatFile>();
+        StateHasChanged(); // Ensure UI is updated after clearing files
+    }
+
+    private void NewChat()
+    {
+        UserService.NewChat();
+    }
+
+}
