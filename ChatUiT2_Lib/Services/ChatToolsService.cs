@@ -13,6 +13,12 @@ using MediatR;
 using ChatUiT2.Models.Mediatr;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Azure.AI.OpenAI;
+using Azure.Identity;
+using OpenAI.Images;
+using static System.Environment;
+using Azure;
+using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace ChatUiT2.Services;
 
@@ -23,6 +29,7 @@ public class ChatToolsService : IChatToolsService
     private readonly ISettingsService _settingsService;
     private readonly ILogger<ChatToolsService> _logger;
     private readonly IRagDatabaseService _ragDatabaseService;
+    private readonly GenerateImage _generateImage;
 
     public ChatToolsService(IMediator mediator,
                             IRagSearchService ragSearchService,
@@ -35,6 +42,7 @@ public class ChatToolsService : IChatToolsService
         this._settingsService = settingsService;
         this._logger = logger;
         this._ragDatabaseService = ragDatabaseService;
+        this._generateImage = new GenerateImage(settingsService);
     }
 
     public async Task<string> GetTopdesk(string query)
@@ -63,10 +71,10 @@ public class ChatToolsService : IChatToolsService
         return stringResult.ToString();
     }
 
-    public string GenerateImage(string description)
+    public async Task<string> GetImageGeneration(string description)
     {
         Console.WriteLine($"GenerateImage: {description}");
-        return "Not implemented";
+        return await _generateImage.GenerateImageAsync(description); // Await the async method
     }
 
     public async Task<string> GetWikipedia(string topic)
@@ -173,6 +181,7 @@ public class ChatToolsService : IChatToolsService
         try
         {
             using JsonDocument argumentsDocument = JsonDocument.Parse(toolCall.FunctionArguments);
+            _logger.LogInformation($"Handling tool call for function: {toolCall.FunctionName}");
             switch (toolCall.FunctionName)
             {
                 case "getTopdesk":
@@ -204,7 +213,19 @@ public class ChatToolsService : IChatToolsService
                     {
                         return await GetWebpage(urlElement.GetString()!);
                     }
+                case "GetImageGeneration":
+                    Console.WriteLine("Kom hit");
+                    _logger.LogInformation($"Handling tool call for function: {toolCall.FunctionName}");
+                    if (!argumentsDocument.RootElement.TryGetProperty("description", out JsonElement descriptionElement))
+                    {
+                        return "This tool needs a valid image description";
+                    }
+                    else
+                    {
+                        return await GetImageGeneration(descriptionElement.GetString()!);
+                    }
                 default:
+                    Console.WriteLine("default");
                     return "Sorry, I don't know how to handle this tool.";
             }
 
@@ -217,14 +238,34 @@ public class ChatToolsService : IChatToolsService
 }
 public class GenerateImage
 {
+    private readonly ISettingsService _settingsService;
+    public GenerateImage(ISettingsService settingsService)
+    {
+        _settingsService = settingsService;
+    }
     public async Task<string> GenerateImageAsync(string description)
     {
-        // Call to an image generation API or service
-        // This is a placeholder implementation
-        await Task.Delay(1000); // Simulate async call
-        Console.WriteLine($"Generating image based on description: {description}");
-        //return $"https://image.service/api/generate?description={Uri.EscapeDataString(description)}";
-        return "https://commons.wikimedia.org/wiki/Example_images#/media/File:Example.png";
+
+        AiModel model = _settingsService.GetModel("DALLE3");
+
+        // Use the recommended keyless credential instead of the AzureKeyCredential credential.
+        AzureOpenAIClient openAIClient = new AzureOpenAIClient(new Uri(model.Endpoint), new AzureKeyCredential(model.ApiKey));
+        //AzureOpenAIClient openAIClient = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
+        Console.WriteLine("Generating image");
+        // This must match the custom deployment name you chose for your model
+        ImageClient chatClient = openAIClient.GetImageClient(model.DeploymentName);
+
+        var imageGeneration = await chatClient.GenerateImageAsync(
+                description,
+                new ImageGenerationOptions()
+                {
+                    Size = GeneratedImageSize.W1024xH1024
+                }
+            );
+
+        string imageUri = imageGeneration.Value.ImageUri.ToString();
+        Console.WriteLine(imageUri);
+        return imageUri;
     }
 }
 

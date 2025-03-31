@@ -56,6 +56,23 @@ public class ChatTools
             }
             """)
     );
+
+    private static ChatTool getImageTool = ChatTool.CreateFunctionTool(
+        functionName: "GetImageGeneration",
+        functionDescription: "Generate images",
+        functionParameters: BinaryData.FromString("""
+            {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "Description of image to generate"
+                    }
+                },
+                "required": [ "description" ]
+            }
+            """)
+    );
     public static List<ChatToolDescription> Tools { get; set; } = new List<ChatToolDescription>
     {
         new ChatToolDescription
@@ -78,6 +95,13 @@ public class ChatTools
             Description = "Get the content of a webpage",
             Icon = Icons.Material.Filled.Web,
             Tool = getWebpageTool
+        },
+        new ChatToolDescription
+        {
+            DisplayName = "ImageGeneration",
+            Description = "Generate images",
+            Icon = Icons.Material.Filled.Image,
+            Tool = getImageTool
         }
     };
 }
