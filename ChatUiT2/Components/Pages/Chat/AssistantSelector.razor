@@ -14,16 +14,16 @@ AnchorOrigin="Origin.TopLeft" TransformOrigin="Origin.BottomLeft">
             <MudText Typo="Typo.h6">Select assistant</MudText>
         </MudMenuItem>
         <MudDivider />
-        @foreach (var assistant in Models)
+        @foreach (var assistant in Models.Where(x => x.Capabilities.Chat))
         {
             <MudMenuItem OnClick="@(() => SelectAssistant(assistant))">
                 <AssistantView assistant="assistant" />
             </MudMenuItem>
         }
-        <MudDivider />
-        <MudMenuItem>
-            More assistants
-        </MudMenuItem>
+        @* <MudDivider /> *@
+        @* <MudMenuItem> *@
+        @*     More assistants *@
+        @* </MudMenuItem> *@
 
     </ChildContent>
 </MudMenu>
@@ -91,5 +91,4 @@ AnchorOrigin="Origin.TopLeft" TransformOrigin="Origin.BottomLeft">
 
         UpdateService.Update(UpdateType.Global);
     }
-
 }

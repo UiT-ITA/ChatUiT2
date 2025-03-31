@@ -10,7 +10,7 @@
         @if (assistant.Capabilities.Reasoning)
         {
             <MudTooltip Text="Reasoning capabillities" Placement="Placement.Top">
-                <MudIcon Icon="@Icons.Material.Filled.Info" Color="Color.Default" />
+                <MudIcon Icon="@Icons.Material.Filled.Psychology" Color="Color.Default" />
             </MudTooltip>
         }
         @if (assistant.Capabilities.Vision)
@@ -19,7 +19,7 @@
                 <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Default" />
             </MudTooltip>
         }
-        @if (assistant.Capabilities.FunctionCalling)
+        @if (assistant.Capabilities.FunctionCalling || assistant.DisplayName == "Orakel")
         {
             <MudTooltip Text="Is able to call functions" Placement="Placement.Top">
                 <MudIcon Icon="@Icons.Material.Filled.Functions" Color="Color.Default" />

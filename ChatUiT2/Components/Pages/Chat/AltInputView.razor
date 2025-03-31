@@ -21,7 +21,7 @@
                 <MudStack Row Class="px-3 pb-2" Spacing="1">
 
                     @* Assistant selector *@
-                    <FunctionDisplay Icon="@Icons.Material.Filled.Person" TooltipText="Select assistant to help you">
+                    <FunctionDisplay Icon="@Icons.Material.Filled.Person" TooltipText="">
                         <AssistantSelector />
                     </FunctionDisplay>
 
@@ -137,7 +137,6 @@
     {
         if (UserService.CurrentChat != CurrentChat)
         {
-            Console.WriteLine("Chat changed");
             await inputFieldRef.FocusAsync();
             if (CurrentChat == null)
             {
@@ -159,7 +158,6 @@
     {
         if (firstRender)
         {
-            Console.WriteLine("First render");
             UpdateService.OnChatUpdate += StateHasChanged;
             UpdateService.OnGlobalUpdate += StateHasChanged;
         }
@@ -186,7 +184,6 @@
         if (result != null && !result.Canceled)
         {
             UserService.CurrentChat.Settings.Prompt = result.Data as string;
-            Console.WriteLine($"Edited Prompt: {UserService.CurrentChat.Settings.Prompt}");
         }
     }
 
@@ -206,7 +203,6 @@
             using (var stream = file.OpenReadStream(maxAllowedSize: 100 * 1024 * 1024))
             {
                 int totalBytesRead = 0;
-                Console.WriteLine("Starting to read..");
                 while (totalBytesRead < file.Size)
                 {
                     int bytesToRead = Math.Min((int)file.Size - totalBytesRead, 81920); // Read in chunks of 81920 bytes
@@ -223,10 +219,7 @@
                     throw new Exception("Failed to read the entire file.");
                 }
             }
-
-            Console.WriteLine("Createing chatfile");
             ChatFile chatFile = new ChatFile(file.Name, bytes);
-            Console.WriteLine("Done");
 
             return chatFile;
         }
@@ -289,7 +282,6 @@
 
     private void RemoveFile(ChatFile file)
     {
-        Console.WriteLine("Removing: " + file.FileName);
         lock (chatFiles)
         {
             chatFiles.Remove(file);
@@ -301,15 +293,12 @@
     {
         if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
         {
-            Console.WriteLine("Enter pressed");
 
             await Task.Delay(100);
 
             // await inputFieldRef.FocusAsync();
             // await inputFieldRef.ForceUpdate();
             var tmp_prompt = inputFieldRef.Value;
-
-            Console.WriteLine("Prompt: " + tmp_prompt);
 
             SendMessage();
         }

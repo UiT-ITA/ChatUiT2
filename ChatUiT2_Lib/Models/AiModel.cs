@@ -123,9 +123,9 @@ public static class ModelServiceExtensions
             ModelName.gpt_4o_mini => new ModelCapabilities    { MaxContext = 128_000, MaxTokens = 16_384, Chat = true, Vision = true },
             ModelName.o1 => new ModelCapabilities           { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
             ModelName.o1_mini => new ModelCapabilities       { MaxContext = 128_000, MaxTokens = 4096, Chat = true, Vision = true },
-            ModelName.o3_mini_low => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Low },
-            ModelName.o3_mini_medium => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium },
-            ModelName.o3_mini_high => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, ReasoningEffortLevel = ChatReasoningEffortLevel.High },
+            ModelName.o3_mini_low => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Low },
+            ModelName.o3_mini_medium => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium },
+            ModelName.o3_mini_high => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.High },
 
             // OpenAI DALL-E
             ModelName.dall_e_2 => new ModelCapabilities { Vision = true, ImageGeneration = true },
