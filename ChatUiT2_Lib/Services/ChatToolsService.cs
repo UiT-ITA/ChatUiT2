@@ -20,6 +20,7 @@ using static System.Environment;
 using Azure;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Web;
+using iText.IO.Image;
 
 namespace ChatUiT2.Services;
 
@@ -226,12 +227,40 @@ public class ChatToolsService : IChatToolsService
                     else
                     {
                         string description = descriptionElement.GetString()!;
-                        string style = argumentsDocument.RootElement.TryGetProperty("style", out JsonElement styleElement) ? styleElement.GetString()! : "natural";
-                        string size = argumentsDocument.RootElement.TryGetProperty("size", out JsonElement sizeElement) ? sizeElement.GetString()! : "square";
-                        string quality = argumentsDocument.RootElement.TryGetProperty("quality", out JsonElement qualityElement) ? qualityElement.GetString()! : "hd";
+
+                        string style = "natural";
+                        if (argumentsDocument.RootElement.TryGetProperty("style", out JsonElement styleElement))
+                        {
+                            style = styleElement.GetString()!;
+                            if (style != "natural" && style != "vivid")
+                            {
+                                return "Invalid style. Valid options are: natural, vivid.";
+                            }
+                        }
+
+                        string size = "square"; 
+                        if (argumentsDocument.RootElement.TryGetProperty("size", out JsonElement sizeElement))
+                        {
+                            size = sizeElement.GetString()!;
+                            if (size != "square" && size != "portrait" && size != "landscape")
+                            {
+                                return "Invalid size. Valid options are: square, portrait, landscape.";
+                            }
+                        }
+
+                        string quality = "hd"; 
+                        if (argumentsDocument.RootElement.TryGetProperty("quality", out JsonElement qualityElement))
+                        {
+                            quality = qualityElement.GetString()!;
+                            if (quality != "hd" && quality != "standard")
+                            {
+                                return "Invalid quality. Valid options are: hd, standard.";
+                            }
+                        }
+
                         return await GetImageGeneration(description, style, size, quality);
                     }
-                default:
+                        default:
                     return "Sorry, I don't know how to handle this tool.";
             }
 

@@ -70,14 +70,17 @@ public class ChatTools
                     },
                     "style": {
                     "type": "string",
+                    "enum": [ "natural", "vivid" ],
                     "description": "Style of the image, can be vivid or natural"
                     },
                     "size": {
                     "type": "string",
+                    "enum": [ "square", "portrait", "landscape" ],
                     "description": "Size of images. Must be square(1024x1024), portrait(1792x1024) or landscape(1024x1792)"
                     },
                     "quality": {
                     "type": "string",
+                    "enum": ["hd", "standard"],
                     "description": "Quality of image. Should always be hd"
                     }
                 },
