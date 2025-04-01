@@ -19,6 +19,7 @@ using OpenAI.Images;
 using static System.Environment;
 using Azure;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Web;
 
 namespace ChatUiT2.Services;
 
@@ -71,10 +72,13 @@ public class ChatToolsService : IChatToolsService
         return stringResult.ToString();
     }
 
-    public async Task<string> GetImageGeneration(string description)
+    public async Task<string> GetImageGeneration(string description, string? style = null, string? size = null, string? quality = null)
     {
-        Console.WriteLine($"GenerateImage: {description}");
-        return await _generateImage.GenerateImageAsync(description); // Await the async method
+        style ??= "natural";
+        size ??= "square";
+        quality ??= "hd";
+        Console.WriteLine($"GenerateImage: {description}, Style: {style}, Size: {size}, Quality: {quality}");
+        return await _generateImage.GenerateImageAsync(description, style, size, quality);
     }
 
     public async Task<string> GetWikipedia(string topic)
@@ -214,7 +218,6 @@ public class ChatToolsService : IChatToolsService
                         return await GetWebpage(urlElement.GetString()!);
                     }
                 case "GetImageGeneration":
-                    Console.WriteLine("Kom hit");
                     _logger.LogInformation($"Handling tool call for function: {toolCall.FunctionName}");
                     if (!argumentsDocument.RootElement.TryGetProperty("description", out JsonElement descriptionElement))
                     {
@@ -222,10 +225,13 @@ public class ChatToolsService : IChatToolsService
                     }
                     else
                     {
-                        return await GetImageGeneration(descriptionElement.GetString()!);
+                        string description = descriptionElement.GetString()!;
+                        string style = argumentsDocument.RootElement.TryGetProperty("style", out JsonElement styleElement) ? styleElement.GetString()! : "natural";
+                        string size = argumentsDocument.RootElement.TryGetProperty("size", out JsonElement sizeElement) ? sizeElement.GetString()! : "square";
+                        string quality = argumentsDocument.RootElement.TryGetProperty("quality", out JsonElement qualityElement) ? qualityElement.GetString()! : "hd";
+                        return await GetImageGeneration(description, style, size, quality);
                     }
                 default:
-                    Console.WriteLine("default");
                     return "Sorry, I don't know how to handle this tool.";
             }
 
@@ -243,23 +249,29 @@ public class GenerateImage
     {
         _settingsService = settingsService;
     }
-    public async Task<string> GenerateImageAsync(string description)
+    public async Task<string> GenerateImageAsync(string description, string style, string size, string quality)
     {
 
         AiModel model = _settingsService.GetModel("DALLE3");
 
-        // Use the recommended keyless credential instead of the AzureKeyCredential credential.
         AzureOpenAIClient openAIClient = new AzureOpenAIClient(new Uri(model.Endpoint), new AzureKeyCredential(model.ApiKey));
         //AzureOpenAIClient openAIClient = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
         Console.WriteLine("Generating image");
-        // This must match the custom deployment name you chose for your model
         ImageClient chatClient = openAIClient.GetImageClient(model.DeploymentName);
-
+        GeneratedImageSize imageSize = size switch
+        {
+            "square" => GeneratedImageSize.W1024xH1024,
+            "landscape" => GeneratedImageSize.W1792xH1024,
+            "portrait" => GeneratedImageSize.W1024xH1792,
+            _ => GeneratedImageSize.W1024xH1024
+        };
         var imageGeneration = await chatClient.GenerateImageAsync(
                 description,
                 new ImageGenerationOptions()
                 {
-                    Size = GeneratedImageSize.W1024xH1024
+                    Style = style,
+                    Size = imageSize,
+                    Quality = quality,
                 }
             );
 

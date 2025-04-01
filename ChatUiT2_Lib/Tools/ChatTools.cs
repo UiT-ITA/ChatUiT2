@@ -67,6 +67,18 @@ public class ChatTools
                     "description": {
                         "type": "string",
                         "description": "Description of image to generate"
+                    },
+                    "style": {
+                    "type": "string",
+                    "description": "Style of the image, can be vivid or natural"
+                    },
+                    "size": {
+                    "type": "string",
+                    "description": "Size of images. Must be square(1024x1024), portrait(1792x1024) or landscape(1024x1792)"
+                    },
+                    "quality": {
+                    "type": "string",
+                    "description": "Quality of image. Should always be hd"
                     }
                 },
                 "required": [ "description" ]
