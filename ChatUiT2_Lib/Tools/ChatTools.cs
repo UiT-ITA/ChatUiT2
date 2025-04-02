@@ -57,31 +57,40 @@ public class ChatTools
             """)
     );
 
+    public static List<string> ImageStyles = new List<string>
+    {
+        "natural",
+        "vivid"
+    };
+
+    public static List<string> ImageSizes = new List<string>
+    {
+        "square",
+        "portrait",
+        "landscape"
+    };
+
+
     private static ChatTool getImageTool = ChatTool.CreateFunctionTool(
         functionName: "GetImageGeneration",
         functionDescription: "Generate images",
-        functionParameters: BinaryData.FromString("""
+        functionParameters: BinaryData.FromString($$"""
             {
                 "type": "object",
                 "properties": {
                     "description": {
                         "type": "string",
-                        "description": "Description of image to generate"
+                        "description": "Description of image to generate. Make it as descriptive as possible."
                     },
                     "style": {
                     "type": "string",
-                    "enum": [ "natural", "vivid" ],
-                    "description": "Style of the image, can be vivid or natural"
+                    "enum": [ {{string.Join(", ", ChatTools.ImageStyles.Select(style => $"\"{style}\""))}} ],
+                    "description": "Style of the image. Use vivid to create more hyper-real or cinematic images. Default is {{ImageStyles[0]}}."
                     },
                     "size": {
                     "type": "string",
-                    "enum": [ "square", "portrait", "landscape" ],
-                    "description": "Size of images. Must be square(1024x1024), portrait(1792x1024) or landscape(1024x1792)"
-                    },
-                    "quality": {
-                    "type": "string",
-                    "enum": ["hd", "standard"],
-                    "description": "Quality of image. Should always be hd"
+                    "enum": [ {{string.Join(", ", ChatTools.ImageSizes.Select(size => $"\"{size}\""))}} ],
+                    "description": "Aspect ratio of iamge: square(1024x1024), portrait(1792x1024) or landscape(1024x1792). Default is {{ImageSizes[0]}}."
                     }
                 },
                 "required": [ "description" ]
@@ -119,4 +128,5 @@ public class ChatTools
             Tool = getImageTool
         }
     };
+
 }

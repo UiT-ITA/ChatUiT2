@@ -21,6 +21,7 @@ using Azure;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Web;
 using iText.IO.Image;
+using ChatUiT2.Tools;
 
 namespace ChatUiT2.Services;
 
@@ -73,24 +74,20 @@ public class ChatToolsService : IChatToolsService
         return stringResult.ToString();
     }
 
-    public async Task<string> GetImageGeneration(string description, string? style = null, string? size = null, string? quality = null)
+    public async Task<string> GetImageGeneration(string description, string? style = null, string? size = null)
     {
         style ??= "natural";
         size ??= "square";
-        quality ??= "hd";
-        Console.WriteLine($"GenerateImage: {description}, Style: {style}, Size: {size}, Quality: {quality}");
-        return await _generateImage.GenerateImageAsync(description, style, size, quality);
+        return await _generateImage.GenerateImageAsync(description, style, size);
     }
 
     public async Task<string> GetWikipedia(string topic)
     {
-        Console.WriteLine($"GetWikipedia: {topic}");
         return await WikipeidaHelper.GetWikipediaFirstSectionAsync(topic);
     }
 
     public async Task<string> GetWebpage(string url)
     {
-        Console.WriteLine($"GetWebpage: {url}");
 
         HttpClient client = new HttpClient();
         try
@@ -105,15 +102,10 @@ public class ChatToolsService : IChatToolsService
         }
     }
 
-    private string TrimContent(string content, int tokens = 20_000, ModelName model = ModelName.gpt_4o_mini)
+    private string TrimContent(string content, int tokens = 50_000, ModelName model = ModelName.gpt_4o_mini)
     {
 
         var content1 = StripHTML(content);
-
-        Console.WriteLine($"Content length: {content.Length}");
-        Console.WriteLine($"Content1 length: {content1.Length}");
-
-        Console.WriteLine(content1);
 
         content = content1;
 
@@ -228,37 +220,27 @@ public class ChatToolsService : IChatToolsService
                     {
                         string description = descriptionElement.GetString()!;
 
-                        string style = "natural";
+                        string style = ChatTools.ImageSizes[0];
                         if (argumentsDocument.RootElement.TryGetProperty("style", out JsonElement styleElement))
                         {
                             style = styleElement.GetString()!;
-                            if (style != "natural" && style != "vivid")
+                            if (!ChatTools.ImageStyles.Contains(style))
                             {
                                 return "Invalid style. Valid options are: natural, vivid.";
                             }
                         }
 
-                        string size = "square"; 
+                        string size = ChatTools.ImageSizes[0]; 
                         if (argumentsDocument.RootElement.TryGetProperty("size", out JsonElement sizeElement))
                         {
                             size = sizeElement.GetString()!;
-                            if (size != "square" && size != "portrait" && size != "landscape")
+                            if (!ChatTools.ImageSizes.Contains(size))
                             {
                                 return "Invalid size. Valid options are: square, portrait, landscape.";
                             }
                         }
 
-                        string quality = "hd"; 
-                        if (argumentsDocument.RootElement.TryGetProperty("quality", out JsonElement qualityElement))
-                        {
-                            quality = qualityElement.GetString()!;
-                            if (quality != "hd" && quality != "standard")
-                            {
-                                return "Invalid quality. Valid options are: hd, standard.";
-                            }
-                        }
-
-                        return await GetImageGeneration(description, style, size, quality);
+                        return await GetImageGeneration(description, style, size);
                     }
                         default:
                     return "Sorry, I don't know how to handle this tool.";
@@ -278,14 +260,12 @@ public class GenerateImage
     {
         _settingsService = settingsService;
     }
-    public async Task<string> GenerateImageAsync(string description, string style, string size, string quality)
+    public async Task<string> GenerateImageAsync(string description, string style, string size)
     {
 
         AiModel model = _settingsService.GetModel("DALLE3");
 
         AzureOpenAIClient openAIClient = new AzureOpenAIClient(new Uri(model.Endpoint), new AzureKeyCredential(model.ApiKey));
-        //AzureOpenAIClient openAIClient = new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(key));
-        Console.WriteLine("Generating image");
         ImageClient chatClient = openAIClient.GetImageClient(model.DeploymentName);
         GeneratedImageSize imageSize = size switch
         {
@@ -300,12 +280,11 @@ public class GenerateImage
                 {
                     Style = style,
                     Size = imageSize,
-                    Quality = quality,
+                    Quality = "hd",
                 }
             );
 
         string imageUri = imageGeneration.Value.ImageUri.ToString();
-        Console.WriteLine(imageUri);
         return imageUri;
     }
 }
