@@ -11,7 +11,7 @@ namespace ChatUiT2.Services;
 
 public class SettingsService : ISettingsService
 {
-    public List<AiModel> Models { get; set; } = new List<AiModel>();
+    private List<AiModel> Models { get; set; } = new List<AiModel>();
     private List<ModelEndpoint> _endpoints { get; set; } = new List<ModelEndpoint>();
     public AiModel DefaultModel { get; set; } = null!;
     public AiModel NamingModel { get; set; } = null!;
@@ -125,6 +125,7 @@ public class SettingsService : ISettingsService
             "gpt-4-turbo" => ModelName.gpt_4_turbo,
             "gpt-4o" => ModelName.gpt_4o,
             "gpt-4o-mini" => ModelName.gpt_4o_mini,
+            "gpt-45" => ModelName.gpt_45,
             "o1" => ModelName.o1,
             "o1-mini" => ModelName.o1_mini,
             "o3-mini-low" => ModelName.o3_mini_low,
@@ -188,5 +189,14 @@ public class SettingsService : ISettingsService
     public AiModel GetModel(string name)
     {
         return Models.FirstOrDefault(m => m.DisplayName == name) ?? DefaultModel;
-    }    
+    }
+
+    public List<AiModel> GetModels(IUserService user)
+    {
+        bool isBetaTester = user.IsTester;
+        bool isAdmin = user.IsAdmin;
+
+        return Models.Where(m => m.AllowedRoles.Count == 0 || m.AllowedRoles.Contains("Beta") && isBetaTester || m.AllowedRoles.Contains("Admin") && isAdmin).ToList();
+    }
+
 }

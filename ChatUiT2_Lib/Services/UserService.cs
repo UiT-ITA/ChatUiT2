@@ -234,7 +234,7 @@ public class UserService : IUserService
 
     public List<AiModel> GetModelList()
     {
-        return _settingsService.Models;
+        return _settingsService.GetModels(this);
     }
 
     public async void SetPreferredModel(string model)
