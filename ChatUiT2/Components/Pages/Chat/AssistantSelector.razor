@@ -46,7 +46,7 @@ AnchorOrigin="Origin.TopLeft" TransformOrigin="Origin.BottomLeft">
     {
         if (Models.Count == 0)
         {
-            Models = SettingsService.Models;
+            Models = UserService.GetModelList();
             StateHasChanged();
         }
     }

@@ -5,12 +5,12 @@ namespace ChatUiT2.Interfaces;
 
 public interface ISettingsService
 {
-    List<AiModel> Models { get; set; }
     AiModel DefaultModel { get; set; }
     AiModel NamingModel { get; set; }
     AiModel EmbeddingModel { get; set; }
 
     AiModel GetModel(string name);
+    List<AiModel> GetModels(IUserService user);
     //ModelEndpoint GetEndpoint(string name);
     //ModelEndpoint GetEndpoint(AiModel model);
 }
