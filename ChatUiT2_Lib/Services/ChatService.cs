@@ -67,7 +67,15 @@ public class ChatService : IChatService
             chat.Updated = DateTimeTools.GetTimestamp();
             await _mediator.Publish(new UpdateWorkItemEvent { Chat = chat });
             await _mediator.Publish(new StreamUpdatedEvent());
+            Task namingTask = Task.CompletedTask;
+            if (chat.Name == "New chat")
+            {
 
+
+                namingTask = GetName(chat);
+                
+
+            }
             if (model.DeploymentType == DeploymentType.AzureOpenAI)
             {
                 await HandleAzureOpenai(chat, model, responseMessage);
@@ -76,15 +84,8 @@ public class ChatService : IChatService
             {
                 throw new ArgumentException("Model is not an AzureOpenAI model");
             }
+            await namingTask;
 
-            if (chat.Name == "New chat")
-            {
-
-
-                chat.Name = await GetName(chat);
-                await _mediator.Publish(new StreamUpdatedEvent());
-
-            }
         }
         else
         {
@@ -156,7 +157,7 @@ public class ChatService : IChatService
         }
     }
 
-    public async Task<string> GetName(WorkItemChat chat)
+    public async Task GetName(WorkItemChat chat)
     {
         string name;
         var model = _settingsService.NamingModel;
@@ -199,7 +200,8 @@ public class ChatService : IChatService
             name = "New chat";
         }
 
-        return name;
+        chat.Name = name;
+        await _mediator.Publish(new StreamUpdatedEvent());
     }
 
     public async Task<OpenAIEmbedding> GetEmbedding(string text, AiModel model)

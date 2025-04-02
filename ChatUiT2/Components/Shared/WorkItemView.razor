@@ -94,12 +94,14 @@
         if (firstRender)
         {
             UpdateService.OnGlobalUpdate += StateHasChanged;
+            UpdateService.OnChatUpdate += StateHasChanged;
         }
     }
 
     public void Dispose()
     {
         UpdateService.OnGlobalUpdate -= StateHasChanged;
+        UpdateService.OnChatUpdate -= StateHasChanged;
     }
 
     private bool IsSelected()
