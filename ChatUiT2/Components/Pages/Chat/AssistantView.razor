@@ -1,8 +1,12 @@
 ﻿
 <div style="min-width: 100px;">
     <MudStack Row Spacing="1">
-        <MudIcon Icon="@assistant.Icon" Size="Size.Small" />
-        <MudText Typo="Typo.body1">@assistant.DisplayName</MudText>
+        <MudTooltip Text="@assistant.Description" Placement="Placement.Top">
+            <MudStack Row Spacing="1">
+                <MudIcon Icon="@assistant.Icon" Size="Size.Small" />
+                <MudText Typo="Typo.body1">@assistant.DisplayName</MudText>
+            </MudStack>
+        </MudTooltip>
 
         <MudSpacer />
         <div style="width:20px;" />
@@ -19,7 +23,7 @@
                 <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Default" />
             </MudTooltip>
         }
-        @if (assistant.Capabilities.FunctionCalling || assistant.DisplayName == "Orakel")
+        @if (assistant.RequiredTools.Count > 0)
         {
             <MudTooltip Text="Is able to call functions" Placement="Placement.Top">
                 <MudIcon Icon="@Icons.Material.Filled.Functions" Color="Color.Default" />
