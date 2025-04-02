@@ -75,7 +75,7 @@ public class OpenAIService : IOpenAIService
         }
         else
         {
-            maxTokens = Math.Min(_model.MaxTokens, chat.Settings.MaxTokens);
+            maxTokens = _model.MaxTokens;
             options.MaxOutputTokenCount = maxTokens;
             options.Temperature = chat.Settings.Temperature;
         }
