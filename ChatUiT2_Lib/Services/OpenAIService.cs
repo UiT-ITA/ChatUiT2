@@ -175,7 +175,8 @@ public class OpenAIService : IOpenAIService
                     {
                         responseMessage.Content += "\n" + GetToolNotice(toolCall);
                     }
-                    
+                    await _mediator.Publish(new StreamUpdatedEvent());
+
                     ToolChatMessage toolMessage = new(toolCall.Id, await _chatToolsService.HandleToolCall(toolCall));
 
                     messages.Add(toolMessage);

@@ -16,6 +16,7 @@ public class SettingsService : ISettingsService
     public AiModel DefaultModel { get; set; } = null!;
     public AiModel NamingModel { get; set; } = null!;
     public AiModel EmbeddingModel { get; set; } = null!;
+    public AiModel ImageModel { get; set; } = null!;
 
     private readonly IConfiguration _configuration;
 
@@ -106,10 +107,12 @@ public class SettingsService : ISettingsService
         string? defaultModelName = _configuration["DefaultModel"];
         string? namingModelName = _configuration["NamingModel"];
         string? embeddingModelName = _configuration["EmbeddingModel"];
+        string? imageModelName = _configuration["ImageModel"];
 
         DefaultModel = Models.FirstOrDefault(m => m.DisplayName == defaultModelName) ?? Models[0];
         NamingModel = Models.FirstOrDefault(m => m.DisplayName == namingModelName) ?? Models[0];
         EmbeddingModel = Models.FirstOrDefault(m => m.DisplayName == embeddingModelName) ?? Models[0];
+        ImageModel = Models.FirstOrDefault(m => m.DisplayName == embeddingModelName) ?? Models[0];
     }
 
     public ModelName MapModelName(string modelName)
@@ -148,6 +151,7 @@ public class SettingsService : ISettingsService
             "PersonSearch" => Icons.Material.Filled.PersonSearch,
             "HourglassBottom" => Icons.Material.Filled.HourglassBottom,
             "HourglassFull" => Icons.Material.Filled.HourglassFull,
+            "Image" => Icons.Material.Filled.Image,
             _ => Icons.Material.Filled.QuestionMark
         };
     }
