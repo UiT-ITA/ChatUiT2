@@ -51,6 +51,12 @@ public class ContentItem
     [BsonElement("RagProjectId")]
     public string RagProjectId { get; set; } = string.Empty;
     /// <summary>
+    /// The ETag for concurrency control
+    /// Automatically updated by Azure Cosmos DB
+    /// </summary>
+    [JsonProperty(PropertyName = "_etag")]
+    public string ETag { get; set; } = string.Empty;
+    /// <summary>
     /// The string used to create the hash for this item
     /// This string will be used to hash this item to be able to
     /// detect if it has changed.

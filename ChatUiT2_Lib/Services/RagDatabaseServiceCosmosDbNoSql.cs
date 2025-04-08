@@ -615,6 +615,36 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return resultContentItems;
     }
 
+    /// <summary>
+    /// Get all content items for a project
+    /// Using yield return to avoid loading all items in memory at once
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async IAsyncEnumerable<ContentItem> GetContentItemsByProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to get content items");
+        }
+
+        var queryDefinition = new QueryDefinition("SELECT * FROM c");
+        var itemContainer = await GetItemContainer(ragProject);
+        var queryIterator = itemContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        var allContentItems = new List<ContentItem>();
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            foreach (var item in response)
+            {
+                yield return item;
+            }
+        }
+    }
+
     public async Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject)
     {
         return (await GetContentItemsWithNoEmbeddings(ragProject)).Count();
