@@ -151,8 +151,18 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         {
             ragProject.Created = _dateTimeProvider.OffsetUtcNow;
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
-            ragProject.Id = Guid.NewGuid().ToString();
-            await ragProjectContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            // Check if the project already exists in the database with the given name
+            var existingInDb = await GetRagProjectByName(ragProject.Name);
+            if (existingInDb != null)
+            {
+                ragProject.Id = existingInDb.Id;
+                await ragProjectContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            }
+            else
+            {
+                ragProject.Id = Guid.NewGuid().ToString();
+                await ragProjectContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            }
         }
         else
         {
