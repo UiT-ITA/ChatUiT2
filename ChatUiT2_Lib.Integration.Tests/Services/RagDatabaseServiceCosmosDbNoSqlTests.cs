@@ -213,6 +213,73 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task SaveRagProject_ProjectWithSameNameExists_ShouldUpdateExisting()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Name = "Test Project",
+            Description = "Test Description",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            },
+            ContentItems = new List<ContentItem>
+            {
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 1",
+                    SourceSystemId = "source1"
+                },
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 2",
+                    SourceSystemId = "source2"
+                }
+            }
+        };
+        var existingRagProject = new RagProject()
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Project",
+        };
+
+        // Act
+        var projectInDb = await _ragProjectDefContainer.CreateItemAsync(existingRagProject, new PartitionKey(existingRagProject.Id));
+        await _service.SaveRagProject(ragProject);
+
+        // Assert
+        var projectItems = _ragProjectDefContainer.GetItemLinqQueryable<RagProject>().ToFeedIterator<RagProject>();
+        List<RagProject> projectList = new List<RagProject>();
+        while (projectItems.HasMoreResults)
+        {
+            var projectItem = await projectItems.ReadNextAsync();
+            projectList.AddRange(projectItem);
+        }
+        Assert.Single(projectList);
+        Assert.Equal(projectInDb.Resource.Id, projectList[0].Id);
+        Assert.Equal(ragProject.Name, projectList[0].Name);
+        Assert.Equal(ragProject.Description, projectList[0].Description);
+
+        // Check content items
+        var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
+        List<ContentItem> contentItemList = new List<ContentItem>();
+        while (contentItems.HasMoreResults)
+        {
+            var contentItem = await contentItems.ReadNextAsync();
+            contentItemList.AddRange(contentItem);
+        }
+        Assert.Equal(2, contentItemList.Count());
+        Assert.Contains(contentItemList, x => x.ContentText == "Test Content 1");
+        Assert.Contains(contentItemList, x => x.ContentText == "Test Content 2");
+    }
+
+    [Fact]
     public async Task SaveRagProject_OneContentItemAlreadyExist_ShouldUpdateExistingContentItem()
     {
         // Arrange
