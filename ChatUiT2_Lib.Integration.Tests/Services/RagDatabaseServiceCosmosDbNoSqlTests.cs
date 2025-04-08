@@ -219,7 +219,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         var ragProject = new RagProject
         {
             Name = "Test Project",
-            Description = "Test Description",
+            Description = "Test Description updated",
             Configuration = new RagConfiguration
             {
                 DbName = _ragItemDbName,
@@ -247,6 +247,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         {
             Id = Guid.NewGuid().ToString(),
             Name = "Test Project",
+            Description = "OldDescription"
         };
 
         // Act
