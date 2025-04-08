@@ -44,4 +44,5 @@ public interface IRagDatabaseService
     public Task DeleteDatabase(string id);
     Task<RagProject?> GetRagProjectByName(string projectName, bool loadItems = false);
     string GetItemContentString(ContentItem item);
+    Task<ContentItem?> GetContentItemBySourceId(RagProject ragProject, string sourceId);
 }

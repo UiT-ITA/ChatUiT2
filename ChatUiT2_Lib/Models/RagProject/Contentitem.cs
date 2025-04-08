@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using ChatUiT2_Lib.Tools;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
 
@@ -48,5 +49,23 @@ public class ContentItem
     /// Added when storing to RAG database
     /// </summary>
     [BsonElement("RagProjectId")]
-    public string RagProjectId { get; set; } = string.Empty;    
+    public string RagProjectId { get; set; } = string.Empty;
+    /// <summary>
+    /// The string used to create the hash for this item
+    /// This string will be used to hash this item to be able to
+    /// detect if it has changed.
+    /// </summary>
+    [BsonIgnore]
+    [JsonIgnore]
+    public string StringForContentHash { 
+        get
+        {
+            return $"{Title}_{Description}_{ContentText}";
+        }
+    }
+
+    public bool IsContentChanged(string hash)
+    {
+        return !string.IsNullOrEmpty(hash) && hash != HashTools.GetSha256Hash(StringForContentHash);
+    }
 }
