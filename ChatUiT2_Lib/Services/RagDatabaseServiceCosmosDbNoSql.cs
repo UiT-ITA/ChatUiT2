@@ -164,6 +164,11 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         foreach (var item in ragProject.ContentItems)
         {
             item.RagProjectId = ragProject.Id ?? string.Empty;
+            var existingItem = await GetContentItemBySourceId(ragProject, item.SourceSystemId);            
+            if (existingItem != null)
+            {
+                item.Id = existingItem.Id;
+            }
             await SaveRagProjectItem(item, itemContainer);
         }
     }
@@ -528,6 +533,24 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
 
         return cachedValue;
+    }
+
+    public async Task<ContentItem?> GetContentItemBySourceId(RagProject ragProject, string sourceId)
+    {
+        if (string.IsNullOrEmpty(sourceId))
+        {
+            throw new ArgumentException("sourceId must be set to get source item");
+        }
+
+        var itemContainer = await GetItemContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.SourceSystemId = @id")
+            .WithParameter("@id", sourceId);
+        var queryIterator = itemContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        var response = await queryIterator.ReadNextAsync();
+        var doc = response.FirstOrDefault();
+
+        return doc;
     }
 
     public string GetItemContentString(ContentItem item)
