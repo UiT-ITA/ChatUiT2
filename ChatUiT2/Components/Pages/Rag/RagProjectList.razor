@@ -1,6 +1,7 @@
 ﻿@page "/ragprojects"
 @using ChatUiT2.Interfaces
 @using ChatUiT2.Models.RagProject
+@using ChatUiT2.Models.RabbitMq
 @attribute [Authorize(Roles = "Admin,RagAdmin")]
 
 <PageTitle>Topdesk knowledge items</PageTitle>
@@ -100,6 +101,7 @@
 @code {
     [Inject] private IRagDatabaseService ragDatabaseService { get; set; } = null!;
     [Inject] ISnackbar Snackbar { get; set; } = null!;
+    [Inject] IRabbitMqService rabbitMqService { get; set; } = null!;
 
     private List<RagProjectViewClass> tableRagProjectList = [];
     private List<RagProjectViewClass> allRagProjectList = [];
@@ -160,7 +162,7 @@
             query = query?.Where(x => x.RagProject.Name != null &&
                                       x.RagProject.Name.Contains(nameSearch, StringComparison.OrdinalIgnoreCase));
         }
-        if(query != null)
+        if (query != null)
         {
             foreach (var item in query.ToList())
             {
@@ -185,6 +187,8 @@
             if (uploadResult != null)
             {
                 Snackbar.Add("Nytt RAG prosjekt lagret i database", Severity.Success, config => { });
+                await CreateEmbeddingsForAllSourceItems(uploadResult);
+                Snackbar.Add("Sendt melding om å starte generering av Rag database", Severity.Success, config => { });
                 await LoadRagProjectsFromRagDb();
             }
             else
@@ -198,6 +202,39 @@
         }
         pageIsWorking = false;
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Starts creating embeddings for all source items in the project by sending mq message.
+    /// Azure functions will pick up the message and start creating embeddings for all source items in the project.
+    /// Only source items that have changed will be updated.
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <returns></returns>
+    private async Task CreateEmbeddingsForAllSourceItems(RagProject ragProject)
+    {
+        try
+        {
+            if (ragProject?.Id != null)
+            {
+                RagMqMessage message = new()
+                {
+                    Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
+                    RagProjectId = ragProject.Id,
+                    SourceItemMongoDbId = string.Empty,
+                    EmbeddingType = null
+                };
+                await rabbitMqService.SendRagMessage(message);
+            }
+            else
+            {
+                Snackbar.Add($"Fant ikke rag prosjekt", Severity.Error, config => { });
+            }
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {ragProject?.Id} {e.Message}", Severity.Error, config => { });
+        }
     }
 
     private async Task DeleteRagProject(RagProjectViewClass project)
