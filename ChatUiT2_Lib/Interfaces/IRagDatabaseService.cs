@@ -45,4 +45,5 @@ public interface IRagDatabaseService
     Task<RagProject?> GetRagProjectByName(string projectName, bool loadItems = false);
     string GetItemContentString(ContentItem item);
     Task<ContentItem?> GetContentItemBySourceId(RagProject ragProject, string sourceId);
+    IAsyncEnumerable<ContentItem> GetContentItemsByProject(RagProject ragProject);
 }

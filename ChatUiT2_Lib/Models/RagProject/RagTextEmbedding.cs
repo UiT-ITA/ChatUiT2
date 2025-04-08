@@ -49,6 +49,14 @@ public class RagTextEmbedding
     [BsonElement("RagProjectId")]
     public string RagProjectId { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The ETag of the ContentItem at the time this embedding was created.
+    /// This can be used to check if the Content item
+    /// the embedding belongs to has been updated.
+    /// </summary>
+    [JsonProperty(PropertyName = "ContentItemETag")]
+    public string ContentItemETag { get; set; } = string.Empty;
+
     [BsonElement("EmbeddingSourceType")]
     public EmbeddingSourceType? TextType { get; set; }    
 
