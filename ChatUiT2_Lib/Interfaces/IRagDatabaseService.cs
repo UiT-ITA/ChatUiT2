@@ -48,4 +48,6 @@ public interface IRagDatabaseService
     IAsyncEnumerable<ContentItem> GetContentItemsByProject(RagProject ragProject);
     IAsyncEnumerable<ContentItem> GetContentItemsWithUpdates(RagProject ragProject);
     Task<List<EmbeddingEvent>> GetEmbeddingEventsByItemId(RagProject ragProject, string contentItemId);
+    Task<List<string>> GetItemSourceSystemIdsByProject(RagProject ragProject);
+    Task<List<RagTextEmbedding>> GetEmbeddingsByItemId(RagProject ragProject, string contentItemId);
 }

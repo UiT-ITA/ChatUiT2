@@ -1823,6 +1823,104 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Contains(eventsInDb, x => x.Id == "embeddingEvent3");
     }
 
+    [Fact]
+    public async Task GetItemSourceIdsByProject_ValidProject_ReturnsIds()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = $"project1",
+            Name = $"name1",
+            Description = $"desc1",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            },
+            ContentItems = new()
+                {
+                    new ContentItem
+                    {
+                        Id = $"item1",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content 1",
+                        RagProjectId = $"project1",
+                        SourceSystemId = "source1"
+                    },
+                    new ContentItem
+                    {
+                        Id = $"item2",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content 2",
+                        RagProjectId = $"project1",
+                        SourceSystemId = "source2"
+                    },
+                    new ContentItem
+                    {
+                        Id = $"item3",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content 3",
+                        RagProjectId = $"project1",
+                        SourceSystemId = "source3"
+                    }
+                }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectItem in ragProject.ContentItems)
+        {
+            await _ragItemContainer.CreateItemAsync(projectItem, new PartitionKey(projectItem.Id));
+        }
+        var result = await _service.GetItemSourceSystemIdsByProject(ragProject);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Count());
+        Assert.Equal("source1", result[0]);
+        Assert.Equal("source2", result[1]);
+        Assert.Equal("source3", result[2]);
+    }
+
+    [Fact]
+    public async Task GetEmbeddingsByItemId_ValidProject_ReturnsEmbeddings()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = "testProjectId",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName,
+                EmbeddingCollectioName = _ragEmbeddingContainerName
+            }
+        };
+        var embeddings = new List<RagTextEmbedding>
+        {
+            new RagTextEmbedding { Id = "embedding1", SourceItemId = "source1", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embedding2", SourceItemId = "source2", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embedding3", SourceItemId = "source1", RagProjectId = ragProject.Id }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.SourceItemId));
+        }
+        var result = await _service.GetEmbeddingsByItemId(ragProject, "source1");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Equal("embedding1", result[0].Id);
+        Assert.Equal("embedding3", result[1].Id);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";
