@@ -100,7 +100,7 @@
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.Originaltext : string.Empty)">Text</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.ModelProvider : string.Empty)">Provider</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.Model : string.Empty)">Model</MudTableSortLabel></MudTh>
-        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding!.TextType!)">Type</MudTableSortLabel></MudTh>
+        <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding!.EmbeddingSourceType!)">Type</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.ContentItem!.SourceSystemId : string.Empty)">Source system id</MudTableSortLabel></MudTh>
         <MudTh><MudTableSortLabel T="RagTextEmbeddingViewItem" SortBy="new Func<RagTextEmbeddingViewItem, object>(x=>x.RagTextEmbedding != null ? x.RagTextEmbedding!.ContentItem!.SourceSystemAltId : string.Empty)">Source system alt id</MudTableSortLabel></MudTh>
     </HeaderContent>
@@ -111,7 +111,7 @@
         <MudTd>@context.RagTextEmbedding?.Originaltext</MudTd>
         <MudTd>@context.RagTextEmbedding?.ModelProvider</MudTd>
         <MudTd>@context.RagTextEmbedding?.Model</MudTd>
-        <MudTd>@context.RagTextEmbedding?.TextType</MudTd>
+        <MudTd>@context.RagTextEmbedding?.EmbeddingSourceType</MudTd>
         <MudTd>@context.ContentItem?.SourceSystemId</MudTd>
         <MudTd>@context.ContentItem?.SourceSystemAltId</MudTd>
     </RowTemplate>

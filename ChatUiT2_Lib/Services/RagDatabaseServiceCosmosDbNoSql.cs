@@ -19,6 +19,8 @@ using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using MediatR;
 using ChatUiT2.Models.Mediatr;
 using ChatUiT2_Lib.Tools;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
+using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
 namespace ChatUiT2.Services;
 
@@ -189,6 +191,20 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                 item.ContentNeedsEmbeddingUpdate = true;
             }
             await SaveRagProjectItem(item, itemContainer);
+        }
+
+        // Delete items in database that is not in the new project def (articles that are removed)
+        var dbItemIds = await GetItemSourceSystemIdsByProject(ragProject);
+        foreach (var itemIdInDb in dbItemIds)
+        {
+            if (!ragProject.ContentItems.Any(x => x.SourceSystemId == itemIdInDb))
+            {
+                var itemToDelete = await GetContentItemBySourceId(ragProject, itemIdInDb);
+                if (itemToDelete != null)
+                {
+                    await DeleteContentItem(ragProject, itemToDelete);
+                }
+            }
         }
     }
 
@@ -510,7 +526,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             Originaltext = originalText,
             SourceItemId = item.Id,
             RagProjectId = ragProject?.Id ?? string.Empty,
-            TextType = embedType,
+            EmbeddingSourceType = embedType,
             ContentHash = HashTools.GetMd5Hash(item.StringForContentHash),
         };
         newEmbedding.Embedding = embedding;
@@ -582,9 +598,22 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return textContent;
     }
 
-    public Task DeleteContentItem(RagProject ragProject, ContentItem item)
+    public async Task DeleteContentItem(RagProject ragProject, ContentItem item)
     {
-        throw new NotImplementedException();
+        var embeddingsForItem = await GetEmbeddingsByItemId(ragProject, item.Id);
+        foreach (var embedding in embeddingsForItem)
+        {
+            await DeleteRagEmbedding(ragProject, embedding);
+        }
+        var itemContainer = await GetItemContainer(ragProject);
+        try
+        {
+            await itemContainer.DeleteItemAsync<ContentItem>(item.Id, new PartitionKey(item.Id));
+        }
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // Do nothing, the item was not found
+        }
     }
 
     public async Task<List<ContentItem>> GetContentItemsWithNoEmbeddings(RagProject ragProject)
@@ -1060,6 +1089,62 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Get a list of unique source ids from the item container.
+    /// Can be used when for instance new file is uploaded and we
+    /// want to find articles that are no longer in the source file.
+    /// </summary>
+    /// <param name="ragProject">The project to get for</param>
+    /// <returns></returns>
+    public async Task<List<string>> GetItemSourceSystemIdsByProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("Project id must be set to get embeddings");
+        }
+
+        var result = new List<string>();
+        var embeddingContainer = await GetItemContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT c.SourceSystemId FROM c");
+        var queryIterator = embeddingContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response.Select(x => x.SourceSystemId));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Get all embeddings for a content item
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <param name="contentItemId"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async Task<List<RagTextEmbedding>> GetEmbeddingsByItemId(RagProject ragProject, string contentItemId)
+    {
+        if (string.IsNullOrEmpty(contentItemId))
+        {
+            throw new ArgumentException("contentItemId must be set to get embedding event");
+        }
+        List<RagTextEmbedding> result = new();
+        var container = await GetEmbeddingContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.SourceItemId=@contentItemId")
+            .WithParameter("@contentItemId", contentItemId);
+        var queryIterator = container.GetItemQueryIterator<RagTextEmbedding>(queryDefinition);
+
+        var allContentItems = new List<ContentItem>();
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response);
+        }
+        return result;
+    }
     public void Dispose()
     {
         _cosmosClient.Dispose();
