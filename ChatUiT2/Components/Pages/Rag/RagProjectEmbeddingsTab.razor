@@ -38,7 +38,7 @@
     <MudExpansionPanel Text="Admin tasks" MaxHeight="450" Expanded="false">
         <MudGrid>
             <MudItem xs="12">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForAllSourceItems()" Class="mt-4">Create embeddings from all source items</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CreateEmbeddingsForUpdatedSourceItems()" Class="mt-4">Create embeddings for all source items with updates</MudButton>
             </MudItem>
             <MudItem xs="12">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="() => CancelCreateEmbeddingsForAllSourceItems()" Class="mt-4">Cancel all embedding generation in queue</MudButton>
@@ -304,7 +304,7 @@
         }
     }
 
-    private async Task CreateEmbeddingsForAllSourceItems()
+    private async Task CreateEmbeddingsForUpdatedSourceItems()
     {
 
         try
@@ -313,7 +313,7 @@
             {
                 RagMqMessage message = new()
                 {
-                    Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
+                    Operation = RagMqMessageOperations.GenerateEmbeddingsForUpdatedItems,
                     RagProjectId = RagProject.Id,
                     SourceItemMongoDbId = string.Empty,
                     EmbeddingType = null

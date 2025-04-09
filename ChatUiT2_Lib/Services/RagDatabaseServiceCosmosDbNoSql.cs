@@ -179,6 +179,14 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             if (existingItem != null)
             {
                 item.Id = existingItem.Id;
+                var newItemHash = HashTools.GetMd5Hash(item.StringForContentHash);
+                if (existingItem.IsContentChanged(newItemHash))
+                {
+                    item.ContentNeedsEmbeddingUpdate = true;
+                }
+            } else
+            {
+                item.ContentNeedsEmbeddingUpdate = true;
             }
             await SaveRagProjectItem(item, itemContainer);
         }
@@ -613,6 +621,37 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     }
 
     /// <summary>
+    /// Gets the content items that has the ContentHasChanged flag set to true
+    /// Used by function that recreates embeddings for items that has changed.
+    /// Using yield return to avoid loading all items in memory at once
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async IAsyncEnumerable<ContentItem> GetContentItemsWithUpdates(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to get content items");
+        }
+
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.ContentNeedsEmbeddingUpdate = true");
+        var itemContainer = await GetItemContainer(ragProject);
+        var queryIterator = itemContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        var allContentItems = new List<ContentItem>();
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            foreach (var item in response)
+            {
+                yield return item;
+            }
+        }
+    }
+
+    /// <summary>
     /// Get all content items for a project
     /// Using yield return to avoid loading all items in memory at once
     /// </summary>
@@ -730,6 +769,28 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             // Handle the case where the item is not found
             return null;
         }
+    }
+
+    public async Task<List<EmbeddingEvent>> GetEmbeddingEventsByItemId(RagProject ragProject, string contentItemId)
+    {
+        if (string.IsNullOrEmpty(contentItemId))
+        {
+            throw new ArgumentException("contentItemId must be set to get embedding event");
+        }
+        List<EmbeddingEvent> result = new();
+        var container = await GetEmbeddingEventContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.ContentItemId=@contentItemId")
+            .WithParameter("@contentItemId", contentItemId);
+        var queryIterator = container.GetItemQueryIterator<EmbeddingEvent>(queryDefinition);
+
+        var allContentItems = new List<ContentItem>();
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response);
+        }
+        return result;
     }
 
     /// <summary>

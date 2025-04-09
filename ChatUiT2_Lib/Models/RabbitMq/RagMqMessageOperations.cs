@@ -9,5 +9,5 @@ public enum RagMqMessageOperations
     // Used to cancel all embeddings processing in queue.
     CancelAllEmbeddingsProcessing = 2,
     // Used to regenerate all item embeddings in a project.
-    GenerateAllEmbeddings = 3,
+    GenerateEmbeddingsForUpdatedItems = 3,
 }

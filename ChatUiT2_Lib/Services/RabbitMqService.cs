@@ -158,6 +158,8 @@ public class RabbitMqService : IRabbitMqService
                 return $"{baseRoutingKey}.{opName}";
             case RagMqMessageOperations.CancelAllEmbeddingsProcessing:
                 return $"{baseRoutingKey}.{opName}";
+            case RagMqMessageOperations.GenerateEmbeddingsForUpdatedItems:
+                return $"{baseRoutingKey}.{opName}";
             default:
                 throw new ArgumentException($"Unknown operation: {message.Operation}");
         }

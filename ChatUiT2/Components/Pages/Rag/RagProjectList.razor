@@ -187,7 +187,7 @@
             if (uploadResult != null)
             {
                 Snackbar.Add("Nytt RAG prosjekt lagret i database", Severity.Success, config => { });
-                await CreateEmbeddingsForAllSourceItems(uploadResult);
+                await CreateEmbeddingsForUpdatedSourceItems(uploadResult);
                 Snackbar.Add("Sendt melding om å starte generering av Rag database", Severity.Success, config => { });
                 await LoadRagProjectsFromRagDb();
             }
@@ -211,7 +211,7 @@
     /// </summary>
     /// <param name="ragProject"></param>
     /// <returns></returns>
-    private async Task CreateEmbeddingsForAllSourceItems(RagProject ragProject)
+    private async Task CreateEmbeddingsForUpdatedSourceItems(RagProject ragProject)
     {
         try
         {
@@ -219,7 +219,7 @@
             {
                 RagMqMessage message = new()
                 {
-                    Operation = RagMqMessageOperations.ScanForItemsMissingEmbeddings,
+                    Operation = RagMqMessageOperations.GenerateEmbeddingsForUpdatedItems,
                     RagProjectId = ragProject.Id,
                     SourceItemMongoDbId = string.Empty,
                     EmbeddingType = null
