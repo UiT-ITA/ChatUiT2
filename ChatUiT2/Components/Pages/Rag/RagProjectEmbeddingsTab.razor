@@ -215,7 +215,7 @@
                 Snackbar.Add($"Embedding er null", Severity.Error, config => { });
                 return;
             }
-            await ragTopdeskService.SaveRagEmbedding(RagProject, item.RagTextEmbedding);
+            await ragTopdeskService.SaveRagTextEmbedding(RagProject, item.RagTextEmbedding);
             if (reloadData)
             {
                 await LoadDbEmbeddings();

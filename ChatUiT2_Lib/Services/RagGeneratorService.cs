@@ -1,13 +1,12 @@
 ﻿using ChatUiT2.Interfaces;
-using ChatUiT2.Models.Mediatr;
 using ChatUiT2.Models;
 using ChatUiT2.Models.RagProject;
 using Microsoft.Extensions.Logging;
-using MediatR;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Ganss.Xss;
 using OpenAI.Embeddings;
+using Microsoft.Extensions.Configuration;
 
 namespace ChatUiT2.Services;
 
@@ -23,16 +22,19 @@ public class RagGeneratorService : IRagGeneratorService
     private readonly ISettingsService _settingsService;
     private readonly ILogger<RagGeneratorService> _logger;
     private readonly IUsernameService _usernameService;
+    private readonly IConfiguration _configuration;
 
     public RagGeneratorService(IRagDatabaseService ragDatabaseService,
-                                ISettingsService settingsService,
-                                ILogger<RagGeneratorService> logger,                                
-                                IUsernameService usernameService)
+                               ISettingsService settingsService,
+                               ILogger<RagGeneratorService> logger,                                
+                               IUsernameService usernameService,
+                               IConfiguration configuration)
     {
         this._ragDatabaseService = ragDatabaseService;
         this._settingsService = settingsService;
         this._logger = logger;
         this._usernameService = usernameService;
+        _configuration = configuration;
     }
 
     public async Task GenerateRagQuestionsFromContent(RagProject ragProject, ContentItem item)
@@ -46,11 +48,17 @@ public class RagGeneratorService : IRagGeneratorService
             var model = _settingsService.EmbeddingModel;
             var openAIService = new OpenAIService(model, "System", _logger, null!, null!);
             var embedding = await openAIService.GetEmbedding(textContent);
+            int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"] ?? "0");
+            if (numDimensions <= 0)
+            {
+                throw new Exception("Invalid number of dimensions for rag embeddings. Check appsettings");
+            }
+            var embeddingFloats = embedding.ToFloats().Slice(0, numDimensions).ToArray();
             if (questionsFromLlm != null)
             {
                 foreach (var question in questionsFromLlm.Questions)
                 {
-                    await _ragDatabaseService.AddRagTextEmbedding(ragProject, item.Id, EmbeddingSourceType.Question, embedding, question);
+                    await _ragDatabaseService.AddRagTextEmbedding(ragProject, item, EmbeddingSourceType.Question, embeddingFloats, question);
                 }
             }
             else
@@ -129,7 +137,13 @@ public class RagGeneratorService : IRagGeneratorService
                 }
                 var openAIService = new OpenAIService(model, "System", _logger, null!, null!);
                 var embedding = await openAIService.GetEmbedding(textContent);
-                await _ragDatabaseService.AddRagTextEmbedding(ragProject, item.Id, EmbeddingSourceType.Paragraph, embedding, paragraph);
+                int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"] ?? "0");
+                if (numDimensions <= 0)
+                {
+                    throw new Exception("Invalid number of dimensions for rag embeddings. Check appsettings");
+                }
+                var embeddingFloats = embedding.ToFloats().Slice(0, numDimensions).ToArray();
+                await _ragDatabaseService.AddRagTextEmbedding(ragProject, item, EmbeddingSourceType.Paragraph, embeddingFloats, paragraph);
             }
         }
         catch (Exception e)

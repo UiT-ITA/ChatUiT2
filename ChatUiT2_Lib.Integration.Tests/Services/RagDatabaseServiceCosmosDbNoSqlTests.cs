@@ -6,6 +6,8 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Moq;
+using OpenAI.Embeddings;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -1348,16 +1350,17 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task SaveRagEmbedding_NewEmbedding_CreatesItem()
+    public async Task SaveRagTextEmbedding_NewEmbedding_CreatesItem()
     {
         // Arrange
         string ragProjectId = "projectId";
         var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 1);
         var textEmbedding = CreateTestRagTextEmbedding(ragProject.Id, "item1", null);
+        textEmbedding.ContentHash = "hash1";
 
         // Act
         var embeddingsBefore = await GetAllEmbeddings();
-        await _service.SaveRagEmbedding(ragProject, textEmbedding);
+        await _service.SaveRagTextEmbedding(ragProject, textEmbedding);
         var embeddingsAfter = await GetAllEmbeddings();
 
         // Assert
@@ -1366,10 +1369,11 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.NotEmpty(embeddingsAfter[0].Id);
         Assert.Equal(ragProjectId, embeddingsAfter[0].RagProjectId);
         Assert.Equal("item1", embeddingsAfter[0].SourceItemId);
+        Assert.Equal("hash1", embeddingsAfter[0].ContentHash);
     }
 
     [Fact]
-    public async Task SaveRagEmbedding_ExistingEvent_UpdatesItem()
+    public async Task SaveRagTextEmbedding_ExistingEvent_UpdatesItem()
     {
         // Arrange
         string ragProjectId = "projectId";
@@ -1382,7 +1386,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         await _ragEmbeddingContainer.CreateItemAsync(textEmbeddingEvent, new PartitionKey(textEmbeddingEvent.SourceItemId));
         var embeddingsBefore = await GetAllEmbeddings();
         textEmbeddingEvent.Originaltext = "NewOrigText";
-        await _service.SaveRagEmbedding(ragProject, textEmbeddingEvent);
+        await _service.SaveRagTextEmbedding(ragProject, textEmbeddingEvent);
         var embeddingsAfter = await GetAllEmbeddings();
 
         // Assert
@@ -1699,6 +1703,44 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         await Assert.ThrowsAsync<ArgumentException>(() => _service.GetContentItemBySourceId(ragProject, itemId));
     }
 
+    [Fact]
+    public async Task AddRagTextEmbedding_NewEmbedding_CreatesEmbedding()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        string originalText = "The text that was embedded";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 1);
+        var contentItem = new ContentItem
+        {
+            Id = "item1",
+            ContentType = "INLINE",
+            ContentText = "Test Content 1",
+            RagProjectId = ragProjectId,
+            Title = "Test Title 1",
+            Description = "Test Description 1",
+        };
+        var textEmbedding = CreateTestRagTextEmbedding(ragProject.Id, "item1", null);
+        var expectedContentHash = "55158C150EB6890E87E15F935ADCE655";
+        var mockEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+
+        // Act
+        var embeddingsBefore = await GetAllEmbeddings();
+        await _service.AddRagTextEmbedding(ragProject, contentItem, EmbeddingSourceType.Question, mockEmbedding, originalText);
+        var embeddingsAfter = await GetAllEmbeddings();
+
+        // Assert
+        Assert.Empty(embeddingsBefore);
+        Assert.Single(embeddingsAfter);
+        Assert.NotEmpty(embeddingsAfter[0].Id);
+        Assert.Equal(ragProjectId, embeddingsAfter[0].RagProjectId);
+        Assert.Equal("item1", embeddingsAfter[0].SourceItemId);
+        Assert.Equal(expectedContentHash, embeddingsAfter[0].ContentHash);
+        Assert.Equal(originalText, embeddingsAfter[0].Originaltext);
+        Assert.Equal(0.1f, embeddingsAfter[0].Embedding[0]);
+        Assert.Equal(0.2f, embeddingsAfter[0].Embedding[1]);
+        Assert.Equal(0.3f, embeddingsAfter[0].Embedding[2]);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";
@@ -1752,7 +1794,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         {
             Id = embeddingId,
             SourceItemId = itemId,
-            RagProjectId = ragProjectId
+            RagProjectId = ragProjectId            
         };
     }
 

@@ -10,7 +10,7 @@ public static class HashTools
         {
             var bytes = Encoding.UTF8.GetBytes(input);
             var hash = sha256.ComputeHash(bytes);
-            return Convert.ToBase64String(hash);
+            return Convert.ToHexString(hash);
         }
     }
 
@@ -20,7 +20,7 @@ public static class HashTools
         {
             var bytes = Encoding.UTF8.GetBytes(input);
             var hash = md5.ComputeHash(bytes);
-            return Convert.ToBase64String(hash);
+            return Convert.ToHexString(hash);
         }
     }
 }

@@ -18,6 +18,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using MediatR;
 using ChatUiT2.Models.Mediatr;
+using ChatUiT2_Lib.Tools;
 
 namespace ChatUiT2.Services;
 
@@ -433,7 +434,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     /// <param name="embedding">The embedding to save</param>
     /// <param name="forceCreateWithId">In cases where you want to create with a predefined id. For instance when copying a database</param>
     /// <returns></returns>
-    public async Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false)
+    public async Task SaveRagTextEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false)
     {
         var embeddingContainer = await GetEmbeddingContainer(ragProject);
 
@@ -477,16 +478,16 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     }
 
     public async Task AddRagTextEmbedding(RagProject ragProject, 
-                                          string itemId, 
+                                          ContentItem item, 
                                           EmbeddingSourceType embedType,
-                                          OpenAIEmbedding embedding,
+                                          float[] embedding,
                                           string originalText = "")
     {
         if (ragProject == null)
         {
             throw new ArgumentException("ragProject must be set to add embedding");
         }
-        if (string.IsNullOrEmpty(itemId))
+        if (string.IsNullOrEmpty(item?.Id))
         {
             throw new ArgumentException("itemId must be set to add embedding");
         }
@@ -499,17 +500,13 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             Model = _settingsService.EmbeddingModel.DeploymentName,
             ModelProvider = _settingsService.EmbeddingModel.DeploymentType.GetDisplayName(),
             Originaltext = originalText,
-            SourceItemId = itemId,
+            SourceItemId = item.Id,
             RagProjectId = ragProject?.Id ?? string.Empty,
-            TextType = embedType
+            TextType = embedType,
+            ContentHash = HashTools.GetMd5Hash(item.StringForContentHash),
         };
-        int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"] ?? "0");
-        if (numDimensions <= 0)
-        {
-            throw new Exception("Invalid number of dimensions for rag embeddings. Check appsettings");
-        }
-        newEmbedding.Embedding = embedding.ToFloats().Slice(0, numDimensions).ToArray();
-        await SaveRagEmbedding(ragProject!, newEmbedding);
+        newEmbedding.Embedding = embedding;
+        await SaveRagTextEmbedding(ragProject!, newEmbedding);
     }
 
     public async Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId)
