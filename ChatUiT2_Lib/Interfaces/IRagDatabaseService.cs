@@ -46,4 +46,6 @@ public interface IRagDatabaseService
     string GetItemContentString(ContentItem item);
     Task<ContentItem?> GetContentItemBySourceId(RagProject ragProject, string sourceId);
     IAsyncEnumerable<ContentItem> GetContentItemsByProject(RagProject ragProject);
+    IAsyncEnumerable<ContentItem> GetContentItemsWithUpdates(RagProject ragProject);
+    Task<List<EmbeddingEvent>> GetEmbeddingEventsByItemId(RagProject ragProject, string contentItemId);
 }

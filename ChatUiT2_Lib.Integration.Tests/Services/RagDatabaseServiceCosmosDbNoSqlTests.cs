@@ -981,6 +981,58 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task GetContentItemsWithUpdates_Exist_ShouldReturnList()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 4);
+        ragProject.ContentItems[2].ContentNeedsEmbeddingUpdate = false;
+
+        // Act
+        foreach (var item in ragProject.ContentItems)
+        {
+            await _ragItemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
+        }
+        var result = _service.GetContentItemsWithUpdates(ragProject);
+        List<ContentItem> resultList = new List<ContentItem>();
+        await foreach (var item in result)
+        {
+            resultList.Add(item);
+        }
+
+        // Assert
+        Assert.Equal(3, resultList.Count());
+        Assert.Equal("item0", resultList[0].Id);
+        Assert.Equal("item1", resultList[1].Id);
+        Assert.Equal("item3", resultList[2].Id);
+    }
+
+    [Fact]
+    public async Task GetContentItemsWithUpdates_DoesNotExist_ShouldReturnEmptyList()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 4);
+        ragProject.ContentItems[2].ContentNeedsEmbeddingUpdate = false;
+
+        // Act
+        foreach (var item in ragProject.ContentItems)
+        {
+            item.ContentNeedsEmbeddingUpdate = false;
+            await _ragItemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
+        }
+        var result = _service.GetContentItemsWithUpdates(ragProject);
+        List<ContentItem> resultList = new List<ContentItem>();
+        await foreach (var item in result)
+        {
+            resultList.Add(item);
+        }
+
+        // Assert
+        Assert.Empty(resultList);
+    }
+
+    [Fact]
     public async Task GetEmbeddingContentItemIdsByProject_ValidProject_ReturnsIds()
     {
         // Arrange
@@ -1741,6 +1793,36 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal(0.3f, embeddingsAfter[0].Embedding[2]);
     }
 
+    [Fact]
+    public async Task GetEmbeddingEventsByItemId_ValidProject_ShouldGetCorrectItems()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject.Id, ContentItemId = "ItemId1" },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject.Id, ContentItemId = "ItemId2" },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject.Id, ContentItemId = "ItemId1" }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var result = await _service.GetEmbeddingEventsByItemId(ragProject, "ItemId1");
+        var eventsInDb = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(3, eventsInDb.Count);
+        Assert.Equal(2, result.Count());
+        Assert.Contains(eventsInDb, x => x.Id == "embeddingEvent1");
+        Assert.Contains(eventsInDb, x => x.Id == "embeddingEvent3");
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";
@@ -1836,7 +1918,8 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
                 SystemName = "TestSystem",
                 ContentType = "INLINE",
                 ContentText = $"Test Content {i}",
-                RagProjectId = id
+                RagProjectId = id,
+                ContentNeedsEmbeddingUpdate = true,
             });
         }
         return result;
