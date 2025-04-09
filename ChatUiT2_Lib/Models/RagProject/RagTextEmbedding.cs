@@ -58,7 +58,7 @@ public class RagTextEmbedding
     public string ContentHash { get; set; } = string.Empty;
 
     [BsonElement("EmbeddingSourceType")]
-    public EmbeddingSourceType? TextType { get; set; }    
+    public EmbeddingSourceType? EmbeddingSourceType { get; set; }    
 
     [BsonIgnore]
     public ContentItem? ContentItem { get; set; }
