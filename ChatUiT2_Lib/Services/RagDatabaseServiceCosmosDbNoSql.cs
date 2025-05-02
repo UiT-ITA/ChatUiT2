@@ -173,27 +173,20 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             await ragProjectContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
         }
 
-        // Save the items in the specific db for this rag project
-        foreach (var item in ragProject.ContentItems)
-        {
-            item.RagProjectId = ragProject.Id ?? string.Empty;
-            var existingItem = await GetContentItemBySourceId(ragProject, item.SourceSystemId);            
-            if (existingItem != null)
-            {
-                item.Id = existingItem.Id;
-                var newItemHash = HashTools.GetMd5Hash(item.StringForContentHash);
-                if (existingItem.IsContentChanged(newItemHash))
-                {
-                    item.ContentNeedsEmbeddingUpdate = true;
-                }
-            } else
-            {
-                item.ContentNeedsEmbeddingUpdate = true;
-            }
-            await SaveRagProjectItem(item, itemContainer);
-        }
+        // Save content items for project
+        await SaveContentItemsChangedForRagProject(ragProject);
 
-        // Delete items in database that is not in the new project def (articles that are removed)
+        // Delete items no longer existing
+        await DeleteItemsNoLongerExisting(ragProject);
+    }
+
+    /// <summary>
+    /// Delete items in the database that are not in the the source data anymore
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <returns></returns>
+    public async Task DeleteItemsNoLongerExisting(RagProject ragProject)
+    {
         var dbItemIds = await GetItemSourceSystemIdsByProject(ragProject);
         foreach (var itemIdInDb in dbItemIds)
         {
@@ -205,6 +198,31 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                     await DeleteContentItem(ragProject, itemToDelete);
                 }
             }
+        }
+    }
+
+    public async Task SaveContentItemsChangedForRagProject(RagProject ragProject)
+    {
+        var itemContainer = await GetItemContainer(ragProject);
+        // Save the items in the specific db for this rag project
+        foreach (var item in ragProject.ContentItems)
+        {
+            item.RagProjectId = ragProject.Id ?? string.Empty;
+            var existingItem = await GetContentItemBySourceId(ragProject, item.SourceSystemId);
+            if (existingItem != null)
+            {
+                item.Id = existingItem.Id;
+                var newItemHash = HashTools.GetMd5Hash(item.StringForContentHash);
+                if (existingItem.IsContentChanged(newItemHash))
+                {
+                    item.ContentNeedsEmbeddingUpdate = true;
+                }
+            }
+            else
+            {
+                item.ContentNeedsEmbeddingUpdate = true;
+            }
+            await SaveRagProjectItem(item, itemContainer);
         }
     }
 
