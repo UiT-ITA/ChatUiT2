@@ -1,4 +1,4 @@
 ﻿namespace ChatUiT2_Lib.Tests.Tools;
-internal class HashToolsTests
+public class HashToolsTests
 {
 }
