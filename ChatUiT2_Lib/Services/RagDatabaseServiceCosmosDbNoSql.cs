@@ -201,6 +201,13 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
+    /// <summary>
+    /// Saves content items that have changed for a given RAG project.
+    /// Updates the content items in the database and sets the ContentNeedsEmbeddingUpdate flag
+    /// if the content has changed based on the hash comparison.
+    /// </summary>
+    /// <param name="ragProject">The RAG project containing the content items to be saved.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
     public async Task SaveContentItemsChangedForRagProject(RagProject ragProject)
     {
         var itemContainer = await GetItemContainer(ragProject);
