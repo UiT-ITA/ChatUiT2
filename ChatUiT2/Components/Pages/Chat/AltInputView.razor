@@ -14,7 +14,7 @@
             <MudTextField id="inputField" @bind-Value="prompt" Variant="Variant.Text" @onkeydown="HandleKeyPress"
             AutoFocus AutoGrow Placeholder="Ask anything!" Lines="2" MaxLines="10"
             Class="ml-4 pl-0 pr-4 pt-2" Underline="false" @ref="inputFieldRef"
-            TextUpdateSuppression="false" FullWidth DebounceInterval="50" />
+            TextUpdateSuppression="false" FullWidth />
 
             @if (showSettings)
             {
@@ -62,9 +62,10 @@
             @if(!UserService.Waiting)
             {
                 <MudTooltip Text="Send message" Placement="Placement.Left">
-                    <div class="custom-button" @onclick="SendMessage">
-                        <MudIcon Icon="@Icons.Material.Filled.Send"/>
-                    </div>
+                    @* <div class="custom-button" @onclick="SendMessage" @ref="submitButtonRef"> *@
+                    @*     <MudIcon Icon="@Icons.Material.Filled.Send"/> *@
+                    @* </div> *@
+                    <MudIconButton Icon="@Icons.Material.Filled.Send" Color="Color.Default" Size="Size.Medium" @onclick="SendMessage" @ref="submitButtonRef" />
                 </MudTooltip>
             }
             else 
@@ -120,6 +121,7 @@
     private string acceptedFiles { get => FileTools.GetAcceptedFilesString(); }
 
     private MudTextField<string> inputFieldRef = null!;
+    private MudIconButton submitButtonRef = null!;
 
     string prompt = "";
 
@@ -293,12 +295,11 @@
     {
         if (e.Key == "Enter" && !e.ShiftKey && !UserService.Waiting)
         {
-
             await Task.Delay(100);
 
-            // await inputFieldRef.FocusAsync();
-            // await inputFieldRef.ForceUpdate();
-            var tmp_prompt = inputFieldRef.Value;
+            await submitButtonRef.FocusAsync();
+            await Task.Delay(100);
+            await inputFieldRef.FocusAsync();
 
             SendMessage();
         }
