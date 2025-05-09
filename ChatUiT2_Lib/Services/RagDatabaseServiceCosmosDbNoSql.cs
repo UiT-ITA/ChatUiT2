@@ -965,10 +965,29 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays)
+    public async Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to get expired embedding events");
+        }
+
+        var container = await GetEmbeddingEventContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.Updated < @thresholdDate")
+            .WithParameter("@thresholdDate", _dateTimeProvider.UtcNow.AddDays(-olderThanDays));
+
+        var expiredEvents = new List<EmbeddingEvent>();
+        var queryIterator = container.GetItemQueryIterator<EmbeddingEvent>(queryDefinition);
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            expiredEvents.AddRange(response);
+        }
+
+        return expiredEvents;
     }
+
 
     public async Task<bool> DatabaseExistsAsync(string databaseId)
     {
