@@ -178,12 +178,7 @@ public class DatabaseService : IDatabaseService
                     var workItem = JsonSerializer.Deserialize<WorkItemChat>(doc["Data"].AsString);
                     if(workItem != null)
                     {
-                        workItem.Messages = await GetChatMessages(userObj, workItem.Id);
                         workItems.Add(workItem);
-                    }
-                    else
-                    {
-                        throw new Exception("Error loading WorkItemChat");
                     }
                 }
                 else
