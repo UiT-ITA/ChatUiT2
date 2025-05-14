@@ -152,7 +152,6 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         // Save the project definition
         if (string.IsNullOrEmpty(ragProject.Id))
         {
-            ragProject.Created = _dateTimeProvider.OffsetUtcNow;
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
             // Check if the project already exists in the database with the given name
             var existingInDb = await GetRagProjectByName(ragProject.Name);
@@ -164,6 +163,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             else
             {
                 ragProject.Id = Guid.NewGuid().ToString();
+                ragProject.Created = _dateTimeProvider.OffsetUtcNow;
                 await ragProjectContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
             }
         }
