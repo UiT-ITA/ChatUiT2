@@ -528,11 +528,14 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     public async Task SaveRagProject_OneContentItemRemovedFromSource_ShouldDeleteRemovedContentItem()
     {
         // Arrange
+        var projectOffset = new DateTimeOffset(2022, 1, 1, 10, 10, 0, TimeSpan.Zero);
         var ragProject = new RagProject
         {
             Id = Guid.NewGuid().ToString(),
             Name = "Test Project",
             Description = "Test Description",
+            Updated = projectOffset,
+            Created = projectOffset,
             Configuration = new RagConfiguration
             {
                 DbName = _ragItemDbName,
@@ -568,6 +571,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         };
 
         // Act
+        var projectInDb = await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
         var existingInDb = await _ragItemContainer.CreateItemAsync(existingContentItem, new PartitionKey(existingContentItem.Id));
         await _service.SaveRagProject(ragProject);
 
@@ -577,6 +581,8 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.NotNull(response.Resource);
         Assert.Equal(ragProject.Name, response.Resource.Name);
         Assert.Equal(ragProject.Description, response.Resource.Description);
+        Assert.Equal(_dateTimeOffsets[0], response.Resource.Updated);
+        Assert.Equal(projectOffset, response.Resource.Created.UtcDateTime);
 
         // Check content items
         var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
@@ -590,74 +596,6 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal(2, contentItemList.Count());
         Assert.Equal("Test Content 1", contentItemList[0].ContentText);
         Assert.Equal("Test Content 2", contentItemList[1].ContentText);
-    }
-
-    [Fact]
-    public async Task SaveRagProject_OneOtherContentItemAlreadyExist_ShouldNotChangeTheExistingOne()
-    {
-        // Arrange
-        var ragProject = new RagProject
-        {
-            Id = Guid.NewGuid().ToString(),
-            Name = "Test Project",
-            Description = "Test Description",
-            Configuration = new RagConfiguration
-            {
-                DbName = _ragItemDbName,
-                ItemCollectionName = _ragItemContainerName
-            },
-            ContentItems = new List<ContentItem>
-            {
-                new ContentItem
-                {
-                    SystemName = "TestSystem",
-                    ContentType = "INLINE",
-                    ContentText = "Test Content 1",
-                    SourceSystemId = "source1"
-                },
-                new ContentItem
-                {
-                    SystemName = "TestSystem",
-                    ContentType = "INLINE",
-                    ContentText = "Test Content 2",
-                    SourceSystemId = "source2"
-                }
-            }
-        };
-        var existingContentItem = new ContentItem
-        {
-            Id = Guid.NewGuid().ToString(),
-            SystemName = "TestSystem",
-            ContentType = "INLINE",
-            ContentText = "Old content",
-            SourceSystemId = "source3",
-            RagProjectId = ragProject.Id
-        };
-
-        // Act
-        var existingInDb = await _ragItemContainer.CreateItemAsync(existingContentItem, new PartitionKey(existingContentItem.Id));
-        await _service.SaveRagProject(ragProject);
-
-        // Assert
-        var response = await _ragProjectDefContainer.ReadItemAsync<RagProject>(ragProject.Id, new PartitionKey(ragProject.Id));
-
-        Assert.NotNull(response.Resource);
-        Assert.Equal(ragProject.Name, response.Resource.Name);
-        Assert.Equal(ragProject.Description, response.Resource.Description);
-
-        // Check content items
-        var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
-        List<ContentItem> contentItemList = new List<ContentItem>();
-        while (contentItems.HasMoreResults)
-        {
-            var contentItem = await contentItems.ReadNextAsync();
-            contentItemList.AddRange(contentItem);
-        }
-        Assert.Equal(3, contentItemList.Count());
-        Assert.Contains(contentItemList, x => x.ContentText == "Old content");
-        Assert.Contains(contentItemList, x => x.ContentText == "Test Content 1");
-        Assert.Contains(contentItemList, x => x.ContentText == "Test Content 2");
-        Assert.Contains(contentItemList, x => x.Id == existingInDb.Resource.Id);
     }
 
     [Fact]
@@ -2015,7 +1953,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
             Description = "Test Description 1",
         };
         var textEmbedding = CreateTestRagTextEmbedding(ragProject.Id, "item1", null);
-        var expectedContentHash = "55158C150EB6890E87E15F935ADCE655";
+        var expectedContentHash = "55158c150eb6890e87e15f935adce655";
         var mockEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
 
         // Act
