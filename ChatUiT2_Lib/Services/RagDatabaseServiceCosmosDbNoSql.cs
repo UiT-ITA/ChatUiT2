@@ -171,6 +171,17 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         else
         {
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
+            // Need to get the existing project to get the created date
+            var existingInDb = await GetRagProjectByName(ragProject.Name);
+            if (existingInDb != null)
+            {
+                ragProject.Created = existingInDb.Created;
+            }
+            else
+            {
+                _logger.LogWarning("RagProject had Id set but object with id: {ragProjectId} was not found in Db", ragProject.Id);
+                throw new Exception($"RagProject had Id set but object with id: {ragProject.Id} was not found in Db");
+            }
             await ragProjectContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
         }
 
@@ -220,7 +231,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             if (existingItem != null)
             {
                 item.Id = existingItem.Id;
-                var newItemHash = HashTools.GetMd5Hash(item.StringForContentHash);
+                item.Created = existingItem.Created;
+                var newItemHash = HashTools.GetSha256Hash(item.StringForContentHash);
                 if (existingItem.IsContentChanged(newItemHash))
                 {
                     item.ContentNeedsEmbeddingUpdate = true;
