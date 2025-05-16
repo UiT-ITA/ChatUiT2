@@ -158,6 +158,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             if (existingInDb != null)
             {
                 ragProject.Id = existingInDb.Id;
+                ragProject.Created = existingInDb.Created;
                 await ragProjectContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
             }
             else
@@ -252,8 +253,9 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     {
         if (string.IsNullOrEmpty(item.Id))
         {
-            item.Created = _dateTimeProvider.OffsetUtcNow;
-            item.Updated = _dateTimeProvider.OffsetUtcNow;
+            var curTime = _dateTimeProvider.OffsetUtcNow;
+            item.Created = curTime;
+            item.Updated = curTime;
             item.Id = Guid.NewGuid().ToString();
             await itemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
         }
