@@ -6,12 +6,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Moq;
 
 namespace ChatUiT2.Integration.Tests.TestStaging;
 
 public static class HostBuilderStaging
 {
-    public static IHost GetHost(string environment)
+    public static IHost GetHost(string environment, IDateTimeProvider? dateTimeProvider = null)
     {
         // Create a HostBuilder
         var host = Host.CreateDefaultBuilder()
@@ -37,7 +38,14 @@ public static class HostBuilderStaging
                 });
 
                 services.AddSingleton<IRagDatabaseService, RagDatabaseServiceCosmosDbNoSql>();
-                services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+                if(dateTimeProvider != null)
+                {
+                    services.AddTransient<IDateTimeProvider>(sp => dateTimeProvider);
+                }
+                else
+                {
+                    services.AddTransient<IDateTimeProvider, DateTimeProvider>();
+                }
                 services.AddSingleton<ISettingsService, SettingsService>();
             })
             .Build();

@@ -32,6 +32,20 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     private Container _ragEmbeddingContainer;
     private Container _ragEmbeddingEventContainer;
 
+    private List<DateTimeOffset> _dateTimeOffsets = new List<DateTimeOffset>()
+    {
+        new DateTimeOffset(2023, 5, 16, 13, 10, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 11, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 12, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 13, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 14, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 15, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 16, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 17, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 18, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 19, 0, TimeSpan.Zero),
+    };
+
     public RagDatabaseServiceCosmosDbNoSqlTests()
     {
         this._configuration = ConfigurationStaging.GetConfiguration("Development");
@@ -156,7 +170,29 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         // Create project def container
         this._ragEmbeddingEventContainer = await _ragItemDatabase.CreateContainerAsync(_ragEmbeddingEventContainerName, "/RagProjectId");
 
-        this._service = RagDatabaseServiceCosmosDbNoSqlStaging.GetRagDatabaseServiceCosmosDbNoSqlStaging("Development");
+        // Prepare IDateTimeProvider with predefined sequence of values
+        Mock<IDateTimeProvider> dateTimeProviderMock = new();
+        DateTimeOffset now1 = new DateTimeOffset(2023, 5, 16, 13, 10, 0, TimeSpan.Zero);
+        DateTimeOffset now2 = new DateTimeOffset(2023, 5, 16, 13, 11, 0, TimeSpan.Zero);
+        DateTimeOffset now3 = new DateTimeOffset(2023, 5, 16, 13, 12, 0, TimeSpan.Zero);
+        DateTimeOffset now4 = new DateTimeOffset(2023, 5, 16, 13, 13, 0, TimeSpan.Zero);
+        DateTimeOffset now5 = new DateTimeOffset(2023, 5, 16, 13, 14, 0, TimeSpan.Zero);
+        DateTimeOffset now6 = new DateTimeOffset(2023, 5, 16, 13, 15, 0, TimeSpan.Zero);
+        DateTimeOffset now7 = new DateTimeOffset(2023, 5, 16, 13, 16, 0, TimeSpan.Zero);
+        DateTimeOffset now8 = new DateTimeOffset(2023, 5, 16, 13, 17, 0, TimeSpan.Zero);
+        DateTimeOffset now9 = new DateTimeOffset(2023, 5, 16, 13, 18, 0, TimeSpan.Zero);
+        dateTimeProviderMock.SetupSequence(m => m.OffsetUtcNow)
+            .Returns(_dateTimeOffsets[0])
+            .Returns(_dateTimeOffsets[1])
+            .Returns(_dateTimeOffsets[2])
+            .Returns(_dateTimeOffsets[3])
+            .Returns(_dateTimeOffsets[4])
+            .Returns(_dateTimeOffsets[5])
+            .Returns(_dateTimeOffsets[6])
+            .Returns(_dateTimeOffsets[7])
+            .Returns(_dateTimeOffsets[8]);
+
+        this._service = RagDatabaseServiceCosmosDbNoSqlStaging.GetRagDatabaseServiceCosmosDbNoSqlStaging("Development", dateTimeProviderMock.Object);
     }
 
     [Fact]
@@ -165,6 +201,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         // Arrange
         var ragProject = new RagProject
         {
+            Id = null,
             Name = "Test Project",
             Description = "Test Description",
             Configuration = new RagConfiguration
@@ -200,10 +237,12 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.NotNull(response.Resource);
         Assert.Equal(ragProject.Name, response.Resource.Name);
         Assert.Equal(ragProject.Description, response.Resource.Description);
+        Assert.Equal(_dateTimeOffsets[0], response.Resource.Updated.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[1], response.Resource.Created.UtcDateTime);
 
         // Check content items
         var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
-        List<ContentItem> contentItemList = new List<ContentItem>();
+        List<ContentItem> contentItemList = new List<ContentItem>();        
         while (contentItems.HasMoreResults)
         {
             var contentItem = await contentItems.ReadNextAsync();
@@ -212,6 +251,18 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal(2, contentItemList.Count());
         Assert.Contains(contentItemList, x => x.ContentText == "Test Content 1");
         Assert.Contains(contentItemList, x => x.ContentText == "Test Content 2");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source1");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source2");
+        var item1 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source1");
+        var item2 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source2");
+        Assert.Equal(ragProject.Id, item1.RagProjectId);
+        Assert.Equal(ragProject.Id, item2.RagProjectId);
+        Assert.Equal(_dateTimeOffsets[2], item1.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item1.Updated.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[3], item2.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[3], item2.Updated.UtcDateTime);
+        Assert.True(item1.ContentNeedsEmbeddingUpdate);
+        Assert.True(item2.ContentNeedsEmbeddingUpdate);
     }
 
     [Fact]
@@ -245,11 +296,14 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
                 }
             }
         };
+        DateTimeOffset existingCreatedTime = new DateTimeOffset(2022, 1, 1, 10, 10, 0, TimeSpan.Zero);
         var existingRagProject = new RagProject()
         {
             Id = Guid.NewGuid().ToString(),
             Name = "Test Project",
-            Description = "OldDescription"
+            Description = "OldDescription",
+            Created = existingCreatedTime,
+            Updated = existingCreatedTime
         };
 
         // Act
@@ -268,6 +322,8 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal(projectInDb.Resource.Id, projectList[0].Id);
         Assert.Equal(ragProject.Name, projectList[0].Name);
         Assert.Equal(ragProject.Description, projectList[0].Description);
+        Assert.Equal(_dateTimeOffsets[0], projectList[0].Updated);
+        Assert.Equal(existingCreatedTime, projectList[0].Created.UtcDateTime);
 
         // Check content items
         var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
@@ -280,6 +336,18 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal(2, contentItemList.Count());
         Assert.Contains(contentItemList, x => x.ContentText == "Test Content 1");
         Assert.Contains(contentItemList, x => x.ContentText == "Test Content 2");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source1");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source2");
+        var item1 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source1");
+        var item2 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source2");
+        Assert.Equal(ragProject.Id, item1.RagProjectId);
+        Assert.Equal(ragProject.Id, item2.RagProjectId);
+        Assert.Equal(_dateTimeOffsets[1], item1.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[1], item1.Updated.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item2.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item2.Updated.UtcDateTime);
+        Assert.True(item1.ContentNeedsEmbeddingUpdate);
+        Assert.True(item2.ContentNeedsEmbeddingUpdate);
     }
 
     [Fact]
