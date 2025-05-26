@@ -356,7 +356,8 @@ public class UserService : IUserService
             {
                 _logger.LogError(ex, "Error saving chat messages for user {User} in work item {WorkItemId}", UserName, CurrentChat.Id);
                 CurrentChat.Messages.Remove(chatMessage);
-                CurrentChat.Messages.Add(new ChatMessage { Role = ChatMessageRole.Assistant, Content = "Error saving message. Try creating a temporary chat.", Status = ChatMessageStatus.Error });
+                CurrentChat.Messages.Add(new ChatMessage { Role = ChatMessageRole.Assistant, Content = "Error saving message. You can try creating a new temporary chat", Status = ChatMessageStatus.Error });
+                _updateService.Update(UpdateType.ChatMessage);
                 try
                 {
                     await _databaseService.DeleteChatMessage(chatMessage, CurrentChat, User);
@@ -365,6 +366,7 @@ public class UserService : IUserService
                 {
                     _logger.LogError(ex2, "Error deleting missing messages for user {User} in work item {WorkItemId}", UserName, CurrentChat.Id);
                 }
+                Waiting = false;
                 return;
             }
         }
@@ -390,6 +392,7 @@ public class UserService : IUserService
                 }
             }
         }
+        Waiting = false;
         _updateService.Update(UpdateType.ChatMessage);
     }
 
