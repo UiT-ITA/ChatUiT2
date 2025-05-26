@@ -345,9 +345,52 @@ public class UserService : IUserService
 
         CurrentChat.Messages.Add(chatMessage);
         _updateService.Update(UpdateType.ChatMessage);
-        await UpdateWorkItem(CurrentChat);
-        await SendMessage();
 
+        if (CurrentChat.Persistant)
+        {
+            try
+            {
+                await _databaseService.SaveChatMessages(User, CurrentChat);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving chat messages for user {User} in work item {WorkItemId}", UserName, CurrentChat.Id);
+                CurrentChat.Messages.Remove(chatMessage);
+                CurrentChat.Messages.Add(new ChatMessage { Role = ChatMessageRole.Assistant, Content = "Error saving message. Try creating a temporary chat.", Status = ChatMessageStatus.Error });
+                try
+                {
+                    await _databaseService.DeleteChatMessage(chatMessage, CurrentChat, User);
+                }
+                catch (Exception ex2)
+                {
+                    _logger.LogError(ex2, "Error deleting missing messages for user {User} in work item {WorkItemId}", UserName, CurrentChat.Id);
+                }
+                return;
+            }
+        }
+
+        try
+        {
+            await SendMessage();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending message for user {User} in work item {WorkItemId}", UserName, CurrentChat.Id);
+            CurrentChat.Messages.Remove(chatMessage);
+            CurrentChat.Messages.Add(new ChatMessage { Role = ChatMessageRole.Assistant, Content = "Something went wrong...", Status = ChatMessageStatus.Error });
+            if (CurrentChat.Persistant)
+            {
+                try
+                {
+                    await _databaseService.DeleteChatMessage(chatMessage, CurrentChat, User);
+                }
+                catch (Exception ex2)
+                {
+                    _logger.LogError(ex2, "Error deleting missing messages for user {User} in work item {WorkItemId}", UserName, CurrentChat.Id);
+                }
+            }
+        }
+        _updateService.Update(UpdateType.ChatMessage);
     }
 
     public async Task SendMessage()

@@ -111,7 +111,7 @@ public static class FileTools
     }
 
 
-    private static List<ChatFilePart> ExtractContentFromPdf(byte[] data, int imageSizeCutof = 10_000)
+    private static List<ChatFilePart> ExtractContentFromPdf(byte[] data, int imageSizeCutof = 100_000)
     {
         List<ChatFilePart> content = new ();
 
@@ -194,7 +194,7 @@ public static class FileTools
     }
 
 
-    private static List<ChatFilePart> ExtractContentFromDocx(byte[] data, int imageSizeCutof = 10_000)
+    private static List<ChatFilePart> ExtractContentFromDocx(byte[] data, int imageSizeCutof = 100_000)
     {
         List<ChatFilePart> content = new();
 
@@ -241,7 +241,7 @@ public static class FileTools
                                         {
                                             stream.CopyTo(memoryStreamImage);
                                             byte[] imageData = memoryStreamImage.ToArray();
-                                            if (imageData.Length > 10_000) // Used to filter out logos etc
+                                            if (imageData.Length > imageSizeCutof) // Used to filter out logos etc
                                             {
                                                 content.Add(new ImageFilePart(imageData));
                                             }
