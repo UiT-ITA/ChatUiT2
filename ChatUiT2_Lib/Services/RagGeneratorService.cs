@@ -1,12 +1,13 @@
 ﻿using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Models.RagProject;
+using DocumentFormat.OpenXml.Office.SpreadSheetML.Y2023.MsForms;
+using Ganss.Xss;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using OpenAI.Embeddings;
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using Ganss.Xss;
-using OpenAI.Embeddings;
-using Microsoft.Extensions.Configuration;
 
 namespace ChatUiT2.Services;
 
@@ -47,6 +48,11 @@ public class RagGeneratorService : IRagGeneratorService
                                                                       ragProject.Configuration?.MaxNumberOfQuestionsPerItem ?? 20);
             var model = _settingsService.EmbeddingModel;
             var openAIService = new OpenAIService(model, "System", _logger, null!, null!);
+            if (string.IsNullOrEmpty(textContent))
+            {
+                _logger.LogInformation("Found item with blank content {itemId}. Not possible to generate embeddings. Skipping", item.Id);
+                return;
+            }
             var embedding = await openAIService.GetEmbedding(textContent);
             int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"] ?? "0");
             if (numDimensions <= 0)
@@ -58,6 +64,10 @@ public class RagGeneratorService : IRagGeneratorService
             {
                 foreach (var question in questionsFromLlm.Questions)
                 {
+                    if(string.IsNullOrEmpty(question))
+                    {
+                        _logger.LogInformation("Got blank line in question list from LLM. Skipping this question.");
+                    }
                     await _ragDatabaseService.AddRagTextEmbedding(ragProject, item, EmbeddingSourceType.Question, embeddingFloats, question);
                 }
             }
