@@ -110,7 +110,7 @@
     [Inject] private IRagSearchService ragSearchService { get; set; } = null!;
     [Inject] ISnackbar Snackbar { get; set; } = null!;
     [Inject] ISettingsService settingsService { get; set; } = null!;
-    [Inject] ILogger logger { get; set; } = null!;
+    [Inject] ILogger<RagProjectSearchTab> logger { get; set; } = null!;
 
     [Parameter]
     public RagProject? RagProject { get; set; }
