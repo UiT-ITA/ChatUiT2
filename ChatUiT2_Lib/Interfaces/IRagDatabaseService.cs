@@ -7,7 +7,7 @@ namespace ChatUiT2.Interfaces;
 
 public interface IRagDatabaseService
 {
-    public Task SaveRagProject(RagProject ragProject);
+    public Task SaveRagProject(RagProject ragProject, bool forceCreateWithId = false);
     public Task<RagProject?> GetRagProjectById(string projectId, bool loadItems = false);
     public Task<List<RagProject>> GetAllRagProjects();
     public Task DeleteOrphanEmbeddings(RagProject ragProject);

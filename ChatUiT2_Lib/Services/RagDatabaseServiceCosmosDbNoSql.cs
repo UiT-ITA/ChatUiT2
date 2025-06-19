@@ -136,7 +136,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return (await ragEmbeddingEventDatabase.Database.CreateContainerIfNotExistsAsync(ragProject.Configuration.EmbeddingEventCollectioName, "/RagProjectId")).Container;
     }
 
-    public async Task SaveRagProject(RagProject ragProject)
+    public async Task SaveRagProject(RagProject ragProject, bool forceCreateWithId = false)
     {
         if (string.IsNullOrEmpty(ragProject.Configuration?.DbName))
         {
@@ -150,7 +150,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         var itemContainer = await GetItemContainer(ragProject);
 
         // Save the project definition
-        if (string.IsNullOrEmpty(ragProject.Id))
+        if (string.IsNullOrEmpty(ragProject.Id) || forceCreateWithId)
         {
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
             // Check if the project already exists in the database with the given name
@@ -163,7 +163,10 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             }
             else
             {
-                ragProject.Id = Guid.NewGuid().ToString();
+                if(forceCreateWithId == false)
+                {
+                    ragProject.Id = Guid.NewGuid().ToString();
+                }
                 ragProject.Created = _dateTimeProvider.OffsetUtcNow;
                 await ragProjectContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
             }
