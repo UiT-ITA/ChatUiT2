@@ -22,6 +22,23 @@ public class ChatTools
                 }
                 """)
         );
+    
+    private static ChatTool getPersonalhandbokDataTool = ChatTool.CreateFunctionTool(
+        functionName: "getPersonalhandbok",
+        functionDescription: "Get documentation from personalhandbok at UiT",
+        functionParameters: BinaryData.FromString("""
+                {
+                    "type": "object",
+                    "properties": {
+                        "query": {
+                            "type": "string",
+                            "description": "The isolated question to search the database for. Question must be formulated in norwegian"
+                        }
+                    },
+                    "required": [ "query" ]
+                }
+                """)
+        );
 
     private static ChatTool getWikiEntryTool = ChatTool.CreateFunctionTool(
         functionName: "GetWikipediaEntry",
@@ -105,6 +122,13 @@ public class ChatTools
             Description = "Get documentation from Orakelet",
             Icon = Icons.Material.Filled.WbSunny,
             Tool = getTopdeskDataTool
+        },
+        new ChatToolDescription
+        {
+            DisplayName = "Personalhandbok",
+            Description = "Get documentation from Personalhandbok",
+            Icon = Icons.Material.Filled.WbSunny,
+            Tool = getPersonalhandbokDataTool
         },
         new ChatToolDescription
         {
