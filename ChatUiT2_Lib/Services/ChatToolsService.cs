@@ -74,6 +74,31 @@ public class ChatToolsService : IChatToolsService
         return stringResult.ToString();
     }
 
+    public async Task<string> GetPersonalhandbok(string query)
+    {
+        RagProject? ragProject = await _ragDatabaseService.GetRagProjectByName("PersonalhandbokItems");
+        if (ragProject == null)
+        {
+            return "Could not find the PersonalhandbokItems project";
+        }
+
+        var model = _settingsService.EmbeddingModel;
+        var openAIService = new OpenAIService(model, "System", _logger, _mediator, null!);
+        var embedding = await openAIService.GetEmbedding(query);
+
+        var ragSearchResult = await _ragSearchService.DoGenericRagSearch(ragProject, embedding, 3, 0.6d);
+        StringBuilder stringResult = new();
+        stringResult.Append("Here are some personalhandbok articles that i want you to base your answer on.\n");
+        stringResult.Append("Include links to the articles that were most relevant for finding the answer using url and title of article.");
+        foreach (var result in ragSearchResult)
+        {
+            stringResult.Append($"-- Article start id {result.SourceId} url to article is {result.ContentUrl} title of article is \"{result.ContentTitle}\" article number is {result.SourceAltId}\n");
+            stringResult.Append(result.SourceContent);
+            stringResult.Append($"-- Article end id {result.SourceId}\n\n");
+        }
+        return stringResult.ToString();
+    }
+
     public async Task<string> GetImageGeneration(string description, string? style = null, string? size = null)
     {
         style ??= "natural";
@@ -191,6 +216,17 @@ public class ChatToolsService : IChatToolsService
                         string query = locationElement.GetString()!;
 
                         return await GetTopdesk(query);
+                    }
+                case "getPersonalhandbok":
+                    if (!argumentsDocument.RootElement.TryGetProperty("query", out JsonElement personalhandbokElement))
+                    {
+                        return "This tool needs a valid query";
+                    }
+                    else
+                    {
+                        string query = personalhandbokElement.GetString()!;
+
+                        return await GetPersonalhandbok(query);
                     }
                 case "GetWikipediaEntry":
                     if (!argumentsDocument.RootElement.TryGetProperty("topic", out JsonElement topicElement))
