@@ -16,6 +16,7 @@ public class UserService : IUserService
         set
         {
             User.Preferences.DarkMode = value;
+            _databaseService.SaveUserPreferences(User.Username, User.Preferences);
             _updateService.Update(UpdateType.Global);
         }
     }
