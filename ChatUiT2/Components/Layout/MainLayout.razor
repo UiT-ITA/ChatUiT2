@@ -262,20 +262,17 @@
     {
         if (firstRender)
         {
-            UpdateService.OnGlobalUpdate += UpdateView;
+            UpdateService.OnGlobalUpdate += StateHasChanged;
+            StateHasChanged();
         }
     }
 
 
     public void Dispose()
     {
-        UpdateService.OnGlobalUpdate -= UpdateView;
+        UpdateService.OnGlobalUpdate -= StateHasChanged;
     }
 
-    public void UpdateView()
-    {
-        StateHasChanged();
-    }
 
     private void CloseDrawer()
     {
