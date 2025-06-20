@@ -41,6 +41,8 @@ public class ContentItem
     public string SourceSystemId { get; set; } = string.Empty;
     [BsonElement("SourceSystemAltId")]
     public string SourceSystemAltId { get; set; } = string.Empty;
+    [BsonElement("SourceSystemParentId")]
+    public string SourceSystemParentId { get; set; } = string.Empty;
     [BsonElement("Created")]
     public DateTimeOffset Created { get; set; } = DateTimeOffset.MinValue;
     [BsonElement("Updated")]
