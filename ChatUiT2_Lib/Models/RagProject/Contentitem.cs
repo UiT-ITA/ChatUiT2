@@ -43,6 +43,12 @@ public class ContentItem
     public string SourceSystemAltId { get; set; } = string.Empty;
     [BsonElement("SourceSystemParentId")]
     public string SourceSystemParentId { get; set; } = string.Empty;
+    /// <summary>
+    /// If this is part of a hierarchy, this is the root id for this item in
+    /// the source system. Top level document
+    /// </summary>
+    [BsonElement("SourceSystemRootId")]
+    public string SourceSystemRootId { get; set; } = string.Empty;
     [BsonElement("Created")]
     public DateTimeOffset Created { get; set; } = DateTimeOffset.MinValue;
     [BsonElement("Updated")]
