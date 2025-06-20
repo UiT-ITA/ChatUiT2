@@ -229,6 +229,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         // Save the items in the specific db for this rag project
         foreach (var item in ragProject.ContentItems)
         {
+            item.Updated = _dateTimeProvider.OffsetUtcNow;
             item.RagProjectId = ragProject.Id ?? string.Empty;
             var existingItem = await GetContentItemBySourceId(ragProject, item.SourceSystemId);
             if (existingItem != null)
