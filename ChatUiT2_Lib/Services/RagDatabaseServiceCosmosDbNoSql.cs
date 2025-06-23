@@ -237,6 +237,8 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                 existingItemsDict[existingItem.SourceSystemId] = existingItem;
             }
         }
+        // Use tasks to batch updates
+        List<Task> tasks = new List<Task>();
         // Save the items in the specific db for this rag project
         foreach (var item in ragProject.ContentItems)
         {
@@ -262,7 +264,18 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             {
                 item.ContentNeedsEmbeddingUpdate = true;
             }
-            await SaveRagProjectItem(item, itemContainer);
+            tasks.Add(SaveRagProjectItem(item, itemContainer));
+            if(tasks.Count() > 5)
+            {
+                // Wait for the tasks to complete in batches of 5
+                await Task.WhenAll(tasks);
+                tasks.Clear();
+            }
+        }
+        // Wait for any remaining tasks to complete
+        if (tasks.Count > 0)
+        {
+            await Task.WhenAll(tasks);
         }
     }
 
