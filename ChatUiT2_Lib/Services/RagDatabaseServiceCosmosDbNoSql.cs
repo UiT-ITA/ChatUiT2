@@ -226,12 +226,28 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     public async Task SaveContentItemsChangedForRagProject(RagProject ragProject)
     {
         var itemContainer = await GetItemContainer(ragProject);
+        var existingItems = GetContentItemsByProject(ragProject);
+        // To make this faster we will put existing items into a dictionary
+        Dictionary<string, ContentItem> existingItemsDict = new();
+        // Put existing items into dictionary using sourceSystemId as key
+        await foreach (var existingItem in existingItems)
+        {
+            if (!string.IsNullOrEmpty(existingItem.SourceSystemId))
+            {
+                existingItemsDict[existingItem.SourceSystemId] = existingItem;
+            }
+        }
         // Save the items in the specific db for this rag project
         foreach (var item in ragProject.ContentItems)
         {
             item.Updated = _dateTimeProvider.OffsetUtcNow;
             item.RagProjectId = ragProject.Id ?? string.Empty;
-            var existingItem = await GetContentItemBySourceId(ragProject, item.SourceSystemId);
+            // Lokkup dictionry to find out if item already exists
+            var existingItem = string.IsNullOrEmpty(item.SourceSystemId) 
+                ? null 
+                : existingItemsDict.TryGetValue(item.SourceSystemId, out var foundItem) 
+                    ? foundItem 
+                    : null;
             if (existingItem != null)
             {
                 item.Id = existingItem.Id;
