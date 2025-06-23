@@ -947,6 +947,25 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
+    public async Task<List<EmbeddingEvent>> GetEmbeddingEventsByProjectAsync(RagProject ragProject)    
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to get embedding events");
+        }
+        List<EmbeddingEvent> result = new List<EmbeddingEvent>();
+        // Key not in cache, so get data.
+        var container = await GetEmbeddingEventContainer(ragProject);
+        var query = new QueryDefinition("SELECT * FROM c");
+        var iterator = container.GetItemQueryIterator<EmbeddingEvent>(query);
+        while (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            result.AddRange(response);
+        }
+        return result;
+    }
+
     public async Task<string?> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type)
     {
         if (string.IsNullOrEmpty(contentItemId))
