@@ -244,7 +244,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         {
             item.Updated = _dateTimeProvider.OffsetUtcNow;
             item.RagProjectId = ragProject.Id ?? string.Empty;
-            // Lokkup dictionry to find out if item already exists
+            // Lookup dictionary to find out if item already exists
             var existingItem = string.IsNullOrEmpty(item.SourceSystemId) 
                 ? null 
                 : existingItemsDict.TryGetValue(item.SourceSystemId, out var foundItem) 
@@ -255,7 +255,9 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                 item.Id = existingItem.Id;
                 item.Created = existingItem.Created;
                 var newItemHash = HashTools.GetSha256Hash(item.StringForContentHash);
-                if (existingItem.IsContentChanged(newItemHash))
+                if (existingItem.IsContentChanged(newItemHash)
+                    || existingItem.ViewUrl != item.ViewUrl
+                    || existingItem.ContentUrl != item.ContentUrl)
                 {
                     item.ContentNeedsEmbeddingUpdate = true;
                 }
