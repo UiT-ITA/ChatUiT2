@@ -836,7 +836,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public async Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
+    public async Task<EmbeddingEvent> SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
     {
         var embeddingEventContainer = await GetEmbeddingEventContainer(ragProject);
         if (string.IsNullOrEmpty(embeddingEvent.Id))
@@ -850,6 +850,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             embeddingEvent.Updated = _dateTimeProvider.OffsetUtcNow;
         }
         await embeddingEventContainer.UpsertItemAsync(embeddingEvent, new PartitionKey(embeddingEvent.RagProjectId));
+        return embeddingEvent;
     }
 
     public async Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId)
