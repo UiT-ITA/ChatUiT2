@@ -6,6 +6,8 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Moq;
+using OpenAI.Embeddings;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -29,6 +31,20 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     private Container _ragItemContainer;
     private Container _ragEmbeddingContainer;
     private Container _ragEmbeddingEventContainer;
+
+    private List<DateTimeOffset> _dateTimeOffsets = new List<DateTimeOffset>()
+    {
+        new DateTimeOffset(2023, 5, 16, 13, 10, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 11, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 12, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 13, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 14, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 15, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 16, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 17, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 18, 0, TimeSpan.Zero),
+        new DateTimeOffset(2023, 5, 16, 13, 19, 0, TimeSpan.Zero),
+    };
 
     public RagDatabaseServiceCosmosDbNoSqlTests()
     {
@@ -154,7 +170,29 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         // Create project def container
         this._ragEmbeddingEventContainer = await _ragItemDatabase.CreateContainerAsync(_ragEmbeddingEventContainerName, "/RagProjectId");
 
-        this._service = RagDatabaseServiceCosmosDbNoSqlStaging.GetRagDatabaseServiceCosmosDbNoSqlStaging("Development");
+        // Prepare IDateTimeProvider with predefined sequence of values
+        Mock<IDateTimeProvider> dateTimeProviderMock = new();
+        DateTimeOffset now1 = new DateTimeOffset(2023, 5, 16, 13, 10, 0, TimeSpan.Zero);
+        DateTimeOffset now2 = new DateTimeOffset(2023, 5, 16, 13, 11, 0, TimeSpan.Zero);
+        DateTimeOffset now3 = new DateTimeOffset(2023, 5, 16, 13, 12, 0, TimeSpan.Zero);
+        DateTimeOffset now4 = new DateTimeOffset(2023, 5, 16, 13, 13, 0, TimeSpan.Zero);
+        DateTimeOffset now5 = new DateTimeOffset(2023, 5, 16, 13, 14, 0, TimeSpan.Zero);
+        DateTimeOffset now6 = new DateTimeOffset(2023, 5, 16, 13, 15, 0, TimeSpan.Zero);
+        DateTimeOffset now7 = new DateTimeOffset(2023, 5, 16, 13, 16, 0, TimeSpan.Zero);
+        DateTimeOffset now8 = new DateTimeOffset(2023, 5, 16, 13, 17, 0, TimeSpan.Zero);
+        DateTimeOffset now9 = new DateTimeOffset(2023, 5, 16, 13, 18, 0, TimeSpan.Zero);
+        dateTimeProviderMock.SetupSequence(m => m.OffsetUtcNow)
+            .Returns(_dateTimeOffsets[0])
+            .Returns(_dateTimeOffsets[1])
+            .Returns(_dateTimeOffsets[2])
+            .Returns(_dateTimeOffsets[3])
+            .Returns(_dateTimeOffsets[4])
+            .Returns(_dateTimeOffsets[5])
+            .Returns(_dateTimeOffsets[6])
+            .Returns(_dateTimeOffsets[7])
+            .Returns(_dateTimeOffsets[8]);
+
+        this._service = RagDatabaseServiceCosmosDbNoSqlStaging.GetRagDatabaseServiceCosmosDbNoSqlStaging("Development", dateTimeProviderMock.Object);
     }
 
     [Fact]
@@ -163,6 +201,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         // Arrange
         var ragProject = new RagProject
         {
+            Id = null,
             Name = "Test Project",
             Description = "Test Description",
             Configuration = new RagConfiguration
@@ -176,13 +215,15 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
                 {
                     SystemName = "TestSystem",
                     ContentType = "INLINE",
-                    ContentText = "Test Content 1"                    
+                    ContentText = "Test Content 1",
+                    SourceSystemId = "source1"
                 },
                 new ContentItem
                 {
                     SystemName = "TestSystem",
                     ContentType = "INLINE",
-                    ContentText = "Test Content 2"
+                    ContentText = "Test Content 2",
+                    SourceSystemId = "source2"
                 }
             }
         };
@@ -196,15 +237,362 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.NotNull(response.Resource);
         Assert.Equal(ragProject.Name, response.Resource.Name);
         Assert.Equal(ragProject.Description, response.Resource.Description);
+        Assert.Equal(_dateTimeOffsets[0], response.Resource.Updated.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[1], response.Resource.Created.UtcDateTime);
 
         // Check content items
-        var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().Where(i => i.RagProjectId == ragProject.Id).ToFeedIterator<ContentItem>();
+        var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
+        List<ContentItem> contentItemList = new List<ContentItem>();        
+        while (contentItems.HasMoreResults)
+        {
+            var contentItem = await contentItems.ReadNextAsync();
+            contentItemList.AddRange(contentItem);
+        }
+        Assert.Equal(2, contentItemList.Count());
+        Assert.Contains(contentItemList, x => x.ContentText == "Test Content 1");
+        Assert.Contains(contentItemList, x => x.ContentText == "Test Content 2");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source1");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source2");
+        var item1 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source1");
+        var item2 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source2");
+        Assert.Equal(ragProject.Id, item1.RagProjectId);
+        Assert.Equal(ragProject.Id, item2.RagProjectId);
+        Assert.Equal(_dateTimeOffsets[2], item1.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item1.Updated.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[3], item2.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[3], item2.Updated.UtcDateTime);
+        Assert.True(item1.ContentNeedsEmbeddingUpdate);
+        Assert.True(item2.ContentNeedsEmbeddingUpdate);
+    }
+
+    [Fact]
+    public async Task SaveRagProject_ProjectWithSameNameExists_ShouldUpdateExisting()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Name = "Test Project",
+            Description = "Test Description updated",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            },
+            ContentItems = new List<ContentItem>
+            {
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 1",
+                    SourceSystemId = "source1"
+                },
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 2",
+                    SourceSystemId = "source2"
+                }
+            }
+        };
+        DateTimeOffset existingCreatedTime = new DateTimeOffset(2022, 1, 1, 10, 10, 0, TimeSpan.Zero);
+        var existingRagProject = new RagProject()
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Project",
+            Description = "OldDescription",
+            Created = existingCreatedTime,
+            Updated = existingCreatedTime
+        };
+
+        // Act
+        var projectInDb = await _ragProjectDefContainer.CreateItemAsync(existingRagProject, new PartitionKey(existingRagProject.Id));
+        await _service.SaveRagProject(ragProject);
+
+        // Assert
+        var projectItems = _ragProjectDefContainer.GetItemLinqQueryable<RagProject>().ToFeedIterator<RagProject>();
+        List<RagProject> projectList = new List<RagProject>();
+        while (projectItems.HasMoreResults)
+        {
+            var projectItem = await projectItems.ReadNextAsync();
+            projectList.AddRange(projectItem);
+        }
+        Assert.Single(projectList);
+        Assert.Equal(projectInDb.Resource.Id, projectList[0].Id);
+        Assert.Equal(ragProject.Name, projectList[0].Name);
+        Assert.Equal(ragProject.Description, projectList[0].Description);
+        Assert.Equal(_dateTimeOffsets[0], projectList[0].Updated);
+        Assert.Equal(existingCreatedTime, projectList[0].Created.UtcDateTime);
+
+        // Check content items
+        var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
         List<ContentItem> contentItemList = new List<ContentItem>();
         while (contentItems.HasMoreResults)
         {
             var contentItem = await contentItems.ReadNextAsync();
             contentItemList.AddRange(contentItem);
         }
+        Assert.Equal(2, contentItemList.Count());
+        Assert.Contains(contentItemList, x => x.ContentText == "Test Content 1");
+        Assert.Contains(contentItemList, x => x.ContentText == "Test Content 2");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source1");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source2");
+        var item1 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source1");
+        var item2 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source2");
+        Assert.Equal(ragProject.Id, item1.RagProjectId);
+        Assert.Equal(ragProject.Id, item2.RagProjectId);
+        Assert.Equal(_dateTimeOffsets[1], item1.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[1], item1.Updated.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item2.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item2.Updated.UtcDateTime);
+        Assert.True(item1.ContentNeedsEmbeddingUpdate);
+        Assert.True(item2.ContentNeedsEmbeddingUpdate);
+    }
+
+    [Fact]
+    public async Task SaveRagProject_OneContentItemAlreadyExist_ShouldUpdateExistingContentItem()
+    {
+        // Arrange
+        var projectOffset = new DateTimeOffset(2022, 1, 1, 10, 10, 0, TimeSpan.Zero);
+        var ragProject = new RagProject
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Project",
+            Description = "Test Description",
+            Updated = projectOffset,
+            Created = projectOffset,
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            },
+            ContentItems = new List<ContentItem>
+            {
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 1",
+                    SourceSystemId = "source1"
+                },
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 2",
+                    SourceSystemId = "source2"
+                }
+            }
+        };
+        DateTimeOffset existingCreatedTime = new DateTimeOffset(2022, 1, 1, 10, 10, 0, TimeSpan.Zero);
+        var existingContentItem = new ContentItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            SystemName = "TestSystem",
+            ContentType = "INLINE",
+            ContentText = "Old content",
+            SourceSystemId = "source1",
+            RagProjectId = ragProject.Id,
+            Created = existingCreatedTime,
+            Updated = existingCreatedTime
+        };
+
+        // Act
+        var projectInDb = await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        var existingInDb = await _ragItemContainer.CreateItemAsync(existingContentItem, new PartitionKey(existingContentItem.Id));
+        await _service.SaveRagProject(ragProject);
+
+        // Assert
+        var response = await _ragProjectDefContainer.ReadItemAsync<RagProject>(ragProject.Id, new PartitionKey(ragProject.Id));
+        Assert.NotNull(response.Resource);
+        Assert.Equal(ragProject.Name, response.Resource.Name);
+        Assert.Equal(ragProject.Description, response.Resource.Description);
+        Assert.Equal(_dateTimeOffsets[0], response.Resource.Updated);
+        Assert.Equal(existingCreatedTime, response.Resource.Created.UtcDateTime);
+
+        // Check content items
+        var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
+        List<ContentItem> contentItemList = new List<ContentItem>();
+        while (contentItems.HasMoreResults)
+        {
+            var contentItem = await contentItems.ReadNextAsync();
+            contentItemList.AddRange(contentItem);
+        }
+        Assert.Equal(2, contentItemList.Count());
+        Assert.Equal(existingInDb.Resource.Id, contentItemList[0].Id);
+        Assert.Equal("Test Content 1", contentItemList[0].ContentText);
+        Assert.Equal("Test Content 2", contentItemList[1].ContentText);
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source1");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source2");
+        var item1 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source1");
+        var item2 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source2");
+        Assert.Equal(ragProject.Id, item1.RagProjectId);
+        Assert.Equal(ragProject.Id, item2.RagProjectId);
+        Assert.Equal(existingCreatedTime, item1.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[1], item1.Updated.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item2.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item2.Updated.UtcDateTime);
+        Assert.True(item1.ContentNeedsEmbeddingUpdate);
+        Assert.True(item2.ContentNeedsEmbeddingUpdate);
+    }
+
+    [Fact]
+    public async Task SaveRagProject_OneContentItemAlreadyExistButNoContentChange_ShouldUpdateExistingContentItem()
+    {
+        // Arrange
+        var projectOffset = new DateTimeOffset(2022, 1, 1, 10, 10, 0, TimeSpan.Zero);
+        var ragProject = new RagProject
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Project",
+            Description = "Test Description",
+            Updated = projectOffset,
+            Created = projectOffset,
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            },
+            ContentItems = new List<ContentItem>
+            {
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 1",
+                    SourceSystemId = "source1"
+                },
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 2",
+                    SourceSystemId = "source2"
+                }
+            }
+        };
+        DateTimeOffset existingCreatedTime = new DateTimeOffset(2022, 1, 1, 10, 10, 0, TimeSpan.Zero);
+        var existingContentItem = new ContentItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            SystemName = "TestSystem",
+            ContentType = "INLINE",
+            ContentText = "Test Content 1",
+            SourceSystemId = "source1",
+            RagProjectId = ragProject.Id,
+            Created = existingCreatedTime,
+            Updated = existingCreatedTime
+        };
+
+        // Act
+        var projectInDb = await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        var existingInDb = await _ragItemContainer.CreateItemAsync(existingContentItem, new PartitionKey(existingContentItem.Id));
+        await _service.SaveRagProject(ragProject);
+
+        // Assert
+        var response = await _ragProjectDefContainer.ReadItemAsync<RagProject>(ragProject.Id, new PartitionKey(ragProject.Id));
+        Assert.NotNull(response.Resource);
+        Assert.Equal(ragProject.Name, response.Resource.Name);
+        Assert.Equal(ragProject.Description, response.Resource.Description);
+        Assert.Equal(_dateTimeOffsets[0], response.Resource.Updated);
+        Assert.Equal(existingCreatedTime, response.Resource.Created.UtcDateTime);
+
+        // Check content items
+        var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
+        List<ContentItem> contentItemList = new List<ContentItem>();
+        while (contentItems.HasMoreResults)
+        {
+            var contentItem = await contentItems.ReadNextAsync();
+            contentItemList.AddRange(contentItem);
+        }
+        Assert.Equal(2, contentItemList.Count());
+        Assert.Equal(existingInDb.Resource.Id, contentItemList[0].Id);
+        Assert.Equal("Test Content 1", contentItemList[0].ContentText);
+        Assert.Equal("Test Content 2", contentItemList[1].ContentText);
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source1");
+        Assert.Contains(contentItemList, x => x.SourceSystemId == "source2");
+        var item1 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source1");
+        var item2 = contentItemList.FirstOrDefault(x => x.SourceSystemId == "source2");
+        Assert.Equal(ragProject.Id, item1.RagProjectId);
+        Assert.Equal(ragProject.Id, item2.RagProjectId);
+        Assert.Equal(existingCreatedTime, item1.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[1], item1.Updated.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item2.Created.UtcDateTime);
+        Assert.Equal(_dateTimeOffsets[2], item2.Updated.UtcDateTime);
+        Assert.False(item1.ContentNeedsEmbeddingUpdate);
+        Assert.True(item2.ContentNeedsEmbeddingUpdate);
+    }
+
+    [Fact]
+    public async Task SaveRagProject_OneContentItemRemovedFromSource_ShouldDeleteRemovedContentItem()
+    {
+        // Arrange
+        var projectOffset = new DateTimeOffset(2022, 1, 1, 10, 10, 0, TimeSpan.Zero);
+        var ragProject = new RagProject
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = "Test Project",
+            Description = "Test Description",
+            Updated = projectOffset,
+            Created = projectOffset,
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName,
+                EmbeddingCollectioName = _ragEmbeddingContainerName,
+            },
+            ContentItems = new List<ContentItem>
+            {
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 1",
+                    SourceSystemId = "source1"
+                },
+                new ContentItem
+                {
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = "Test Content 2",
+                    SourceSystemId = "source2"
+                }
+            }
+        };
+        var existingContentItem = new ContentItem
+        {
+            Id = Guid.NewGuid().ToString(),
+            SystemName = "TestSystem",
+            ContentType = "INLINE",
+            ContentText = "Content nr 3",
+            SourceSystemId = "source3",
+            RagProjectId = ragProject.Id
+        };
+
+        // Act
+        var projectInDb = await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        var existingInDb = await _ragItemContainer.CreateItemAsync(existingContentItem, new PartitionKey(existingContentItem.Id));
+        await _service.SaveRagProject(ragProject);
+
+        // Assert
+        var response = await _ragProjectDefContainer.ReadItemAsync<RagProject>(ragProject.Id, new PartitionKey(ragProject.Id));
+
+        Assert.NotNull(response.Resource);
+        Assert.Equal(ragProject.Name, response.Resource.Name);
+        Assert.Equal(ragProject.Description, response.Resource.Description);
+        Assert.Equal(_dateTimeOffsets[0], response.Resource.Updated);
+        Assert.Equal(projectOffset, response.Resource.Created.UtcDateTime);
+
+        // Check content items
+        var contentItems = _ragItemContainer.GetItemLinqQueryable<ContentItem>().ToFeedIterator<ContentItem>();
+        List<ContentItem> contentItemList = new List<ContentItem>();
+        while (contentItems.HasMoreResults)
+        {
+            var contentItem = await contentItems.ReadNextAsync();
+            contentItemList.AddRange(contentItem);
+        }
+        // Should be only two content items now
         Assert.Equal(2, contentItemList.Count());
         Assert.Equal("Test Content 1", contentItemList[0].ContentText);
         Assert.Equal("Test Content 2", contentItemList[1].ContentText);
@@ -774,6 +1162,58 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task GetContentItemsWithUpdates_Exist_ShouldReturnList()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 4);
+        ragProject.ContentItems[2].ContentNeedsEmbeddingUpdate = false;
+
+        // Act
+        foreach (var item in ragProject.ContentItems)
+        {
+            await _ragItemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
+        }
+        var result = _service.GetContentItemsWithUpdates(ragProject);
+        List<ContentItem> resultList = new List<ContentItem>();
+        await foreach (var item in result)
+        {
+            resultList.Add(item);
+        }
+
+        // Assert
+        Assert.Equal(3, resultList.Count());
+        Assert.Equal("item0", resultList[0].Id);
+        Assert.Equal("item1", resultList[1].Id);
+        Assert.Equal("item3", resultList[2].Id);
+    }
+
+    [Fact]
+    public async Task GetContentItemsWithUpdates_DoesNotExist_ShouldReturnEmptyList()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 4);
+        ragProject.ContentItems[2].ContentNeedsEmbeddingUpdate = false;
+
+        // Act
+        foreach (var item in ragProject.ContentItems)
+        {
+            item.ContentNeedsEmbeddingUpdate = false;
+            await _ragItemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
+        }
+        var result = _service.GetContentItemsWithUpdates(ragProject);
+        List<ContentItem> resultList = new List<ContentItem>();
+        await foreach (var item in result)
+        {
+            resultList.Add(item);
+        }
+
+        // Assert
+        Assert.Empty(resultList);
+    }
+
+    [Fact]
     public async Task GetEmbeddingContentItemIdsByProject_ValidProject_ReturnsIds()
     {
         // Arrange
@@ -1143,16 +1583,17 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task SaveRagEmbedding_NewEmbedding_CreatesItem()
+    public async Task SaveRagTextEmbedding_NewEmbedding_CreatesItem()
     {
         // Arrange
         string ragProjectId = "projectId";
         var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 1);
         var textEmbedding = CreateTestRagTextEmbedding(ragProject.Id, "item1", null);
+        textEmbedding.ContentHash = "hash1";
 
         // Act
         var embeddingsBefore = await GetAllEmbeddings();
-        await _service.SaveRagEmbedding(ragProject, textEmbedding);
+        await _service.SaveRagTextEmbedding(ragProject, textEmbedding);
         var embeddingsAfter = await GetAllEmbeddings();
 
         // Assert
@@ -1161,10 +1602,11 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.NotEmpty(embeddingsAfter[0].Id);
         Assert.Equal(ragProjectId, embeddingsAfter[0].RagProjectId);
         Assert.Equal("item1", embeddingsAfter[0].SourceItemId);
+        Assert.Equal("hash1", embeddingsAfter[0].ContentHash);
     }
 
     [Fact]
-    public async Task SaveRagEmbedding_ExistingEvent_UpdatesItem()
+    public async Task SaveRagTextEmbedding_ExistingEvent_UpdatesItem()
     {
         // Arrange
         string ragProjectId = "projectId";
@@ -1177,7 +1619,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         await _ragEmbeddingContainer.CreateItemAsync(textEmbeddingEvent, new PartitionKey(textEmbeddingEvent.SourceItemId));
         var embeddingsBefore = await GetAllEmbeddings();
         textEmbeddingEvent.Originaltext = "NewOrigText";
-        await _service.SaveRagEmbedding(ragProject, textEmbeddingEvent);
+        await _service.SaveRagTextEmbedding(ragProject, textEmbeddingEvent);
         var embeddingsAfter = await GetAllEmbeddings();
 
         // Assert
@@ -1371,6 +1813,295 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         Assert.Equal(ragProject.Description, result.Description);
         Assert.Empty(result.ContentItems);
     }
+
+    [Fact]
+    public async Task GetContentItemBySourceId_ItemExists_ReturnsContentItem()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = $"project1",
+            Name = $"name1",
+            Description = $"desc1",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            },
+            ContentItems = new()
+            {
+                new ContentItem
+                {
+                    Id = $"item1",
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = $"Test Content 1",
+                    RagProjectId = $"project1",
+                    SourceSystemId = "source1"
+                },
+                new ContentItem
+                {
+                    Id = $"item2",
+                    SystemName = "TestSystem",
+                    ContentType = "INLINE",
+                    ContentText = $"Test Content 2",
+                    RagProjectId = $"project1",
+                    SourceSystemId = "source2"
+                }
+            }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectItem in ragProject.ContentItems)
+        {
+            await _ragItemContainer.CreateItemAsync(projectItem, new PartitionKey(projectItem.Id));
+        }
+        var item1 = await _service.GetContentItemBySourceId(ragProject, "source1");
+        var item2 = await _service.GetContentItemBySourceId(ragProject, "source2");
+
+        // Assert
+        Assert.NotNull(item1);
+        Assert.Equal("source1", item1!.SourceSystemId);
+        Assert.NotNull(item2);
+        Assert.Equal("source2", item2!.SourceSystemId);
+    }
+
+    [Fact]
+    public async Task GetContentItemBySourceId_ItemDoesNotExist_ReturnsNull()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = $"project1",
+            Name = $"name1",
+            Description = $"desc1",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            },
+            ContentItems = new()
+                {
+                    new ContentItem
+                    {
+                        Id = $"item1",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content 1",
+                        RagProjectId = $"project1",
+                        SourceSystemId = "source1"
+                    },
+                    new ContentItem
+                    {
+                        Id = $"item2",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content 2",
+                        RagProjectId = $"project1",
+                        SourceSystemId = "source2"
+                    }
+                }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectItem in ragProject.ContentItems)
+        {
+            await _ragItemContainer.CreateItemAsync(projectItem, new PartitionKey(projectItem.Id));
+        }
+        var item3 = await _service.GetContentItemBySourceId(ragProject, "item3");
+
+        // Assert
+        Assert.Null(item3);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task GetContentItemBySourceId_ItemIdNotSet_ThrowsArgumentException(string? itemId)
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = "testProjectId",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            }
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => _service.GetContentItemBySourceId(ragProject, itemId));
+    }
+
+    [Fact]
+    public async Task AddRagTextEmbedding_NewEmbedding_CreatesEmbedding()
+    {
+        // Arrange
+        string ragProjectId = "projectId";
+        string originalText = "The text that was embedded";
+        var ragProject = CreateTestRagProject(ragProjectId, "projectName", "projectDescription", 1);
+        var contentItem = new ContentItem
+        {
+            Id = "item1",
+            ContentType = "INLINE",
+            ContentText = "Test Content 1",
+            RagProjectId = ragProjectId,
+            Title = "Test Title 1",
+            Description = "Test Description 1",
+        };
+        var textEmbedding = CreateTestRagTextEmbedding(ragProject.Id, "item1", null);
+        var expectedContentHash = "55158c150eb6890e87e15f935adce655";
+        var mockEmbedding = new float[] { 0.1f, 0.2f, 0.3f };
+
+        // Act
+        var embeddingsBefore = await GetAllEmbeddings();
+        await _service.AddRagTextEmbedding(ragProject, contentItem, EmbeddingSourceType.Question, mockEmbedding, originalText);
+        var embeddingsAfter = await GetAllEmbeddings();
+
+        // Assert
+        Assert.Empty(embeddingsBefore);
+        Assert.Single(embeddingsAfter);
+        Assert.NotEmpty(embeddingsAfter[0].Id);
+        Assert.Equal(ragProjectId, embeddingsAfter[0].RagProjectId);
+        Assert.Equal("item1", embeddingsAfter[0].SourceItemId);
+        Assert.Equal(expectedContentHash, embeddingsAfter[0].ContentHash);
+        Assert.Equal(originalText, embeddingsAfter[0].Originaltext);
+        Assert.Equal(0.1f, embeddingsAfter[0].Embedding[0]);
+        Assert.Equal(0.2f, embeddingsAfter[0].Embedding[1]);
+        Assert.Equal(0.3f, embeddingsAfter[0].Embedding[2]);
+    }
+
+    [Fact]
+    public async Task GetEmbeddingEventsByItemId_ValidProject_ShouldGetCorrectItems()
+    {
+        // Arrange
+        var ragProject = CreateTestRagProject("testProjectId", "projectName", "projectDescription", 10);
+
+        var embeddings = new List<EmbeddingEvent>
+        {
+            new EmbeddingEvent { Id = "embeddingEvent1", RagProjectId = ragProject.Id, ContentItemId = "ItemId1" },
+            new EmbeddingEvent { Id = "embeddingEvent2", RagProjectId = ragProject.Id, ContentItemId = "ItemId2" },
+            new EmbeddingEvent { Id = "embeddingEvent3", RagProjectId = ragProject.Id, ContentItemId = "ItemId1" }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingEventContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.RagProjectId));
+        }
+        var result = await _service.GetEmbeddingEventsByItemId(ragProject, "ItemId1");
+        var eventsInDb = await GetAllEmbeddingEvents();
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(3, eventsInDb.Count);
+        Assert.Equal(2, result.Count());
+        Assert.Contains(eventsInDb, x => x.Id == "embeddingEvent1");
+        Assert.Contains(eventsInDb, x => x.Id == "embeddingEvent3");
+    }
+
+    [Fact]
+    public async Task GetItemSourceIdsByProject_ValidProject_ReturnsIds()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = $"project1",
+            Name = $"name1",
+            Description = $"desc1",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName
+            },
+            ContentItems = new()
+                {
+                    new ContentItem
+                    {
+                        Id = $"item1",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content 1",
+                        RagProjectId = $"project1",
+                        SourceSystemId = "source1"
+                    },
+                    new ContentItem
+                    {
+                        Id = $"item2",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content 2",
+                        RagProjectId = $"project1",
+                        SourceSystemId = "source2"
+                    },
+                    new ContentItem
+                    {
+                        Id = $"item3",
+                        SystemName = "TestSystem",
+                        ContentType = "INLINE",
+                        ContentText = $"Test Content 3",
+                        RagProjectId = $"project1",
+                        SourceSystemId = "source3"
+                    }
+                }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectItem in ragProject.ContentItems)
+        {
+            await _ragItemContainer.CreateItemAsync(projectItem, new PartitionKey(projectItem.Id));
+        }
+        var result = await _service.GetItemSourceSystemIdsByProject(ragProject);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Count());
+        Assert.Equal("source1", result[0]);
+        Assert.Equal("source2", result[1]);
+        Assert.Equal("source3", result[2]);
+    }
+
+    [Fact]
+    public async Task GetEmbeddingsByItemId_ValidProject_ReturnsEmbeddings()
+    {
+        // Arrange
+        var ragProject = new RagProject
+        {
+            Id = "testProjectId",
+            Configuration = new RagConfiguration
+            {
+                DbName = _ragItemDbName,
+                ItemCollectionName = _ragItemContainerName,
+                EmbeddingCollectioName = _ragEmbeddingContainerName
+            }
+        };
+        var embeddings = new List<RagTextEmbedding>
+        {
+            new RagTextEmbedding { Id = "embedding1", SourceItemId = "source1", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embedding2", SourceItemId = "source2", RagProjectId = ragProject.Id },
+            new RagTextEmbedding { Id = "embedding3", SourceItemId = "source1", RagProjectId = ragProject.Id }
+        };
+
+        // Act
+        await _ragProjectDefContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+        foreach (var projectembeddingItem in embeddings)
+        {
+            await _ragEmbeddingContainer.CreateItemAsync(projectembeddingItem, new PartitionKey(projectembeddingItem.SourceItemId));
+        }
+        var result = await _service.GetEmbeddingsByItemId(ragProject, "source1");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.Count);
+        Assert.Equal("embedding1", result[0].Id);
+        Assert.Equal("embedding3", result[1].Id);
+    }
+
     private async Task<List<RagTextEmbedding>> GetAllEmbeddings()
     {
         var query = "SELECT * FROM c";
@@ -1424,7 +2155,7 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
         {
             Id = embeddingId,
             SourceItemId = itemId,
-            RagProjectId = ragProjectId
+            RagProjectId = ragProjectId            
         };
     }
 
@@ -1466,7 +2197,8 @@ public class RagDatabaseServiceCosmosDbNoSqlTests : IAsyncDisposable
                 SystemName = "TestSystem",
                 ContentType = "INLINE",
                 ContentText = $"Test Content {i}",
-                RagProjectId = id
+                RagProjectId = id,
+                ContentNeedsEmbeddingUpdate = true,
             });
         }
         return result;

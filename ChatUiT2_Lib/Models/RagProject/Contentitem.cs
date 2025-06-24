@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson;
+﻿using ChatUiT2_Lib.Tools;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
 
@@ -40,6 +41,14 @@ public class ContentItem
     public string SourceSystemId { get; set; } = string.Empty;
     [BsonElement("SourceSystemAltId")]
     public string SourceSystemAltId { get; set; } = string.Empty;
+    [BsonElement("SourceSystemParentId")]
+    public string SourceSystemParentId { get; set; } = string.Empty;
+    /// <summary>
+    /// If this is part of a hierarchy, this is the root id for this item in
+    /// the source system. Top level document
+    /// </summary>
+    [BsonElement("SourceSystemRootId")]
+    public string SourceSystemRootId { get; set; } = string.Empty;
     [BsonElement("Created")]
     public DateTimeOffset Created { get; set; } = DateTimeOffset.MinValue;
     [BsonElement("Updated")]
@@ -48,5 +57,33 @@ public class ContentItem
     /// Added when storing to RAG database
     /// </summary>
     [BsonElement("RagProjectId")]
-    public string RagProjectId { get; set; } = string.Empty;    
+    public string RagProjectId { get; set; } = string.Empty;
+    /// <summary>
+    /// Flag to indicate if this item has been changed
+    /// This is used when regenerating embeddings to avoid
+    /// regenerating items that has not changed.
+    /// Flag is usually set to true when we reload items from source.
+    /// Uses ContentHash to detect if the content has changed.
+    /// </summary>
+    [BsonElement("ContentNeedsEmbeddingUpdate")]    
+
+    public bool ContentNeedsEmbeddingUpdate { get; set; }
+    /// <summary>
+    /// The string used to create the hash for this item
+    /// This string will be used to hash this item to be able to
+    /// detect if it has changed.
+    /// </summary>
+    [BsonIgnore]
+    [JsonIgnore]
+    public string StringForContentHash { 
+        get
+        {
+            return $"{Title}_{Description}_{ContentText}";
+        }
+    }
+
+    public bool IsContentChanged(string hash)
+    {
+        return !string.IsNullOrEmpty(hash) && hash != HashTools.GetSha256Hash(StringForContentHash);
+    }
 }

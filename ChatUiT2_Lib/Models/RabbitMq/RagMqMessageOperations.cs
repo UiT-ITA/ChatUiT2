@@ -7,5 +7,7 @@ public enum RagMqMessageOperations
     // to generate embeddings queue.
     ScanForItemsMissingEmbeddings = 1,
     // Used to cancel all embeddings processing in queue.
-    CancelAllEmbeddingsProcessing = 2
+    CancelAllEmbeddingsProcessing = 2,
+    // Used to regenerate all item embeddings in a project.
+    GenerateEmbeddingsForUpdatedItems = 3,
 }

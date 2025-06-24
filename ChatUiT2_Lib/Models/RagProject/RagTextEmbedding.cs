@@ -49,8 +49,16 @@ public class RagTextEmbedding
     [BsonElement("RagProjectId")]
     public string RagProjectId { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The hash of the content fields in ContentItem at the time this embedding was created.
+    /// This can be used to check if the Content items
+    /// the embedding belongs to has had its content updated.
+    /// </summary>
+    [JsonProperty(PropertyName = "ContentHash")]
+    public string ContentHash { get; set; } = string.Empty;
+
     [BsonElement("EmbeddingSourceType")]
-    public EmbeddingSourceType? TextType { get; set; }    
+    public EmbeddingSourceType? EmbeddingSourceType { get; set; }    
 
     [BsonIgnore]
     public ContentItem? ContentItem { get; set; }

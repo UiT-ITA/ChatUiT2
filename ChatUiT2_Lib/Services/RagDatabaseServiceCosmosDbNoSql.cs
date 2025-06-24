@@ -18,6 +18,9 @@ using Microsoft.Extensions.AI;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using MediatR;
 using ChatUiT2.Models.Mediatr;
+using ChatUiT2_Lib.Tools;
+using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;
+using PartitionKey = Microsoft.Azure.Cosmos.PartitionKey;
 
 namespace ChatUiT2.Services;
 
@@ -133,7 +136,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return (await ragEmbeddingEventDatabase.Database.CreateContainerIfNotExistsAsync(ragProject.Configuration.EmbeddingEventCollectioName, "/RagProjectId")).Container;
     }
 
-    public async Task SaveRagProject(RagProject ragProject)
+    public async Task SaveRagProject(RagProject ragProject, bool forceCreateWithId = false)
     {
         if (string.IsNullOrEmpty(ragProject.Configuration?.DbName))
         {
@@ -147,24 +150,132 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         var itemContainer = await GetItemContainer(ragProject);
 
         // Save the project definition
-        if (string.IsNullOrEmpty(ragProject.Id))
+        if (string.IsNullOrEmpty(ragProject.Id) || forceCreateWithId)
         {
-            ragProject.Created = _dateTimeProvider.OffsetUtcNow;
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
-            ragProject.Id = Guid.NewGuid().ToString();
-            await ragProjectContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            // Check if the project already exists in the database with the given name
+            var existingInDb = await GetRagProjectByName(ragProject.Name);
+            if (existingInDb != null)
+            {
+                ragProject.Id = existingInDb.Id;
+                ragProject.Created = existingInDb.Created;
+                await ragProjectContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            }
+            else
+            {
+                if(forceCreateWithId == false)
+                {
+                    ragProject.Id = Guid.NewGuid().ToString();
+                }
+                ragProject.Created = _dateTimeProvider.OffsetUtcNow;
+                await ragProjectContainer.CreateItemAsync(ragProject, new PartitionKey(ragProject.Id));
+            }
         }
         else
         {
             ragProject.Updated = _dateTimeProvider.OffsetUtcNow;
+            // Need to get the existing project to get the created date
+            var existingInDb = await GetRagProjectByName(ragProject.Name);
+            if (existingInDb != null)
+            {
+                ragProject.Created = existingInDb.Created;
+            }
+            else
+            {
+                _logger.LogWarning("RagProject had Id set but object with id: {ragProjectId} was not found in Db", ragProject.Id);
+                throw new Exception($"RagProject had Id set but object with id: {ragProject.Id} was not found in Db");
+            }
             await ragProjectContainer.UpsertItemAsync(ragProject, new PartitionKey(ragProject.Id));
         }
 
+        // Save content items for project
+        await SaveContentItemsChangedForRagProject(ragProject);
+
+        // Delete items no longer existing
+        await DeleteItemsNoLongerExisting(ragProject);
+    }
+
+    /// <summary>
+    /// Delete items in the database that are not in the the source data anymore
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <returns></returns>
+    public async Task DeleteItemsNoLongerExisting(RagProject ragProject)
+    {
+        var dbItemIds = await GetItemSourceSystemIdsByProject(ragProject);
+        foreach (var itemIdInDb in dbItemIds)
+        {
+            if (!ragProject.ContentItems.Any(x => x.SourceSystemId == itemIdInDb))
+            {
+                var itemToDelete = await GetContentItemBySourceId(ragProject, itemIdInDb);
+                if (itemToDelete != null)
+                {
+                    await DeleteContentItem(ragProject, itemToDelete);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Saves content items that have changed for a given RAG project.
+    /// Updates the content items in the database and sets the ContentNeedsEmbeddingUpdate flag
+    /// if the content has changed based on the hash comparison.
+    /// </summary>
+    /// <param name="ragProject">The RAG project containing the content items to be saved.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async Task SaveContentItemsChangedForRagProject(RagProject ragProject)
+    {
+        var itemContainer = await GetItemContainer(ragProject);
+        var existingItems = GetContentItemsByProject(ragProject);
+        // To make this faster we will put existing items into a dictionary
+        Dictionary<string, ContentItem> existingItemsDict = new();
+        // Put existing items into dictionary using sourceSystemId as key
+        await foreach (var existingItem in existingItems)
+        {
+            if (!string.IsNullOrEmpty(existingItem.SourceSystemId))
+            {
+                existingItemsDict[existingItem.SourceSystemId] = existingItem;
+            }
+        }
+        // Use tasks to batch updates
+        List<Task> tasks = new List<Task>();
         // Save the items in the specific db for this rag project
         foreach (var item in ragProject.ContentItems)
         {
+            item.Updated = _dateTimeProvider.OffsetUtcNow;
             item.RagProjectId = ragProject.Id ?? string.Empty;
-            await SaveRagProjectItem(item, itemContainer);
+            // Lokkup dictionry to find out if item already exists
+            var existingItem = string.IsNullOrEmpty(item.SourceSystemId) 
+                ? null 
+                : existingItemsDict.TryGetValue(item.SourceSystemId, out var foundItem) 
+                    ? foundItem 
+                    : null;
+            if (existingItem != null)
+            {
+                item.Id = existingItem.Id;
+                item.Created = existingItem.Created;
+                var newItemHash = HashTools.GetSha256Hash(item.StringForContentHash);
+                if (existingItem.IsContentChanged(newItemHash))
+                {
+                    item.ContentNeedsEmbeddingUpdate = true;
+                }
+            }
+            else
+            {
+                item.ContentNeedsEmbeddingUpdate = true;
+            }
+            tasks.Add(SaveRagProjectItem(item, itemContainer));
+            if(tasks.Count() > 5)
+            {
+                // Wait for the tasks to complete in batches of 5
+                await Task.WhenAll(tasks);
+                tasks.Clear();
+            }
+        }
+        // Wait for any remaining tasks to complete
+        if (tasks.Count > 0)
+        {
+            await Task.WhenAll(tasks);
         }
     }
 
@@ -187,8 +298,9 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     {
         if (string.IsNullOrEmpty(item.Id))
         {
-            item.Created = _dateTimeProvider.OffsetUtcNow;
-            item.Updated = _dateTimeProvider.OffsetUtcNow;
+            var curTime = _dateTimeProvider.OffsetUtcNow;
+            item.Created = curTime;
+            item.Updated = curTime;
             item.Id = Guid.NewGuid().ToString();
             await itemContainer.CreateItemAsync(item, new PartitionKey(item.Id));
         }
@@ -418,7 +530,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     /// <param name="embedding">The embedding to save</param>
     /// <param name="forceCreateWithId">In cases where you want to create with a predefined id. For instance when copying a database</param>
     /// <returns></returns>
-    public async Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false)
+    public async Task SaveRagTextEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false)
     {
         var embeddingContainer = await GetEmbeddingContainer(ragProject);
 
@@ -462,16 +574,16 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
     }
 
     public async Task AddRagTextEmbedding(RagProject ragProject, 
-                                          string itemId, 
+                                          ContentItem item, 
                                           EmbeddingSourceType embedType,
-                                          OpenAIEmbedding embedding,
+                                          float[] embedding,
                                           string originalText = "")
     {
         if (ragProject == null)
         {
             throw new ArgumentException("ragProject must be set to add embedding");
         }
-        if (string.IsNullOrEmpty(itemId))
+        if (string.IsNullOrEmpty(item?.Id))
         {
             throw new ArgumentException("itemId must be set to add embedding");
         }
@@ -484,17 +596,13 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             Model = _settingsService.EmbeddingModel.DeploymentName,
             ModelProvider = _settingsService.EmbeddingModel.DeploymentType.GetDisplayName(),
             Originaltext = originalText,
-            SourceItemId = itemId,
+            SourceItemId = item.Id,
             RagProjectId = ragProject?.Id ?? string.Empty,
-            TextType = embedType
+            EmbeddingSourceType = embedType,
+            ContentHash = HashTools.GetMd5Hash(item.StringForContentHash),
         };
-        int numDimensions = int.Parse(_configuration["RagEmbeddingNumDimensions"] ?? "0");
-        if (numDimensions <= 0)
-        {
-            throw new Exception("Invalid number of dimensions for rag embeddings. Check appsettings");
-        }
-        newEmbedding.Embedding = embedding.ToFloats().Slice(0, numDimensions).ToArray();
-        await SaveRagEmbedding(ragProject!, newEmbedding);
+        newEmbedding.Embedding = embedding;
+        await SaveRagTextEmbedding(ragProject!, newEmbedding);
     }
 
     public async Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId)
@@ -530,6 +638,24 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return cachedValue;
     }
 
+    public async Task<ContentItem?> GetContentItemBySourceId(RagProject ragProject, string sourceId)
+    {
+        if (string.IsNullOrEmpty(sourceId))
+        {
+            throw new ArgumentException("sourceId must be set to get source item");
+        }
+
+        var itemContainer = await GetItemContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.SourceSystemId = @id")
+            .WithParameter("@id", sourceId);
+        var queryIterator = itemContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        var response = await queryIterator.ReadNextAsync();
+        var doc = response.FirstOrDefault();
+
+        return doc;
+    }
+
     public string GetItemContentString(ContentItem item)
     {
         string textContent = string.Empty;
@@ -544,9 +670,22 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return textContent;
     }
 
-    public Task DeleteContentItem(RagProject ragProject, ContentItem item)
+    public async Task DeleteContentItem(RagProject ragProject, ContentItem item)
     {
-        throw new NotImplementedException();
+        var embeddingsForItem = await GetEmbeddingsByItemId(ragProject, item.Id);
+        foreach (var embedding in embeddingsForItem)
+        {
+            await DeleteRagEmbedding(ragProject, embedding);
+        }
+        var itemContainer = await GetItemContainer(ragProject);
+        try
+        {
+            await itemContainer.DeleteItemAsync<ContentItem>(item.Id, new PartitionKey(item.Id));
+        }
+        catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // Do nothing, the item was not found
+        }
     }
 
     public async Task<List<ContentItem>> GetContentItemsWithNoEmbeddings(RagProject ragProject)
@@ -580,6 +719,67 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
 
         return resultContentItems;
+    }
+
+    /// <summary>
+    /// Gets the content items that has the ContentHasChanged flag set to true
+    /// Used by function that recreates embeddings for items that has changed.
+    /// Using yield return to avoid loading all items in memory at once
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async IAsyncEnumerable<ContentItem> GetContentItemsWithUpdates(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to get content items");
+        }
+
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.ContentNeedsEmbeddingUpdate = true");
+        var itemContainer = await GetItemContainer(ragProject);
+        var queryIterator = itemContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        var allContentItems = new List<ContentItem>();
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            foreach (var item in response)
+            {
+                yield return item;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get all content items for a project
+    /// Using yield return to avoid loading all items in memory at once
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async IAsyncEnumerable<ContentItem> GetContentItemsByProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to get content items");
+        }
+
+        var queryDefinition = new QueryDefinition("SELECT * FROM c");
+        var itemContainer = await GetItemContainer(ragProject);
+        var queryIterator = itemContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        var allContentItems = new List<ContentItem>();
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            foreach (var item in response)
+            {
+                yield return item;
+            }
+        }
     }
 
     public async Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject)
@@ -672,6 +872,28 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
+    public async Task<List<EmbeddingEvent>> GetEmbeddingEventsByItemId(RagProject ragProject, string contentItemId)
+    {
+        if (string.IsNullOrEmpty(contentItemId))
+        {
+            throw new ArgumentException("contentItemId must be set to get embedding event");
+        }
+        List<EmbeddingEvent> result = new();
+        var container = await GetEmbeddingEventContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.ContentItemId=@contentItemId")
+            .WithParameter("@contentItemId", contentItemId);
+        var queryIterator = container.GetItemQueryIterator<EmbeddingEvent>(queryDefinition);
+
+        var allContentItems = new List<ContentItem>();
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response);
+        }
+        return result;
+    }
+
     /// <summary>
     /// Gets EmbeddingEvent and makes sure to set the processing flag to avoid other threads
     /// from updating it.
@@ -723,6 +945,25 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             // ETag mismatch, someone else updated the item
             return null;
         }
+    }
+
+    public async Task<List<EmbeddingEvent>> GetEmbeddingEventsByProjectAsync(RagProject ragProject)    
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to get embedding events");
+        }
+        List<EmbeddingEvent> result = new List<EmbeddingEvent>();
+        // Key not in cache, so get data.
+        var container = await GetEmbeddingEventContainer(ragProject);
+        var query = new QueryDefinition("SELECT * FROM c");
+        var iterator = container.GetItemQueryIterator<EmbeddingEvent>(query);
+        while (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            result.AddRange(response);
+        }
+        return result;
     }
 
     public async Task<string?> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type)
@@ -790,10 +1031,29 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays)
+    public async Task<IEnumerable<EmbeddingEvent>> GetExpiredEmbeddingEvents(RagProject ragProject, int olderThanDays)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to get expired embedding events");
+        }
+
+        var container = await GetEmbeddingEventContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.Updated < @thresholdDate")
+            .WithParameter("@thresholdDate", _dateTimeProvider.UtcNow.AddDays(-olderThanDays));
+
+        var expiredEvents = new List<EmbeddingEvent>();
+        var queryIterator = container.GetItemQueryIterator<EmbeddingEvent>(queryDefinition);
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            expiredEvents.AddRange(response);
+        }
+
+        return expiredEvents;
     }
+
 
     public async Task<bool> DatabaseExistsAsync(string databaseId)
     {
@@ -939,6 +1199,62 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return result;
     }
 
+    /// <summary>
+    /// Get a list of unique source ids from the item container.
+    /// Can be used when for instance new file is uploaded and we
+    /// want to find articles that are no longer in the source file.
+    /// </summary>
+    /// <param name="ragProject">The project to get for</param>
+    /// <returns></returns>
+    public async Task<List<string>> GetItemSourceSystemIdsByProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("Project id must be set to get embeddings");
+        }
+
+        var result = new List<string>();
+        var embeddingContainer = await GetItemContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT c.SourceSystemId FROM c");
+        var queryIterator = embeddingContainer.GetItemQueryIterator<ContentItem>(queryDefinition);
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response.Select(x => x.SourceSystemId));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Get all embeddings for a content item
+    /// </summary>
+    /// <param name="ragProject"></param>
+    /// <param name="contentItemId"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async Task<List<RagTextEmbedding>> GetEmbeddingsByItemId(RagProject ragProject, string contentItemId)
+    {
+        if (string.IsNullOrEmpty(contentItemId))
+        {
+            throw new ArgumentException("contentItemId must be set to get embedding event");
+        }
+        List<RagTextEmbedding> result = new();
+        var container = await GetEmbeddingContainer(ragProject);
+        var queryDefinition = new QueryDefinition("SELECT * FROM c WHERE c.SourceItemId=@contentItemId")
+            .WithParameter("@contentItemId", contentItemId);
+        var queryIterator = container.GetItemQueryIterator<RagTextEmbedding>(queryDefinition);
+
+        var allContentItems = new List<ContentItem>();
+
+        while (queryIterator.HasMoreResults)
+        {
+            var response = await queryIterator.ReadNextAsync();
+            result.AddRange(response);
+        }
+        return result;
+    }
     public void Dispose()
     {
         _cosmosClient.Dispose();

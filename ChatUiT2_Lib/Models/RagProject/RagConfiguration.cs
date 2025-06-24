@@ -10,11 +10,7 @@ public class RagConfiguration
     [BsonElement("MinNumberOfQuestionsPerItem")]
     public int MinNumberOfQuestionsPerItem { get; set; } = 5;
     [BsonElement("MaxNumberOfQuestionsPerItem")]
-    public int MaxNumberOfQuestionsPerItem { get; set; } = 20;
-    [BsonElement("ModelForQuestionGeneration")]
-    public string ModelForQuestionGeneration { get; set; } = string.Empty;
-    [BsonElement("ModelForEmbeddings")]
-    public string ModelForEmbeddings { get; set; } = string.Empty;
+    public int MaxNumberOfQuestionsPerItem { get; set; } = 20;    
     [BsonElement("DbName")]
     public string DbName { get; set; } = string.Empty;
     [BsonElement("ItemCollectionName")]

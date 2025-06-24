@@ -7,19 +7,19 @@ namespace ChatUiT2.Interfaces;
 
 public interface IRagDatabaseService
 {
-    public Task SaveRagProject(RagProject ragProject);
+    public Task SaveRagProject(RagProject ragProject, bool forceCreateWithId = false);
     public Task<RagProject?> GetRagProjectById(string projectId, bool loadItems = false);
     public Task<List<RagProject>> GetAllRagProjects();
     public Task DeleteOrphanEmbeddings(RagProject ragProject);
     public Task DeleteRagProject(RagProject ragProject);
     public Task<RagProject?> HandleRagProjectUpload(IBrowserFile file);
     public Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject, bool withSourceItem = false);
-    public Task SaveRagEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false);
+    public Task SaveRagTextEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false);
     public Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
     public Task AddRagTextEmbedding(RagProject ragProject, 
-                                    string itemId,
+                                    ContentItem item,
                                     EmbeddingSourceType embedType,
-                                    OpenAIEmbedding embedding, 
+                                    float[] embedding, 
                                     string originalText = "");
     public Task<ContentItem?> GetContentItemById(RagProject ragProject, string itemId);
     public Task<List<RagSearchResult>> DoGenericRagSearch(RagProject ragProject, float[] floatsUser, int numResults = 3, double minMatchScore = 0.8);
@@ -44,4 +44,11 @@ public interface IRagDatabaseService
     public Task DeleteDatabase(string id);
     Task<RagProject?> GetRagProjectByName(string projectName, bool loadItems = false);
     string GetItemContentString(ContentItem item);
+    Task<ContentItem?> GetContentItemBySourceId(RagProject ragProject, string sourceId);
+    IAsyncEnumerable<ContentItem> GetContentItemsByProject(RagProject ragProject);
+    IAsyncEnumerable<ContentItem> GetContentItemsWithUpdates(RagProject ragProject);
+    Task<List<EmbeddingEvent>> GetEmbeddingEventsByItemId(RagProject ragProject, string contentItemId);
+    Task<List<string>> GetItemSourceSystemIdsByProject(RagProject ragProject);
+    Task<List<RagTextEmbedding>> GetEmbeddingsByItemId(RagProject ragProject, string contentItemId);
+    Task<List<EmbeddingEvent>> GetEmbeddingEventsByProjectAsync(RagProject ragProject);
 }
