@@ -494,6 +494,75 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         return result;
     }
 
+    public async Task<List<RagTextEmbedding>> SearchEmbeddingsByProject(RagProject ragProject,
+                                                                        int startIndex,
+                                                                        int numResults,
+                                                                        string textSearch,
+                                                                        string sourceId,
+                                                                        bool withSourceItem = false)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("Project id must be set to get embeddings");
+        }
+        var result = new List<RagTextEmbedding>();
+        var embeddingContainer = await GetEmbeddingContainer(ragProject);
+        // Build the query
+        var queryBuilder = new StringBuilder("SELECT * FROM c");
+        bool firstCondition = true;
+        if(!string.IsNullOrEmpty(sourceId))
+        {
+            if (!firstCondition)
+            {
+                queryBuilder.Append(" AND");
+            }
+            else
+            {
+                queryBuilder.Append(" WHERE ");
+            }
+            queryBuilder.Append(" c.SourceItemId = @sourceId");
+        }
+        if (!string.IsNullOrEmpty(textSearch))
+        {            
+            if (!firstCondition)
+            {
+                queryBuilder.Append(" AND");
+            } else
+            {
+                queryBuilder.Append(" WHERE ");
+            }
+            queryBuilder.Append(" c.Originaltext LIKE @textSearch");
+            firstCondition = false;
+        }
+        queryBuilder.Append(" OFFSET @startIndex LIMIT @numResults");
+        var queryDefinition = new QueryDefinition(queryBuilder.ToString())
+            .WithParameter("@textSearch", $"%{textSearch}%")
+            .WithParameter("@sourceId", sourceId)
+            .WithParameter("@startIndex", startIndex)
+            .WithParameter("@numResults", numResults);
+        var queryIterator = embeddingContainer.GetItemQueryIterator<RagTextEmbedding>(queryDefinition);
+        while (queryIterator.HasMoreResults)
+        {
+            var response = queryIterator.ReadNextAsync().Result;
+            result.AddRange(response);
+        }
+
+        if (withSourceItem)
+        {
+            foreach (var embedding in result)
+            {
+                var contentItem = await GetContentItemById(ragProject, embedding.SourceItemId);
+                if (contentItem != null)
+                {
+                    embedding.ContentItem = contentItem;
+                }
+            }
+        }
+
+        return result;
+
+    }
+
     /// <summary>
     /// Get a list of unique content item ids from the embeddings container.
     /// Can be used to find all items that has embeddings

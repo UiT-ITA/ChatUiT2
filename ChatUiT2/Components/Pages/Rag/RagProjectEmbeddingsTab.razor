@@ -73,7 +73,7 @@
     </MudGrid>
 </MudPaper>
 
-<MudTable Items="tableEmbeddings"
+<MudTable ServerData="ServerReload"
           Class="mt-4"
           T="RagTextEmbeddingViewItem"
           Dense="false"
@@ -112,8 +112,13 @@
         <MudTd>@context.RagTextEmbedding?.ModelProvider</MudTd>
         <MudTd>@context.RagTextEmbedding?.Model</MudTd>
         <MudTd>@context.RagTextEmbedding?.EmbeddingSourceType</MudTd>
-        <MudTd>@context.ContentItem?.SourceSystemId</MudTd>
-        <MudTd>@context.ContentItem?.SourceSystemAltId</MudTd>
+        <MudTd>
+            <MudLink Href="@(context.RagTextEmbedding?.ContentItem?.ViewUrl)"
+                     Target="_new">
+                @context.RagTextEmbedding?.ContentItem?.SourceSystemId
+            </MudLink>            
+        </MudTd>
+        <MudTd>@context.RagTextEmbedding?.ContentItem?.SourceSystemAltId</MudTd>
     </RowTemplate>
     <RowEditingTemplate>
         <MudTd>
@@ -128,8 +133,8 @@
         </MudTextField>
         <MudTd>@context.RagTextEmbedding?.ModelProvider</MudTd>
         <MudTd>@context.RagTextEmbedding?.Model</MudTd>
-        <MudTd>@context.ContentItem?.SourceSystemId</MudTd>
-        <MudTd>@context.ContentItem?.SourceSystemAltId</MudTd>
+        <MudTd>@context.RagTextEmbedding?.ContentItem?.SourceSystemId</MudTd>
+        <MudTd>@context.RagTextEmbedding?.ContentItem?.SourceSystemAltId</MudTd>
     </RowEditingTemplate>
     <PagerContent>
         <MudTablePager HorizontalAlignment="HorizontalAlignment.Center" />
@@ -148,8 +153,6 @@
     [Parameter]
     public RagProject? RagProject { get; set; }
 
-    private List<RagTextEmbeddingViewItem> tableEmbeddings = [];
-    private List<RagTextEmbeddingViewItem> allEmbeddings = [];
     private MudTable<RagTextEmbeddingViewItem>? table;
     private RagTextEmbeddingViewItem? selectedItem1 = null;
     private RagTextEmbeddingViewItem? elementBeforeEdit;
@@ -166,7 +169,6 @@
         {
             try
             {
-                await LoadDbEmbeddings();
                 await RefreshCounts();
             }
             catch (Exception e)
@@ -176,29 +178,25 @@
         }
     }
 
-    private async Task LoadDbEmbeddings()
+    private async Task<TableData<RagTextEmbeddingViewItem>> ServerReload(TableState state, CancellationToken cancellationToken)
     {
         isLoading = true;
-        allEmbeddings = [];
-        StateHasChanged();
         if (RagProject == null)
         {
-            return;
+            return new TableData<RagTextEmbeddingViewItem>() { TotalItems = 0, Items = new List<RagTextEmbeddingViewItem>() };
         }
-        var embeddingsFromDb = await ragTopdeskService.GetEmbeddingsByProject(RagProject, true);
+        var embeddingsFromDb = await ragTopdeskService.SearchEmbeddingsByProject(RagProject, state.Page * state.PageSize, state.PageSize, "", sourceIdSearch, true);
+        var items = new List<RagTextEmbeddingViewItem>();
         foreach (var embedding in embeddingsFromDb)
         {
-            var sourceItem = await ragTopdeskService.GetContentItemById(RagProject, embedding.SourceItemId);
-            allEmbeddings.Add(new RagTextEmbeddingViewItem()
+            RagTextEmbeddingViewItem item = new()
             {
-                RagTextEmbedding = embedding,
-                IsEditing = false,
-                ContentItem = sourceItem
-            });
+                RagTextEmbedding = embedding
+            };
+            items.Add(item);
         }
-        tableEmbeddings = allEmbeddings.ToList();
         isLoading = false;
-        StateHasChanged();
+        return new TableData<RagTextEmbeddingViewItem>() { TotalItems = 0, Items = items };
     }
 
     private async Task SaveEmbedding(RagTextEmbeddingViewItem item, bool reloadData = true)
@@ -218,7 +216,7 @@
             await ragTopdeskService.SaveRagTextEmbedding(RagProject, item.RagTextEmbedding);
             if (reloadData)
             {
-                await LoadDbEmbeddings();
+                await table.ReloadServerData();
             }
         }
         catch (Exception e)
@@ -295,7 +293,7 @@
             }
             await ragTopdeskService.DeleteRagEmbedding(RagProject, item.RagTextEmbedding);
             Snackbar.Add($"Embedding slettet", Severity.Success, config => { });
-            await LoadDbEmbeddings();
+            await table.ReloadServerData();
             StateHasChanged();
         }
         catch (Exception e)
@@ -329,7 +327,7 @@
         {
             Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject?.Id} {e.Message}", Severity.Error, config => { });
         }
-        await LoadDbEmbeddings();
+        await table.ReloadServerData();
         StateHasChanged();
     }
 
@@ -356,52 +354,17 @@
         {
             Snackbar.Add($"Noe feilet ved sending av melding om lag embeddings for alle items, ragProjectId {RagProject?.Id} {e.Message}", Severity.Error, config => { });
         }
-        await LoadDbEmbeddings();
+        await table.ReloadServerData();
         StateHasChanged();
     }
 
-    private void CheckIfEnterPressed(KeyboardEventArgs e)
+    private async Task CheckIfEnterPressed(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
         {
             // Call your function here
-            DoSearch();
+            await table.ReloadServerData();
         }
-    }
-
-    private void DoSearch()
-    {
-        try
-        {
-            isLoading = true;
-            tableEmbeddings = [];
-            IQueryable<RagTextEmbeddingViewItem>? query = allEmbeddings.AsQueryable();
-            if (string.IsNullOrEmpty(sourceIdSearch) == false)
-            {
-                query = query?.Where(x => x.RagTextEmbedding != null && x.RagTextEmbedding.ContentItem != null &&
-                                          (
-                                            x.RagTextEmbedding.ContentItem.SourceSystemId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase) ||
-                                            x.RagTextEmbedding.ContentItem.SourceSystemAltId.Contains(sourceIdSearch, StringComparison.OrdinalIgnoreCase)
-                                    ));
-            }
-            if(query != null)
-            {
-                tableEmbeddings = query.ToList();
-            }
-            else
-            {
-                Snackbar.Add($"Query er null", Severity.Error, config => { });
-            }
-        }
-        catch (Exception e)
-        {
-            Snackbar.Add($"Noe feilet ved søk {e.Message}", Severity.Error, config => { });
-        }
-        finally
-        {
-            isLoading = false;
-        }
-        StateHasChanged();
     }
 
     private async Task RefreshCounts()
@@ -444,8 +407,7 @@
             if (RagProject != null)
             {
                 await ragTopdeskService.DeleteEmbeddingsForProject(RagProject);
-                await LoadDbEmbeddings();
-                DoSearch();
+                await table.ReloadServerData();
                 Snackbar.Add($"Alle embeddings for prosjekt er slettet", Severity.Success, config => { });
             }
             else
@@ -457,5 +419,10 @@
         {
             Snackbar.Add($"Noe feilet ved sletting {e.Message}", Severity.Error, config => { });
         }
+    }
+
+    private async Task DoSearch()
+    {
+        await table.ReloadServerData();
     }
 }

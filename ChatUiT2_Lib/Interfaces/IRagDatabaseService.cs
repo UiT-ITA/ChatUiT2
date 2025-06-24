@@ -14,6 +14,12 @@ public interface IRagDatabaseService
     public Task DeleteRagProject(RagProject ragProject);
     public Task<RagProject?> HandleRagProjectUpload(IBrowserFile file);
     public Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject, bool withSourceItem = false);
+    public Task<List<RagTextEmbedding>> SearchEmbeddingsByProject(RagProject ragProject, 
+                                                                  int startIndex,
+                                                                  int numResults,
+                                                                  string textSearch = "",
+                                                                  string sourceId = "",
+                                                                  bool withSourceItem = false);
     public Task SaveRagTextEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false);
     public Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
     public Task AddRagTextEmbedding(RagProject ragProject, 
