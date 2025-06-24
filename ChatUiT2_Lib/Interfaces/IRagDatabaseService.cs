@@ -29,7 +29,7 @@ public interface IRagDatabaseService
     public Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject);
     public Task DeleteAllEmbeddingEvents(RagProject ragProject);
     public Task DeleteEmbeddingsForProject(RagProject ragProject);
-    public Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent);
+    public Task<EmbeddingEvent> SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent);
     public Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId);    
     public Task<EmbeddingEvent?> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId, bool simulateEtagChanged = false);
     public Task<string?> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type);
