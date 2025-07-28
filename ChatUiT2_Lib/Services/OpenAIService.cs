@@ -393,4 +393,15 @@ public class OpenAIService : IOpenAIService
 
         return embeddingResponse;
     }
+
+    public async Task<string> GetResponseRaw(List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options)
+    {
+        ChatCompletion response = await _client.CompleteChatAsync(messages, options);
+        return response.Content[0].Text;
+    }
+
+    public IAsyncEnumerable<StreamingChatCompletionUpdate> GetStreamingResponseRaw(List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options)
+    {
+        return _client.CompleteChatStreamingAsync(messages, options);
+    }
 }

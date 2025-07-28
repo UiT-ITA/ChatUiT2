@@ -9,6 +9,7 @@ using Microsoft.Identity.Web.UI;
 using ChatUiT2.Services.Template;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Azure.Cosmos;
+using ChatUiT2.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -108,6 +109,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.UseAuthentication();
+app.UseMiddleware<ApiKeyAuthenticationMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
