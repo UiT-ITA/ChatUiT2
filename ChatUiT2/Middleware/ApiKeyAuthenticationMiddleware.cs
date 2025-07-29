@@ -15,7 +15,8 @@ public class ApiKeyAuthenticationMiddleware
 
   public async Task InvokeAsync(HttpContext context)
   {
-    if (context.Request.Path.StartsWithSegments("/v1"))
+    if (context.Request.Path.StartsWithSegments("/v1") || 
+        context.Request.Path.StartsWithSegments("/openai"))
     {
       if (!IsValidApiKey(context))
       {
@@ -30,14 +31,26 @@ public class ApiKeyAuthenticationMiddleware
 
   private bool IsValidApiKey(HttpContext context)
   {
+    // Check for Bearer token (standard OpenAI format)
     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-    if (authHeader == null || !authHeader.StartsWith("Bearer "))
+    if (authHeader != null && authHeader.StartsWith("Bearer "))
     {
-      return false;
+      var apiKey = authHeader.Substring("Bearer ".Length).Trim();
+      return IsKeyValid(apiKey);
     }
 
-    var apiKey = authHeader.Substring("Bearer ".Length).Trim();
-    
+    // Check for api-key header (Azure OpenAI format)
+    var apiKeyHeader = context.Request.Headers["api-key"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(apiKeyHeader))
+    {
+      return IsKeyValid(apiKeyHeader);
+    }
+
+    return false;
+  }
+
+  private bool IsKeyValid(string apiKey)
+  {
     var validKeys = new[]
     {
       _configuration["API_KEY_1"],

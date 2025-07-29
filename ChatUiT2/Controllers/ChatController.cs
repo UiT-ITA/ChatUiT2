@@ -70,12 +70,12 @@ public class ChatController : ControllerBase
             var messages = new List<OpenAI.Chat.ChatMessage>();
             
             messages.Add(new SystemChatMessage("Use the information in the knowledge articles the user provides to answer the user question. Answer in the same language as the user is asking in. IMPORTANT: Always cite your sources by referencing the specific knowledge article(s) you used in your response. Include the source information at the end of your answer with title and URL when available."));
-            
+
             for (int i = 0; i < ragSearchResults.Count; i++)
             {
                 var result = ragSearchResults[i];
                 var sourceInfo = "";
-                
+
                 if (!string.IsNullOrEmpty(result.ContentTitle))
                 {
                     sourceInfo = result.ContentTitle;
@@ -92,8 +92,9 @@ public class ChatController : ControllerBase
                 {
                     sourceInfo = "Unknown source";
                 }
-                
+
                 messages.Add(new UserChatMessage($"## Knowledge article {i} (Source: {sourceInfo})\n\n{result.SourceContent}\n\n"));
+                Console.WriteLine($"Knowledge article {i}: {result.SourceContent}");
             }
             
             messages.Add(new UserChatMessage($"My question is {userMessage.Content}"));
@@ -159,9 +160,9 @@ public class ChatController : ControllerBase
 
     private async Task<IActionResult> CreateStreamingResponse(ChatCompletionRequest request, string userContent, List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options, OpenAIService openAIService)
     {
-        Response.Headers.Add("Content-Type", "text/event-stream");
-        Response.Headers.Add("Cache-Control", "no-cache");
-        Response.Headers.Add("Connection", "keep-alive");
+        Response.Headers["Content-Type"] = "text/event-stream";
+        Response.Headers["Cache-Control"] = "no-cache";
+        Response.Headers["Connection"] = "keep-alive";
 
         var completionId = $"chatcmpl-{Guid.NewGuid()}";
         var created = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
