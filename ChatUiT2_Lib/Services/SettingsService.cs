@@ -182,7 +182,6 @@ public class SettingsService : ISettingsService
 
         foreach (var tool in tools)
         {
-            Console.WriteLine($"Mapping tool {tool}");
             var toolDescription = ChatTools.Tools.FirstOrDefault(t => t.DisplayName == tool);
             if (toolDescription != null)
             {

@@ -31,17 +31,13 @@ public class LocalStorageService
     public async Task<List<WorkItemChat>> GetLocalConversations()
     {
         List<WorkItemChat> conversationHistory = new List<WorkItemChat>();
-        Console.WriteLine("Getting history");
         var history = await GetConversationHistoryAsync();
         if (history == null)
         {
-            Console.WriteLine("No history found");
             return conversationHistory;
         }
-        Console.WriteLine("Got history");
         foreach (var conversation in history)
         {
-            Console.WriteLine($"Conversation: {conversation.name}");
 
             if (conversation.messages.Count == 0)
             {

@@ -396,21 +396,18 @@ public static class WikipeidaHelper
         var infoboxEnd = html.IndexOf("</table>");
         if (infoboxEnd == -1)
         {
-            Console.WriteLine("Infobox end not found.");
             return null;
         }
         // Find the first <p> tag after the infobox
         var firstParagraphStart = html.IndexOf("<p>", infoboxEnd);
         if (firstParagraphStart == -1)
         {
-            Console.WriteLine("First paragraph start not found.");
             return null;
         }
         // Find the end of the first section using the <h2> tag
         var firstSectionEnd = html.IndexOf("<h2", firstParagraphStart);
         if (firstSectionEnd == -1)
         {
-            Console.WriteLine("First section end not found.");
             return null;
         }
         // Extract the HTML for the first section

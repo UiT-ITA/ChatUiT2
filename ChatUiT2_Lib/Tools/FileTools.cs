@@ -250,7 +250,7 @@ public static class FileTools
                                 }
                                 else
                                 {
-                                    //Console.WriteLine("Unknown element: " + runElement.GetType().Name);
+
                                 }
                             }
                         }
@@ -270,7 +270,6 @@ public static class FileTools
                         }
                         else
                         {
-                            //Console.WriteLine("Unknown element: " + paragraphElement.GetType().Name);
                         }
                     }
                     content.Add(new TextFilePart("\n\n"));

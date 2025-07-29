@@ -90,7 +90,6 @@ public class AzureChatController : ControllerBase
       var result = ragSearchResults[i];
       var sourceInfo = GetSourceInfo(result);
       messages.Add(new UserChatMessage($"## Knowledge article {i} (Source: {sourceInfo})\n\n{result.SourceContent}\n\n"));
-            Console.WriteLine($"Knowledge article {i}: {result.SourceContent}");
         }
         
         messages.Add(new UserChatMessage($"My question is: {userInput}"));

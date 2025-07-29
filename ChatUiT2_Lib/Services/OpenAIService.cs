@@ -158,7 +158,6 @@ public class OpenAIService : IOpenAIService
                 if (contentBuilder.Length > 0)
                 {
                     assistantMessage.Content.Add(ChatMessageContentPart.CreateTextPart(contentBuilder.ToString()));
-                    Console.WriteLine(contentBuilder.ToString());
                 }
 
                 messages.Add(assistantMessage);
@@ -265,7 +264,6 @@ public class OpenAIService : IOpenAIService
             {
                 bool filesIncluded = false;
                 messages.Insert(1, GetOpenAIMessage(message));
-                //Console.WriteLine(message.Content);
                 foreach (var file in message.Files)
                 {
                     var fileMessage = FileTools.GetOpenAIMessage(file, includeImageParts: allowImages);

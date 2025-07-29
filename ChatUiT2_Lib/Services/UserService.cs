@@ -108,7 +108,6 @@ public class UserService : IUserService
         // Load user
         _ = LoadUser();
 
-        //Console.WriteLine("UserService created");
     }
 
 

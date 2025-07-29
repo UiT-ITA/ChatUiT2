@@ -59,8 +59,6 @@ public class DatabaseService : IDatabaseService
         _fileCollection = userDatabase.GetCollection<BsonDocument>("Files");
 
         _useEncryption = configuration.GetValue<bool>("UseEncryption", defaultValue: true);
-    
-        //Console.WriteLine("DatabaseService created");
     }
 
 
@@ -266,7 +264,6 @@ public class DatabaseService : IDatabaseService
 
     public async Task LoadWorkItemComponentsAsync(User user, WorkItemChat workItem, IUpdateService updateService)
     {
-        Console.WriteLine("Loading chat: " + workItem.Name);
         try
         {
             workItem.Messages = await GetChatMessages(user, workItem.Id);

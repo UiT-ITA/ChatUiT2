@@ -89,8 +89,6 @@ public class ChatService : IChatService
         }
         else
         {
-            Console.WriteLine("Continuing chat");
-
             responseMessage = userMessage;
             responseMessage.Status = ChatMessageStatus.Working;
             await _mediator.Publish(new StreamUpdatedEvent());

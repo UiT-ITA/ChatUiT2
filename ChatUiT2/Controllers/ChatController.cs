@@ -94,7 +94,6 @@ public class ChatController : ControllerBase
                 }
 
                 messages.Add(new UserChatMessage($"## Knowledge article {i} (Source: {sourceInfo})\n\n{result.SourceContent}\n\n"));
-                Console.WriteLine($"Knowledge article {i}: {result.SourceContent}");
             }
             
             messages.Add(new UserChatMessage($"My question is {userMessage.Content}"));

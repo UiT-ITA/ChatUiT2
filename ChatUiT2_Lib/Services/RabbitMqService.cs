@@ -114,7 +114,6 @@ public class RabbitMqService : IRabbitMqService
                 }
                 var body = result.Body.ToArray();
                 var message = Encoding.UTF8.GetString(body);
-                Console.WriteLine($"Received message: {message}");
                 var msgObj = JsonSerializer.Deserialize<T>(message);
                 if (msgObj != null)
                 {

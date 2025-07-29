@@ -9,7 +9,6 @@ public class UpdateService: IUpdateService
 
     public UpdateService()
     {
-        //Console.WriteLine("UpdateService created");
     }
 
     public void Update(UpdateType type)
