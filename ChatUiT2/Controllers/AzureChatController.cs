@@ -37,7 +37,7 @@ public class AzureChatController : ControllerBase
         _logger = logger;
     }
 
-    [HttpPost("deployments/{deploymentId}/completions")]
+    [HttpPost("deployments/{deploymentId}/chat/completions")]
     public async Task<IActionResult> CreateAzureCompletion(string deploymentId, [FromBody] AzureCompletionRequest request)
     {
         try
