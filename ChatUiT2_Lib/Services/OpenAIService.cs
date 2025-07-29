@@ -29,7 +29,7 @@ public class OpenAIService : IOpenAIService
 
     public OpenAIService(AiModel model,
                          string username,
-                         ILogger logger,                         
+                         ILogger logger,
                          IMediator mediator,
                          IChatToolsService chatToolsService)
     {
@@ -117,79 +117,101 @@ public class OpenAIService : IOpenAIService
 
     private async Task CompleteChatStreamingAsync(List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options, Models.ChatMessage responseMessage)
     {
-        var response = _client.CompleteChatStreamingAsync(messages, options);
-
-        StreamingChatToolCallsBuilder toolCalls = new();
-        StringBuilder contentBuilder = new();
-
-        await foreach (var chatCompletionUpdate in response)
+        try
         {
-            foreach (var update in chatCompletionUpdate.ContentUpdate)
-            {
-                responseMessage.Content += update.Text;
-                contentBuilder.Append(update.Text);
-                await _mediator.Publish(new StreamUpdatedEvent());
-            }
 
-            foreach (var update in chatCompletionUpdate.ToolCallUpdates)
-            {
-                toolCalls.Append(update);
-            }
+            var response = _client.CompleteChatStreamingAsync(messages, options);
 
-            if (chatCompletionUpdate.FinishReason is null)
-            {
-                continue;
-            }
+            StreamingChatToolCallsBuilder toolCalls = new();
+            StringBuilder contentBuilder = new();
 
-            if (chatCompletionUpdate.FinishReason == ChatFinishReason.Stop)
+            await foreach (var chatCompletionUpdate in response)
             {
-                responseMessage.Status = ChatMessageStatus.Done;
-            }
-            else if (chatCompletionUpdate.FinishReason == ChatFinishReason.Length)
-            {
-                responseMessage.Status = ChatMessageStatus.TokenLimit;
-            }
-            else if (chatCompletionUpdate.FinishReason == ChatFinishReason.ToolCalls)
-            {
-                await _mediator.Publish(new StreamUpdatedEvent());
-
-                var toolList = toolCalls.Build();
-                var assistantMessage = new AssistantChatMessage(toolList);
-                if (contentBuilder.Length > 0)
+                foreach (var update in chatCompletionUpdate.ContentUpdate)
                 {
-                    assistantMessage.Content.Add(ChatMessageContentPart.CreateTextPart(contentBuilder.ToString()));
+                    responseMessage.Content += update.Text;
+                    contentBuilder.Append(update.Text);
+                    await _mediator.Publish(new StreamUpdatedEvent());
                 }
 
-                messages.Add(assistantMessage);
-
-                foreach (var toolCall in toolList)
+                foreach (var update in chatCompletionUpdate.ToolCallUpdates)
                 {
-                    // Add notice in response message including parameters
-                    // If message is empty, or last char is a newline, don't add a newline, otherwise add a newline
-                    if (responseMessage.Content == "" || responseMessage.Content[^1] == '\n')
-                    {
-                        responseMessage.Content += GetToolNotice(toolCall);
-                    }
-                    else
-                    {
-                        responseMessage.Content += "\n" + GetToolNotice(toolCall);
-                    }
+                    toolCalls.Append(update);
+                }
+
+                if (chatCompletionUpdate.FinishReason is null)
+                {
+                    continue;
+                }
+
+                if (chatCompletionUpdate.FinishReason == ChatFinishReason.Stop)
+                {
+                    responseMessage.Status = ChatMessageStatus.Done;
+                }
+                else if (chatCompletionUpdate.FinishReason == ChatFinishReason.Length)
+                {
+                    responseMessage.Status = ChatMessageStatus.TokenLimit;
+                }
+                else if (chatCompletionUpdate.FinishReason == ChatFinishReason.ToolCalls)
+                {
                     await _mediator.Publish(new StreamUpdatedEvent());
 
-                    ToolChatMessage toolMessage = new(toolCall.Id, await _chatToolsService.HandleToolCall(toolCall));
+                    var toolList = toolCalls.Build();
+                    var assistantMessage = new AssistantChatMessage(toolList);
+                    if (contentBuilder.Length > 0)
+                    {
+                        assistantMessage.Content.Add(ChatMessageContentPart.CreateTextPart(contentBuilder.ToString()));
+                    }
 
-                    messages.Add(toolMessage);
+                    messages.Add(assistantMessage);
+
+                    foreach (var toolCall in toolList)
+                    {
+                        // Add notice in response message including parameters
+                        // If message is empty, or last char is a newline, don't add a newline, otherwise add a newline
+                        if (responseMessage.Content == "" || responseMessage.Content[^1] == '\n')
+                        {
+                            responseMessage.Content += GetToolNotice(toolCall);
+                        }
+                        else
+                        {
+                            responseMessage.Content += "\n" + GetToolNotice(toolCall);
+                        }
+                        await _mediator.Publish(new StreamUpdatedEvent());
+
+                        ToolChatMessage toolMessage = new(toolCall.Id, await _chatToolsService.HandleToolCall(toolCall));
+
+                        messages.Add(toolMessage);
+
+                    }
+                    await CompleteChatStreamingAsync(messages, options, responseMessage);
 
                 }
-                await CompleteChatStreamingAsync(messages, options, responseMessage);
-
+                else
+                {
+                    Console.WriteLine("Unknown finish reason");
+                    Console.WriteLine(chatCompletionUpdate.FinishReason.ToString());
+                    responseMessage.Status = ChatMessageStatus.Error;
+                }
             }
-            else
-            {
-                Console.WriteLine("Unknown finish reason");
-                Console.WriteLine(chatCompletionUpdate.FinishReason.ToString());
-                responseMessage.Status = ChatMessageStatus.Error;
-            }
+        }
+        catch (ClientResultException ex) when (ex.Message.Contains("context_length_exceeded"))
+        {
+            responseMessage.Content = "❌ **Conversation Too Long**\n\nThe conversation has become too long for the AI model to process. Please start a new conversation or remove some earlier messages to continue.";
+            responseMessage.Status = ChatMessageStatus.Error;
+            _logger?.LogWarning("Context length exceeded for user {User} with model {Model}", _username, _model.DeploymentName);
+        }
+        catch (ClientResultException ex) when (ex.Status == 400)
+        {
+            responseMessage.Content = "❌ **Request Error**\n\nThere was an issue processing your request. Please try again or start a new conversation.";
+            responseMessage.Status = ChatMessageStatus.Error;
+            _logger?.LogError(ex, "Azure OpenAI request failed with status 400 for user {User}", _username);
+        }
+        catch (Exception ex)
+        {
+            responseMessage.Content = "❌ **Unexpected Error**\n\nAn unexpected error occurred. Please try again later.";
+            responseMessage.Status = ChatMessageStatus.Error;
+            _logger?.LogError(ex, "Unexpected error in CompleteChatStreamingAsync for user {User}", _username);
         }
     }
 

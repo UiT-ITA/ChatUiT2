@@ -438,7 +438,13 @@ public class UserService : IUserService
     private async void ScrollDelayed()
     {
         await Task.Delay(200);
-        await _jsRuntime.InvokeVoidAsync("forceScroll", "chatContainer");
+        try
+        {
+            await _jsRuntime.InvokeVoidAsync("forceScroll", "chatContainer");
+        }
+        catch (Exception ex)
+        {
+        }
     }
 
 
