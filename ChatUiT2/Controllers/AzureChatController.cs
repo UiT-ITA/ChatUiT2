@@ -38,31 +38,32 @@ public class AzureChatController : ControllerBase
     }
 
     [HttpPost("deployments/{deploymentId}/chat/completions")]
-    public async Task<IActionResult> CreateAzureCompletion(string deploymentId, [FromBody] AzureCompletionRequest request)
+    public async Task<IActionResult> CreateAzureChatCompletion(string deploymentId, [FromBody] AzureChatCompletionRequest request)
     {
         try
         {
-            string promptText = ExtractPromptText(request.Prompt);
-            if (string.IsNullOrEmpty(promptText))
+            // Extract user message from the messages array
+            var userMessage = ExtractUserMessage(request.Messages);
+            if (string.IsNullOrEmpty(userMessage))
             {
-                return BadRequest(new { error = new { message = "Prompt is required." } });
+                return BadRequest(new { error = new { message = "At least one user message is required." } });
             }
 
-            var (messages, options, openAIService) = await PrepareRagResponse(promptText, request.MaxTokens);
+            var (messages, options, openAIService) = await PrepareRagResponse(userMessage, request.MaxTokens);
 
             if (request.Stream)
             {
-                return await CreateStreamingResponse(deploymentId, promptText, messages, options, openAIService);
+                return await CreateStreamingChatResponse(deploymentId, userMessage, messages, options, openAIService);
             }
             else
             {
                 var ragResponse = await openAIService.GetResponseRaw(messages, options);
-                return CreateCompletionResponse(deploymentId, promptText, ragResponse, openAIService);
+                return CreateChatCompletionResponse(deploymentId, userMessage, ragResponse, openAIService);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing Azure OpenAI completion request");
+            _logger.LogError(ex, "Error processing Azure OpenAI chat completion request");
             return StatusCode(500, new { error = new { message = "Internal server error" } });
         }
     }
@@ -123,48 +124,38 @@ public class AzureChatController : ControllerBase
         return "Unknown source";
     }
 
-    private string ExtractPromptText(object prompt)
+    private string ExtractUserMessage(List<AzureChatMessage> messages)
     {
-        if (prompt is string stringPrompt)
-            return stringPrompt;
-        
-        if (prompt is JsonElement jsonElement)
-        {
-            if (jsonElement.ValueKind == JsonValueKind.String)
-                return jsonElement.GetString() ?? string.Empty;
-            
-            if (jsonElement.ValueKind == JsonValueKind.Array)
-            {
-                var prompts = jsonElement.EnumerateArray()
-                    .Where(p => p.ValueKind == JsonValueKind.String)
-                    .Select(p => p.GetString() ?? string.Empty);
-                return string.Join(" ", prompts);
-            }
-        }
-        return string.Empty;
+        // Find the last user message (most recent user input)
+        var userMessage = messages.LastOrDefault(m => m.Role == "user");
+        return userMessage?.Content ?? string.Empty;
     }
 
-    private IActionResult CreateCompletionResponse(string model, string promptText, string ragResponse, OpenAIService openAIService)
+    private IActionResult CreateChatCompletionResponse(string model, string userMessage, string ragResponse, OpenAIService openAIService)
     {
-        var promptTokens = openAIService.GetTokens(promptText);
+        var promptTokens = openAIService.GetTokens(userMessage);
         var completionTokens = openAIService.GetTokens(ragResponse);
 
-        var response = new AzureCompletionResponse
+        var response = new AzureChatCompletionResponse
         {
-            Id = $"cmpl-{Guid.NewGuid()}",
+            Id = $"chatcmpl-{Guid.NewGuid()}",
             Created = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             Model = model,
-            Choices = new List<AzureCompletionChoice>
+            Choices = new List<AzureChatChoice>
             {
-                new AzureCompletionChoice
+                new AzureChatChoice
                 {
-                    Text = ragResponse,
                     Index = 0,
+                    Message = new AzureChatMessage
+                    {
+                        Role = "assistant",
+                        Content = ragResponse
+                    },
                     FinishReason = "stop",
                     Logprobs = null
                 }
             },
-            Usage = new Usage
+            Usage = new AzureUsage
             {
                 PromptTokens = promptTokens,
                 CompletionTokens = completionTokens,
@@ -175,13 +166,13 @@ public class AzureChatController : ControllerBase
         return Ok(response);
     }
 
-    private async Task<IActionResult> CreateStreamingResponse(string model, string promptText, List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options, OpenAIService openAIService)
+    private async Task<IActionResult> CreateStreamingChatResponse(string model, string userMessage, List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options, OpenAIService openAIService)
     {
         Response.Headers["Content-Type"] = "text/event-stream";
         Response.Headers["Cache-Control"] = "no-cache";
         Response.Headers["Connection"] = "keep-alive";
 
-        var completionId = $"cmpl-{Guid.NewGuid()}";
+        var completionId = $"chatcmpl-{Guid.NewGuid()}";
         var created = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
         try
@@ -192,17 +183,21 @@ public class AzureChatController : ControllerBase
                 {
                     if (!string.IsNullOrEmpty(contentUpdate.Text))
                     {
-                        await WriteCompletionStreamChunk(new AzureCompletionResponse
+                        await WriteChatStreamChunk(new AzureChatCompletionResponse
                         {
                             Id = completionId,
                             Created = created,
                             Model = model,
-                            Choices = new List<AzureCompletionChoice>
+                            Choices = new List<AzureChatChoice>
                             {
-                                new AzureCompletionChoice
+                                new AzureChatChoice
                                 {
-                                    Text = contentUpdate.Text,
                                     Index = 0,
+                                    Message = new AzureChatMessage
+                                    {
+                                        Role = "assistant",
+                                        Content = contentUpdate.Text
+                                    },
                                     FinishReason = null
                                 }
                             }
@@ -212,17 +207,21 @@ public class AzureChatController : ControllerBase
 
                 if (update.FinishReason != null)
                 {
-                    await WriteCompletionStreamChunk(new AzureCompletionResponse
+                    await WriteChatStreamChunk(new AzureChatCompletionResponse
                     {
                         Id = completionId,
                         Created = created,
                         Model = model,
-                        Choices = new List<AzureCompletionChoice>
+                        Choices = new List<AzureChatChoice>
                         {
-                            new AzureCompletionChoice
+                            new AzureChatChoice
                             {
-                                Text = "",
                                 Index = 0,
+                                Message = new AzureChatMessage
+                                {
+                                    Role = "assistant",
+                                    Content = ""
+                                },
                                 FinishReason = "stop"
                             }
                         }
@@ -237,12 +236,12 @@ public class AzureChatController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in Azure completion streaming response");
+            _logger.LogError(ex, "Error in Azure chat completion streaming response");
             return StatusCode(500, new { error = new { message = "Streaming error" } });
         }
     }
 
-    private async Task WriteCompletionStreamChunk(AzureCompletionResponse chunk)
+    private async Task WriteChatStreamChunk(AzureChatCompletionResponse chunk)
     {
         var json = JsonSerializer.Serialize(chunk, new JsonSerializerOptions
         {

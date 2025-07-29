@@ -1,15 +1,17 @@
 using System.Text.Json.Serialization;
-using ChatUiT2.Models.OpenAI;
 
 namespace ChatUiT2.Models.Azure;
 
-public class AzureCompletionResponse
+/// <summary>
+/// Azure OpenAI Chat Completions API response model
+/// </summary>
+public class AzureChatCompletionResponse
 {
     [JsonPropertyName("id")]
     public string Id { get; set; } = null!;
 
     [JsonPropertyName("object")]
-    public string Object { get; set; } = "text_completion";
+    public string Object { get; set; } = "chat.completion";
 
     [JsonPropertyName("created")]
     public long Created { get; set; }
@@ -18,23 +20,44 @@ public class AzureCompletionResponse
     public string Model { get; set; } = null!;
 
     [JsonPropertyName("choices")]
-    public List<AzureCompletionChoice> Choices { get; set; } = null!;
+    public List<AzureChatChoice> Choices { get; set; } = new();
 
     [JsonPropertyName("usage")]
-    public Usage Usage { get; set; } = null!;
+    public AzureUsage Usage { get; set; } = new();
+
+    [JsonPropertyName("system_fingerprint")]
+    public string? SystemFingerprint { get; set; }
 }
 
-public class AzureCompletionChoice
+/// <summary>
+/// Azure OpenAI Chat Choice model
+/// </summary>
+public class AzureChatChoice
 {
-    [JsonPropertyName("text")]
-    public string Text { get; set; } = null!;
-
     [JsonPropertyName("index")]
     public int Index { get; set; }
+
+    [JsonPropertyName("message")]
+    public AzureChatMessage Message { get; set; } = null!;
 
     [JsonPropertyName("finish_reason")]
     public string? FinishReason { get; set; }
 
     [JsonPropertyName("logprobs")]
     public object? Logprobs { get; set; }
+}
+
+/// <summary>
+/// Azure OpenAI Usage model
+/// </summary>
+public class AzureUsage
+{
+    [JsonPropertyName("prompt_tokens")]
+    public int PromptTokens { get; set; }
+
+    [JsonPropertyName("completion_tokens")]
+    public int CompletionTokens { get; set; }
+
+    [JsonPropertyName("total_tokens")]
+    public int TotalTokens { get; set; }
 }
