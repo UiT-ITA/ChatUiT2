@@ -60,7 +60,4 @@ public class AzureChatMessage
 
     [JsonPropertyName("content")]
     public string Content { get; set; } = null!;
-
-    [JsonPropertyName("name")]
-    public string? Name { get; set; }
 }

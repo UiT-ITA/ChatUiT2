@@ -42,23 +42,21 @@ public class AzureChatController : ControllerBase
     {
         try
         {
-            // Extract user message from the messages array
-            var userMessage = ExtractUserMessage(request.Messages);
-            if (string.IsNullOrEmpty(userMessage))
+            if (request.Messages == null || !request.Messages.Any())
             {
-                return BadRequest(new { error = new { message = "At least one user message is required." } });
+                return BadRequest(new { error = new { message = "At least one message is required." } });
             }
 
-            var (messages, options, openAIService) = await PrepareRagResponse(userMessage, request.MaxTokens);
+            var (messages, options, openAIService) = await PrepareRagResponse(request.Messages, request.MaxTokens);
 
             if (request.Stream)
             {
-                return await CreateStreamingChatResponse(deploymentId, userMessage, messages, options, openAIService);
+                return await CreateStreamingChatResponse(messages, options, openAIService);
             }
             else
             {
                 var ragResponse = await openAIService.GetResponseRaw(messages, options);
-                return CreateChatCompletionResponse(deploymentId, userMessage, ragResponse, openAIService);
+                return CreateChatCompletionResponse(ragResponse, openAIService, messages);
             }
         }
         catch (Exception ex)
@@ -68,8 +66,15 @@ public class AzureChatController : ControllerBase
         }
     }
 
-    private async Task<(List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options, OpenAIService openAIService)> PrepareRagResponse(string userInput, int? maxTokens)
+    private async Task<(List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options, OpenAIService openAIService)> PrepareRagResponse(List<AzureChatMessage> requestMessages, int? maxTokens)
     {
+        // Get the last user message for RAG search
+        var lastUserMessage = requestMessages.LastOrDefault(m => m.Role == "user");
+        if (lastUserMessage == null)
+        {
+            throw new InvalidOperationException("No user message found for RAG search");
+        }
+
         var ragProject = await _ragDatabaseService.GetRagProjectByName("PersonalhandbokItems");
         if (ragProject == null)
         {
@@ -78,22 +83,43 @@ public class AzureChatController : ControllerBase
 
         var model = _settingsService.EmbeddingModel;
         var embeddingService = new OpenAIService(model, "System", _logger, _mediator, _chatToolsService);
-        var embedding = await embeddingService.GetEmbedding(userInput);
+        var embedding = await embeddingService.GetEmbedding(lastUserMessage.Content);
         var ragSearchResults = await _ragSearchService.DoGenericRagSearch(ragProject, embedding, 3, 0.6d);
 
         var defaultModel = _settingsService.DefaultModel;
         var messages = new List<OpenAI.Chat.ChatMessage>();
-        
-        messages.Add(new SystemChatMessage("Use the information in the knowledge articles to provide a helpful response. Answer in the same language as the user. IMPORTANT: Always cite your sources by referencing the specific knowledge article(s) you used."));
 
-    for (int i = 0; i < ragSearchResults.Count; i++)
-    {
-      var result = ragSearchResults[i];
-      var sourceInfo = GetSourceInfo(result);
-      messages.Add(new UserChatMessage($"## Knowledge article {i} (Source: {sourceInfo})\n\n{result.SourceContent}\n\n"));
+        // Convert all request messages to OpenAI format
+        foreach (var requestMessage in requestMessages)
+        {
+            switch (requestMessage.Role.ToLower())
+            {
+                case "system":
+                    messages.Add(new SystemChatMessage(requestMessage.Content));
+                    break;
+                case "user":
+                    messages.Add(new UserChatMessage(requestMessage.Content));
+                    break;
+                case "assistant":
+                    messages.Add(new AssistantChatMessage(requestMessage.Content));
+                    break;
+            }
         }
-        
-        messages.Add(new UserChatMessage($"My question is: {userInput}"));
+
+        // Add RAG context after the conversation history
+        if (ragSearchResults.Any())
+        {
+            var ragContext = "Here are relevant knowledge articles:\n\n";
+            for (int i = 0; i < ragSearchResults.Count; i++)
+            {
+                var result = ragSearchResults[i];
+                var sourceInfo = GetSourceInfo(result);
+                ragContext += $"## Knowledge article {i + 1} (Source: {sourceInfo})\n{result.SourceContent}\n\n";
+            }
+            ragContext += "Please use this information to answer the user's question and cite your sources.";
+            
+            messages.Add(new SystemChatMessage(ragContext));
+        }
 
         var options = new ChatCompletionOptions()
         {
@@ -124,23 +150,17 @@ public class AzureChatController : ControllerBase
         return "Unknown source";
     }
 
-    private string ExtractUserMessage(List<AzureChatMessage> messages)
+    private IActionResult CreateChatCompletionResponse(string ragResponse, OpenAIService openAIService, List<OpenAI.Chat.ChatMessage> allMessages)
     {
-        // Find the last user message (most recent user input)
-        var userMessage = messages.LastOrDefault(m => m.Role == "user");
-        return userMessage?.Content ?? string.Empty;
-    }
-
-    private IActionResult CreateChatCompletionResponse(string model, string userMessage, string ragResponse, OpenAIService openAIService)
-    {
-        var promptTokens = openAIService.GetTokens(userMessage);
+        // Calculate actual prompt tokens from all messages
+        var promptText = string.Join("\n", allMessages.Select(m => m.ToString()));
+        var promptTokens = openAIService.GetTokens(promptText);
         var completionTokens = openAIService.GetTokens(ragResponse);
 
         var response = new AzureChatCompletionResponse
         {
             Id = $"chatcmpl-{Guid.NewGuid()}",
             Created = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-            Model = model,
             Choices = new List<AzureChatChoice>
             {
                 new AzureChatChoice
@@ -151,8 +171,7 @@ public class AzureChatController : ControllerBase
                         Role = "assistant",
                         Content = ragResponse
                     },
-                    FinishReason = "stop",
-                    Logprobs = null
+                    FinishReason = "stop"
                 }
             },
             Usage = new AzureUsage
@@ -166,7 +185,7 @@ public class AzureChatController : ControllerBase
         return Ok(response);
     }
 
-    private async Task<IActionResult> CreateStreamingChatResponse(string model, string userMessage, List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options, OpenAIService openAIService)
+    private async Task<IActionResult> CreateStreamingChatResponse(List<OpenAI.Chat.ChatMessage> messages, ChatCompletionOptions options, OpenAIService openAIService)
     {
         Response.Headers["Content-Type"] = "text/event-stream";
         Response.Headers["Cache-Control"] = "no-cache";
@@ -187,7 +206,6 @@ public class AzureChatController : ControllerBase
                         {
                             Id = completionId,
                             Created = created,
-                            Model = model,
                             Choices = new List<AzureChatChoice>
                             {
                                 new AzureChatChoice
@@ -211,7 +229,6 @@ public class AzureChatController : ControllerBase
                     {
                         Id = completionId,
                         Created = created,
-                        Model = model,
                         Choices = new List<AzureChatChoice>
                         {
                             new AzureChatChoice

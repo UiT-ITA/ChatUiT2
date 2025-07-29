@@ -10,23 +10,14 @@ public class AzureChatCompletionResponse
     [JsonPropertyName("id")]
     public string Id { get; set; } = null!;
 
-    [JsonPropertyName("object")]
-    public string Object { get; set; } = "chat.completion";
-
     [JsonPropertyName("created")]
     public long Created { get; set; }
-
-    [JsonPropertyName("model")]
-    public string Model { get; set; } = null!;
 
     [JsonPropertyName("choices")]
     public List<AzureChatChoice> Choices { get; set; } = new();
 
     [JsonPropertyName("usage")]
     public AzureUsage Usage { get; set; } = new();
-
-    [JsonPropertyName("system_fingerprint")]
-    public string? SystemFingerprint { get; set; }
 }
 
 /// <summary>
@@ -42,9 +33,6 @@ public class AzureChatChoice
 
     [JsonPropertyName("finish_reason")]
     public string? FinishReason { get; set; }
-
-    [JsonPropertyName("logprobs")]
-    public object? Logprobs { get; set; }
 }
 
 /// <summary>
