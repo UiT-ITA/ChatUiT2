@@ -202,44 +202,62 @@ public class AzureChatController : ControllerBase
                 {
                     if (!string.IsNullOrEmpty(contentUpdate.Text))
                     {
-                        await WriteChatStreamChunk(new AzureChatCompletionResponse
+                        await WriteChatStreamChunk(new AzureStreamCompletionResponse
                         {
                             Id = completionId,
                             Created = created,
-                            Choices = new List<AzureChatChoice>
+                            Choices = new List<AzureChatDelta>
                             {
-                                new AzureChatChoice
-                                {
+                                new AzureChatDelta {
                                     Index = 0,
-                                    Message = new AzureChatMessage
+                                    Delta = new AzureStreamContent
                                     {
-                                        Role = "assistant",
                                         Content = contentUpdate.Text
-                                    },
-                                    FinishReason = null
+                                    }
+
                                 }
                             }
                         });
+                   
+
+                        //await WriteChatStreamChunk(new AzureChatCompletionResponse
+                        //{
+                        //    Id = completionId,
+                        //    Created = created,
+                        //    Choices = new List<AzureChatChoice>
+                        //    {
+                        //        new AzureChatChoice
+                        //        {
+                        //            Index = 0,
+                        //            Message = new AzureChatMessage
+                        //            {
+                        //                Role = "assistant",
+                        //                Content = contentUpdate.Text
+                        //            },
+                        //            FinishReason = null
+                        //        }
+                        //    }
+                        //});
                     }
                 }
 
                 if (update.FinishReason != null)
                 {
-                    await WriteChatStreamChunk(new AzureChatCompletionResponse
+                    await WriteChatStreamChunk(new AzureStreamCompletionResponse
                     {
                         Id = completionId,
                         Created = created,
-                        Choices = new List<AzureChatChoice>
+                        Choices = new List<AzureChatDelta>
                         {
-                            new AzureChatChoice
-                            {
+                            new AzureChatDelta {
                                 Index = 0,
-                                Message = new AzureChatMessage
+                                Delta = new AzureStreamContent
                                 {
-                                    Role = "assistant",
                                     Content = ""
                                 },
+
                                 FinishReason = "stop"
+
                             }
                         }
                     });
@@ -258,7 +276,7 @@ public class AzureChatController : ControllerBase
         }
     }
 
-    private async Task WriteChatStreamChunk(AzureChatCompletionResponse chunk)
+    private async Task WriteChatStreamChunk(AzureStreamCompletionResponse chunk)
     {
         var json = JsonSerializer.Serialize(chunk, new JsonSerializerOptions
         {
