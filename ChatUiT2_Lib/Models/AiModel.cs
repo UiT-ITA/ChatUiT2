@@ -1,5 +1,11 @@
-﻿using MudBlazor;
+﻿using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
+using iText.StyledXmlParser.Jsoup.Select;
+using MudBlazor;
 using OpenAI.Chat;
+using System.Diagnostics;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace ChatUiT2.Models;
 
@@ -72,7 +78,9 @@ public class  ModelCapabilities
     public bool Reasoning = false;
     public bool FunctionCalling = false;
 
+#pragma warning disable OPENAI001
     public ChatReasoningEffortLevel? ReasoningEffortLevel = null;
+#pragma warning restore OPENAI001
 }
 
 
@@ -97,6 +105,11 @@ public enum ModelName
     gpt_41_nano,
 
     gpt_45,
+
+    gpt_5,
+    gpt_5_chat,
+    gpt_5_mini,
+    gpt_5_nano,
 
     o1,
     o1_mini,
@@ -132,6 +145,7 @@ public static class ModelServiceExtensions
 
     public static ModelCapabilities GetCapabilities(this ModelName name)
     {
+#pragma warning disable OPENAI001
         return name switch
         {
             // OpenAI LLMs
@@ -151,6 +165,13 @@ public static class ModelServiceExtensions
             // GPT-4.5 models
             ModelName.gpt_45 => new ModelCapabilities { MaxContext = 128_000, MaxTokens = 16_384, Chat = true, Vision = true },
             // Reasoning models
+
+            // GPT-5 models
+            ModelName.gpt_5 => new ModelCapabilities { MaxContext = 400_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true },
+            ModelName.gpt_5_chat => new ModelCapabilities { MaxContext = 400_000, MaxTokens = 16_384, Chat = true, Vision = true, Reasoning = true },
+            ModelName.gpt_5_mini => new ModelCapabilities { MaxContext = 400_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true },
+            ModelName.gpt_5_nano => new ModelCapabilities { MaxContext = 400_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true },
+
             // o1 models
             ModelName.o1 => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.High },
             ModelName.o1_mini => new ModelCapabilities { MaxContext = 128_000, MaxTokens = 65_536, Chat = true },
@@ -177,6 +198,7 @@ public static class ModelServiceExtensions
 
             _ => throw new NotImplementedException(),
         };
+#pragma warning restore OPENAI001
     }
 }
 

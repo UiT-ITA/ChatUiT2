@@ -71,7 +71,13 @@ public class OpenAIService : IOpenAIService
 
         if (_model.Capabilities.ReasoningEffortLevel is not null)
         {
+#pragma warning disable OPENAI001
             options.ReasoningEffortLevel = _model.Capabilities.ReasoningEffortLevel;
+#pragma warning restore OPENAI001
+        }
+        else if (_model.ModelName == ModelName.gpt_5_mini)
+        {
+            options.MaxOutputTokenCount = _model.MaxTokens;
         }
         else
         {
