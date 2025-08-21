@@ -57,4 +57,5 @@ public interface IRagDatabaseService
     Task<List<string>> GetItemSourceSystemIdsByProject(RagProject ragProject);
     Task<List<RagTextEmbedding>> GetEmbeddingsByItemId(RagProject ragProject, string contentItemId);
     Task<List<EmbeddingEvent>> GetEmbeddingEventsByProjectAsync(RagProject ragProject);
+    Task<int> GetContentItemsCountByProject(RagProject ragProject);
 }

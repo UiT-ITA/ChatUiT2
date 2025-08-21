@@ -1327,6 +1327,34 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
         return result;
     }
+
+    /// <summary>
+    /// Gets the count of content items for a project without loading all the items
+    /// </summary>
+    /// <param name="ragProject">The RAG project</param>
+    /// <returns>The count of content items</returns>
+    public async Task<int> GetContentItemsCountByProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to count content items");
+        }
+
+        var itemContainer = await GetItemContainer(ragProject);
+        var query = new QueryDefinition("SELECT VALUE COUNT(1) FROM c WHERE c.RagProjectId = @projectId")
+            .WithParameter("@projectId", ragProject.Id);
+        
+        var iterator = itemContainer.GetItemQueryIterator<int>(query);
+        
+        if (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            return response.FirstOrDefault();
+        }
+        
+        return 0;
+    }
+
     public void Dispose()
     {
         _cosmosClient.Dispose();
