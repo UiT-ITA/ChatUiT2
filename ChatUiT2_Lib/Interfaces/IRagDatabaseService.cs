@@ -14,6 +14,12 @@ public interface IRagDatabaseService
     public Task DeleteRagProject(RagProject ragProject);
     public Task<RagProject?> HandleRagProjectUpload(IBrowserFile file);
     public Task<List<RagTextEmbedding>> GetEmbeddingsByProject(RagProject ragProject, bool withSourceItem = false);
+    public Task<List<RagTextEmbedding>> SearchEmbeddingsByProject(RagProject ragProject, 
+                                                                  int startIndex,
+                                                                  int numResults,
+                                                                  string textSearch = "",
+                                                                  string sourceId = "",
+                                                                  bool withSourceItem = false);
     public Task SaveRagTextEmbedding(RagProject ragProject, RagTextEmbedding embedding, bool forceCreateWithId = false);
     public Task DeleteRagEmbedding(RagProject ragProject, RagTextEmbedding embedding);
     public Task AddRagTextEmbedding(RagProject ragProject, 
@@ -29,7 +35,7 @@ public interface IRagDatabaseService
     public Task<int> GetNrOfContentItemsWithNoEmbeddings(RagProject ragProject);
     public Task DeleteAllEmbeddingEvents(RagProject ragProject);
     public Task DeleteEmbeddingsForProject(RagProject ragProject);
-    public Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent);
+    public Task<EmbeddingEvent> SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent);
     public Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId);    
     public Task<EmbeddingEvent?> GetEmbeddingEventByIdForProcessing(RagProject ragProject, string eventId, bool simulateEtagChanged = false);
     public Task<string?> GetExistingEmbeddingEventId(RagProject ragProject, string contentItemId, EmbeddingSourceType type);
@@ -51,4 +57,5 @@ public interface IRagDatabaseService
     Task<List<string>> GetItemSourceSystemIdsByProject(RagProject ragProject);
     Task<List<RagTextEmbedding>> GetEmbeddingsByItemId(RagProject ragProject, string contentItemId);
     Task<List<EmbeddingEvent>> GetEmbeddingEventsByProjectAsync(RagProject ragProject);
+    Task<int> GetContentItemsCountByProject(RagProject ragProject);
 }

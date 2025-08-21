@@ -70,7 +70,7 @@
             <MudTh></MudTh>
             <MudTh><MudTableSortLabel T="RagProjectViewClass" SortLabel="Navn_field">Navn</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="RagProjectViewClass" SortLabel="Beskrivelse_field">Beskrivelse</MudTableSortLabel></MudTh>
-            <MudTh>Antall sources</MudTh>
+            <MudTh><MudTableSortLabel T="RagProjectViewClass" SortLabel="ContentItemsCount_field">Antall sources</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd>
@@ -85,7 +85,7 @@
                 @context.RagProject.Description
             </MudTd>
             <MudTd>
-                @context.RagProject.ContentItems.Count
+                @context.ContentItemsCount
             </MudTd>
         </RowTemplate>
         <PagerContent>
@@ -130,9 +130,18 @@
         tableRagProjectList = [];
         var dbRagProjects = await ragDatabaseService.GetAllRagProjects();
         allRagProjectList = dbRagProjects.Select(x => new RagProjectViewClass(x)).ToList();
+        await SetContentItemCounts(allRagProjectList);
         tableRagProjectList = allRagProjectList.ToList();
         tableIsLoading = false;
         StateHasChanged();
+    }
+
+    private async Task SetContentItemCounts(List<RagProjectViewClass> projects)
+    {
+        foreach(var project in projects)
+        {
+            project.ContentItemsCount = await ragDatabaseService.GetContentItemsCountByProject(project.RagProject);
+        }
     }
 
     private void CheckIfEnterPressed(KeyboardEventArgs e)

@@ -244,7 +244,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         {
             item.Updated = _dateTimeProvider.OffsetUtcNow;
             item.RagProjectId = ragProject.Id ?? string.Empty;
-            // Lokkup dictionry to find out if item already exists
+            // Lookup dictionary to find out if item already exists
             var existingItem = string.IsNullOrEmpty(item.SourceSystemId) 
                 ? null 
                 : existingItemsDict.TryGetValue(item.SourceSystemId, out var foundItem) 
@@ -255,7 +255,9 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
                 item.Id = existingItem.Id;
                 item.Created = existingItem.Created;
                 var newItemHash = HashTools.GetSha256Hash(item.StringForContentHash);
-                if (existingItem.IsContentChanged(newItemHash))
+                if (existingItem.IsContentChanged(newItemHash)
+                    || existingItem.ViewUrl != item.ViewUrl
+                    || existingItem.ContentUrl != item.ContentUrl)
                 {
                     item.ContentNeedsEmbeddingUpdate = true;
                 }
@@ -492,6 +494,75 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
 
         return result;
+    }
+
+    public async Task<List<RagTextEmbedding>> SearchEmbeddingsByProject(RagProject ragProject,
+                                                                        int startIndex,
+                                                                        int numResults,
+                                                                        string textSearch,
+                                                                        string sourceId,
+                                                                        bool withSourceItem = false)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("Project id must be set to get embeddings");
+        }
+        var result = new List<RagTextEmbedding>();
+        var embeddingContainer = await GetEmbeddingContainer(ragProject);
+        // Build the query
+        var queryBuilder = new StringBuilder("SELECT * FROM c");
+        bool firstCondition = true;
+        if(!string.IsNullOrEmpty(sourceId))
+        {
+            if (!firstCondition)
+            {
+                queryBuilder.Append(" AND");
+            }
+            else
+            {
+                queryBuilder.Append(" WHERE ");
+            }
+            queryBuilder.Append(" c.SourceItemId = @sourceId");
+        }
+        if (!string.IsNullOrEmpty(textSearch))
+        {            
+            if (!firstCondition)
+            {
+                queryBuilder.Append(" AND");
+            } else
+            {
+                queryBuilder.Append(" WHERE ");
+            }
+            queryBuilder.Append(" c.Originaltext LIKE @textSearch");
+            firstCondition = false;
+        }
+        queryBuilder.Append(" OFFSET @startIndex LIMIT @numResults");
+        var queryDefinition = new QueryDefinition(queryBuilder.ToString())
+            .WithParameter("@textSearch", $"%{textSearch}%")
+            .WithParameter("@sourceId", sourceId)
+            .WithParameter("@startIndex", startIndex)
+            .WithParameter("@numResults", numResults);
+        var queryIterator = embeddingContainer.GetItemQueryIterator<RagTextEmbedding>(queryDefinition);
+        while (queryIterator.HasMoreResults)
+        {
+            var response = queryIterator.ReadNextAsync().Result;
+            result.AddRange(response);
+        }
+
+        if (withSourceItem)
+        {
+            foreach (var embedding in result)
+            {
+                var contentItem = await GetContentItemById(ragProject, embedding.SourceItemId);
+                if (contentItem != null)
+                {
+                    embedding.ContentItem = contentItem;
+                }
+            }
+        }
+
+        return result;
+
     }
 
     /// <summary>
@@ -836,7 +907,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
     }
 
-    public async Task SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
+    public async Task<EmbeddingEvent> SaveRagEmbeddingEvent(RagProject ragProject, EmbeddingEvent embeddingEvent)
     {
         var embeddingEventContainer = await GetEmbeddingEventContainer(ragProject);
         if (string.IsNullOrEmpty(embeddingEvent.Id))
@@ -850,6 +921,7 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
             embeddingEvent.Updated = _dateTimeProvider.OffsetUtcNow;
         }
         await embeddingEventContainer.UpsertItemAsync(embeddingEvent, new PartitionKey(embeddingEvent.RagProjectId));
+        return embeddingEvent;
     }
 
     public async Task<EmbeddingEvent?> GetEmbeddingEventById(RagProject ragProject, string eventId)
@@ -1255,6 +1327,34 @@ public class RagDatabaseServiceCosmosDbNoSql : IRagDatabaseService, IDisposable
         }
         return result;
     }
+
+    /// <summary>
+    /// Gets the count of content items for a project without loading all the items
+    /// </summary>
+    /// <param name="ragProject">The RAG project</param>
+    /// <returns>The count of content items</returns>
+    public async Task<int> GetContentItemsCountByProject(RagProject ragProject)
+    {
+        if (string.IsNullOrEmpty(ragProject.Id))
+        {
+            throw new ArgumentException("ragProject.Id must be set to count content items");
+        }
+
+        var itemContainer = await GetItemContainer(ragProject);
+        var query = new QueryDefinition("SELECT VALUE COUNT(1) FROM c WHERE c.RagProjectId = @projectId")
+            .WithParameter("@projectId", ragProject.Id);
+        
+        var iterator = itemContainer.GetItemQueryIterator<int>(query);
+        
+        if (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            return response.FirstOrDefault();
+        }
+        
+        return 0;
+    }
+
     public void Dispose()
     {
         _cosmosClient.Dispose();
