@@ -69,7 +69,7 @@ public class ChatController : ControllerBase
             var defaultModel = _settingsService.DefaultModel;
             var messages = new List<OpenAI.Chat.ChatMessage>();
             
-            messages.Add(new SystemChatMessage("Use the information in the knowledge articles the user provides to answer the user question. Answer in the same language as the user is asking in. IMPORTANT: Always cite your sources by referencing the specific knowledge article(s) you used in your response. Include the source information at the end of your answer with title and URL when available."));
+            messages.Add(new SystemChatMessage("Use the information in the knowledge articles the user provides to answer the user question. Answer in the same language as the user is asking in. IMPORTANT: Always cite your sources by referencing the specific knowledge article(s) you used in your response. Include the source information at the end of your answer with title and URL when available. If you cannot find the direct answer to the question in the provided documentation, you may provide your best answer to the question if you are certain that you know it, but **always** make it clear that you are answering based on general knowledge, and **not** based on documentation. Never let there be any doubt about what information is comming from the knowledge articles and what is based on your own general knowledge."));
 
             for (int i = 0; i < ragSearchResults.Count; i++)
             {
