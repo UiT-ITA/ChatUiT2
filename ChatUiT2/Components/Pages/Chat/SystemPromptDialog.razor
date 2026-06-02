@@ -15,7 +15,7 @@
 </MudDialog>
 @code {
     [Inject] private IUserService UserService { get; set; } = null!;
-    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
     [Parameter] public string PromptText { get; set; } = "";
     
     private void Submit()

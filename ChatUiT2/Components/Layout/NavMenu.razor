@@ -118,7 +118,7 @@
             </MudButton>
         }
         
-        @*@if (!Nav.Uri.EndsWith("/test"))
+        @if (!Nav.Uri.EndsWith("/test"))
         {
             <MudButton FullWidth Class="pa-2" Style="display:flex; justify-content:flex-start" OnClick="@(() => Nav.NavigateTo("/test"))" Color="Color.Tertiary">
                 <MudStack Row>
@@ -126,7 +126,7 @@
                     <MudText Typo="Typo.h5" Class="pt-1">Test area</MudText>
                 </MudStack>
             </MudButton>
-        } *@
+        }
 
 
 
@@ -214,7 +214,7 @@
     private async Task DeleteAll()
     {
         // Display confirmation dialog
-        var result = await DialogService.ShowMessageBox("Delete all userdata? This is not reversable!", "Are you sure?", yesText: "Yes", noText: "No");
+        var result = await DialogService.ShowMessageBoxAsync("Delete all userdata? This is not reversable!", "Are you sure?", yesText: "Yes", noText: "No");
         if (result != null && result == true)
         {
             await UserService.DeleteUser();

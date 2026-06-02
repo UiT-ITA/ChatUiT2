@@ -23,15 +23,17 @@
                 Style="width:54px; height: 54px; background-color:transparent;" 
                 InputStyle="background-color:transparent;"
                 Class="ma-0 pa-0">
-                    <ActivatorContent>
+                    <CustomContent Context="fileUpload">
                         @* <MudFab HtmlTag="label" Disabled="!UserService.EnableFileUpload"
                         StartIcon="@Icons.Material.Filled.AttachFile"
                         Style="width:54px; height: 54px; background-color:transparent;"
-                        DropShadow="false" Ripple 
+                        DropShadow="false" Ripple
 
                         /> *@
-                        <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Style="width: 54px; height: 54px;"/>
-                    </ActivatorContent>
+                        <MudIconButton Icon="@Icons.Material.Filled.AttachFile" Style="width: 54px; height: 54px;" OnClick="@(() => fileUpload.OpenFilePickerAsync())"/>
+                    </CustomContent>
+                    @* Empty: suppress MudFileUpload's default chip list; files are shown via FileView above *@
+                    <SelectedTemplate></SelectedTemplate>
                 </MudFileUpload>
             </MudTooltip>
         </div>
@@ -252,7 +254,7 @@
     {
         await Task.Delay(100);
         prompt = "";
-        await inputFieldRef.Clear();
+        await inputFieldRef.ClearAsync();
         chatFiles = new List<ChatFile>();
         await Task.Delay(100);
         StateHasChanged();

@@ -27,11 +27,13 @@
 
                     @* Attatch file *@
                     <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="UploadFiles" Accept="@acceptedFiles" Class="ma-0 pa-0">
-                        <ActivatorContent>
-                            <FunctionDisplay Icon="@Icons.Material.Filled.AttachFile" TooltipText="Upload supported files from computer">
+                        <CustomContent Context="fileUpload">
+                            <FunctionDisplay Icon="@Icons.Material.Filled.AttachFile" TooltipText="Upload supported files from computer" OnClick="@(() => fileUpload.OpenFilePickerAsync())">
                                 <MudText Typo="Typo.body2">Upload file</MudText>
                             </FunctionDisplay>
-                        </ActivatorContent>
+                        </CustomContent>
+                        @* Empty: suppress MudFileUpload's default chip list; files are shown via FileView above *@
+                        <SelectedTemplate></SelectedTemplate>
                     </MudFileUpload>
 
                     @* Save chat to cloud *@
@@ -181,7 +183,7 @@
     {
         var parameters = new DialogParameters { ["PromptText"] = UserService.CurrentChat.Settings.Prompt };
         var options = new DialogOptions { CloseButton = false, NoHeader = true, MaxWidth = MaxWidth.ExtraExtraLarge };
-        var dialog = DialogService.Show<SystemPromptDialog>("Edit system prompt", parameters, options);
+        var dialog = await DialogService.ShowAsync<SystemPromptDialog>("Edit system prompt", parameters, options);
         var result = await dialog.Result;
         if (result != null && !result.Canceled)
         {
@@ -327,7 +329,7 @@
     {
         prompt = ""; // Clear the prompt immediately
         StateHasChanged(); // Force UI update
-        await inputFieldRef.Clear();
+        await inputFieldRef.ClearAsync();
         inputFieldRef.ForceRender(false);
         chatFiles = new List<ChatFile>();
         StateHasChanged(); // Ensure UI is updated after clearing files

@@ -279,7 +279,7 @@
         drawerOpen = false;
     }
 
-    private void OpenChatSettings()
+    private async Task OpenChatSettings()
     {
         DialogOptions chatSettingsOptions = new DialogOptions
         {
@@ -289,10 +289,10 @@
             FullWidth = false,
             BackgroundClass = "bg-transparent",
         };
-        DialogService.Show<ChatSettingsView>(title: "Chat settings", options: chatSettingsOptions);
+        await DialogService.ShowAsync<ChatSettingsView>(title: "Chat settings", options: chatSettingsOptions);
     }
 
-    private void OpenPreferences()
+    private async Task OpenPreferences()
     {
         DialogOptions preferencesOptions = new DialogOptions
         {
@@ -302,7 +302,7 @@
             FullWidth = false,
             BackgroundClass = "bg-transparent",
         };
-        DialogService.Show<PreferencesView>(title: "Preferences", options: preferencesOptions);
+        await DialogService.ShowAsync<PreferencesView>(title: "Preferences", options: preferencesOptions);
     }
 
     private async void GetUsername()
@@ -361,24 +361,24 @@
     {
         Typography = new Typography
         {
-            Default = new Default
+            Default = new DefaultTypography
             {
                 FontFamily = ["Roboto", "sans-serif"],
                 FontSize = "0.875rem",
             },
-            H1 = new H1 { FontSize = "2rem" }, // Default is 6rem
-            H2 = new H2 { FontSize = "1.75rem" }, // Default is 3.75rem
-            H3 = new H3 { FontSize = "1.5rem" }, // Default is 3rem
-            H4 = new H4 { FontSize = "1.25rem" }, // Default is 2.125rem
-            H5 = new H5 { FontSize = "1rem" }, // Default is 1.5rem
-            H6 = new H6 { FontSize = "0.875rem" }, // Default is 1.25rem
-            Body1 = new Body1 { FontSize = "0.875rem" }, // Default is 1rem
-            Body2 = new Body2 { FontSize = "0.75rem" }, // Default is 0.875rem
-            Button = new Button { FontSize = "0.875rem" }, // Default is 0.875rem
-            Subtitle1 = new Subtitle1 { FontSize = "1rem" }, // Default is 1rem
-            Subtitle2 = new Subtitle2 { FontSize = "0.875rem" }, // Default is 0.875rem
-            Caption = new Caption { FontSize = "0.75rem" }, // Default is 0.75rem
-            Overline = new Overline { FontSize = "0.75rem" }, // Default is 0.75rem
+            H1 = new H1Typography { FontSize = "2rem" }, // Default is 6rem
+            H2 = new H2Typography { FontSize = "1.75rem" }, // Default is 3.75rem
+            H3 = new H3Typography { FontSize = "1.5rem" }, // Default is 3rem
+            H4 = new H4Typography { FontSize = "1.25rem" }, // Default is 2.125rem
+            H5 = new H5Typography { FontSize = "1rem" }, // Default is 1.5rem
+            H6 = new H6Typography { FontSize = "0.875rem" }, // Default is 1.25rem
+            Body1 = new Body1Typography { FontSize = "0.875rem" }, // Default is 1rem
+            Body2 = new Body2Typography { FontSize = "0.75rem" }, // Default is 0.875rem
+            Button = new ButtonTypography { FontSize = "0.875rem" }, // Default is 0.875rem
+            Subtitle1 = new Subtitle1Typography { FontSize = "1rem" }, // Default is 1rem
+            Subtitle2 = new Subtitle2Typography { FontSize = "0.875rem" }, // Default is 0.875rem
+            Caption = new CaptionTypography { FontSize = "0.75rem" }, // Default is 0.75rem
+            Overline = new OverlineTypography { FontSize = "0.75rem" }, // Default is 0.75rem
 
         },
         PaletteLight = new PaletteLight

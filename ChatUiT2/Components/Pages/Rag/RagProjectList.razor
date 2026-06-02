@@ -12,13 +12,14 @@
 
 <MudPaper Elevation="3" Class="mt-4 pa-4">
     <MudFileUpload T="IBrowserFile" FilesChanged="UploadFiles">
-        <ActivatorContent>
+        <CustomContent Context="fileUpload">
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.CloudUpload">
+                       StartIcon="@Icons.Material.Filled.CloudUpload"
+                       OnClick="@(() => fileUpload.OpenFilePickerAsync())">
                 Last opp ny Rag prosjekt fil
             </MudButton>
-        </ActivatorContent>
+        </CustomContent>
     </MudFileUpload>
     <br />
     <MudLink Href="/ragexamples/studieprogram.json">Eksempel fil studieprogram</MudLink>

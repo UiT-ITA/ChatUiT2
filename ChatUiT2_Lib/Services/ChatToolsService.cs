@@ -312,7 +312,7 @@ public class GenerateImage
         };
         var imageGeneration = await chatClient.GenerateImageAsync(
                 description,
-                new ImageGenerationOptions()
+                new OpenAI.Images.ImageGenerationOptions()
                 {
                     Style = style,
                     Size = imageSize,

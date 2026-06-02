@@ -14,6 +14,35 @@
 
 <MudTextField AutoGrow="true" Value="debug_text"  />
 
+@* ===== TEMP: file-dialog crash isolation (delete when done) ===== *@
+<MudDivider Class="my-6" />
+<MudText Typo="Typo.h6" Class="mb-2">File dialog crash isolation</MudText>
+<MudText Typo="Typo.body2" Class="mb-4">Open each picker, then close it any way (pick / Cancel / X). Note which row makes the app vanish. A line appears in the Log only if the handler actually ran.</MudText>
+
+<MudPaper Class="pa-3 mb-3" Outlined="true">
+    <b>1. Plain HTML &lt;input type="file"&gt;</b> — native, no JS interop, no MudBlazor
+    <div style="margin-top:8px;"><input type="file" @onchange="OnPlainChange" /></div>
+</MudPaper>
+
+<MudPaper Class="pa-3 mb-3" Outlined="true">
+    <b>2. Blazor &lt;InputFile&gt;</b> — framework component, native click, no OpenFilePickerAsync
+    <div style="margin-top:8px;"><InputFile OnChange="OnBlazorChange" /></div>
+</MudPaper>
+
+<MudPaper Class="pa-3 mb-3" Outlined="true">
+    <b>3. MudFileUpload + OpenFilePickerAsync</b> — our pattern (JS interop opens the dialog)
+    <MudFileUpload T="IReadOnlyList<IBrowserFile>" FilesChanged="OnMudChange">
+        <CustomContent Context="fileUpload">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-2" OnClick="@(() => fileUpload.OpenFilePickerAsync())">Open picker (OpenFilePickerAsync)</MudButton>
+        </CustomContent>
+    </MudFileUpload>
+</MudPaper>
+
+<MudPaper Class="pa-3" Style="background-color: var(--mud-palette-background-gray);">
+    <MudText Typo="Typo.subtitle2">Log:</MudText>
+    @foreach (var line in pickerLog) { <MudText Typo="Typo.body2">@line</MudText> }
+</MudPaper>
+
 @code {
 
 
@@ -31,4 +60,11 @@
         await Task.Delay(1);
         StateHasChanged();
     }
+
+    // ===== TEMP: file-dialog crash isolation (delete when done) =====
+    private List<string> pickerLog = new() { "ready" };
+    private void OnPlainChange(ChangeEventArgs e) => PLog("1. plain <input> change fired");
+    private void OnBlazorChange(InputFileChangeEventArgs e) => PLog($"2. Blazor InputFile change fired ({e.FileCount} file(s))");
+    private void OnMudChange(IReadOnlyList<IBrowserFile> files) => PLog($"3. MudFileUpload FilesChanged fired ({files?.Count ?? 0} file(s))");
+    private void PLog(string m) { pickerLog.Add($"{DateTime.Now:HH:mm:ss} {m}"); StateHasChanged(); }
 }
