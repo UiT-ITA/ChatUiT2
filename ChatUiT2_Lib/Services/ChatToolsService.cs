@@ -99,11 +99,10 @@ public class ChatToolsService : IChatToolsService
         return stringResult.ToString();
     }
 
-    public async Task<string> GetImageGeneration(string description, string? style = null, string? size = null)
+    public async Task<string> GetImageGeneration(string description, string? size = null)
     {
-        style ??= "natural";
         size ??= "square";
-        return await _generateImage.GenerateImageAsync(description, style, size);
+        return await _generateImage.GenerateImageAsync(description, size);
     }
 
     public async Task<string> GetWikipedia(string topic)
@@ -256,17 +255,7 @@ public class ChatToolsService : IChatToolsService
                     {
                         string description = descriptionElement.GetString()!;
 
-                        string style = ChatTools.ImageSizes[0];
-                        if (argumentsDocument.RootElement.TryGetProperty("style", out JsonElement styleElement))
-                        {
-                            style = styleElement.GetString()!;
-                            if (!ChatTools.ImageStyles.Contains(style))
-                            {
-                                return "Invalid style. Valid options are: natural, vivid.";
-                            }
-                        }
-
-                        string size = ChatTools.ImageSizes[0]; 
+                        string size = ChatTools.ImageSizes[0];
                         if (argumentsDocument.RootElement.TryGetProperty("size", out JsonElement sizeElement))
                         {
                             size = sizeElement.GetString()!;
@@ -276,15 +265,16 @@ public class ChatToolsService : IChatToolsService
                             }
                         }
 
-                        return await GetImageGeneration(description, style, size);
+                        return await GetImageGeneration(description, size);
                     }
                         default:
                     return "Sorry, I don't know how to handle this tool.";
             }
 
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Tool call failed for function {FunctionName}", toolCall.FunctionName);
             return "Sorry, I don't know how to handle this tool.";
         }
     }
@@ -296,32 +286,60 @@ public class GenerateImage
     {
         _settingsService = settingsService;
     }
-    public async Task<string> GenerateImageAsync(string description, string style, string size)
+    public async Task<string> GenerateImageAsync(string description, string size)
     {
 
-        AiModel model = _settingsService.GetModel("DALLE3");
+        AiModel model = _settingsService.ImageModel;
 
         AzureOpenAIClient openAIClient = new AzureOpenAIClient(new Uri(model.Endpoint), new AzureKeyCredential(model.ApiKey));
         ImageClient chatClient = openAIClient.GetImageClient(model.DeploymentName);
+#pragma warning disable OPENAI001 // gpt-image sizes are still flagged as evaluation-only in the SDK
         GeneratedImageSize imageSize = size switch
         {
             "square" => GeneratedImageSize.W1024xH1024,
-            "landscape" => GeneratedImageSize.W1792xH1024,
-            "portrait" => GeneratedImageSize.W1024xH1792,
+            "landscape" => GeneratedImageSize.W1536xH1024,
+            "portrait" => GeneratedImageSize.W1024xH1536,
             _ => GeneratedImageSize.W1024xH1024
         };
-        var imageGeneration = await chatClient.GenerateImageAsync(
-                description,
-                new OpenAI.Images.ImageGenerationOptions()
-                {
-                    Style = style,
-                    Size = imageSize,
-                    Quality = "hd",
-                }
-            );
+#pragma warning restore OPENAI001
 
-        string imageUri = imageGeneration.Value.ImageUri.ToString();
-        return imageUri;
+        // gpt-image-1.5 always returns the image as base64 (no temporary URL, unlike
+        // DALL-E 3) and does not support the "style" or "response_format" parameters,
+        // so we read the bytes and hand back a data URI that the UI can render directly.
+        try
+        {
+            var imageGeneration = await chatClient.GenerateImageAsync(
+                    description,
+                    new OpenAI.Images.ImageGenerationOptions()
+                    {
+                        Size = imageSize,
+                        // gpt-image-1.5 expects 'low'/'medium'/'high'/'auto'. Note the SDK's
+                        // GeneratedImageQuality.High serializes to the legacy DALL-E value 'hd',
+                        // which gpt-image rejects, so we pass the literal string instead.
+                        Quality = "high",
+                    }
+                );
+
+            GeneratedImage generatedImage = imageGeneration.Value;
+            if (generatedImage.ImageBytes != null)
+            {
+                string base64 = Convert.ToBase64String(generatedImage.ImageBytes.ToArray());
+                return $"data:image/png;base64,{base64}";
+            }
+            if (generatedImage.ImageUri != null)
+            {
+                return generatedImage.ImageUri.ToString();
+            }
+            return "Image generation failed: the model did not return an image.";
+        }
+        catch (Exception ex)
+        {
+            // Print the real error (deployment name, api-version, quota, etc.) to the
+            // terminal so we can see what went wrong. The model only gets a generic message.
+            Console.WriteLine($"[GenerateImage] FAILED for deployment '{model.DeploymentName}' at '{model.Endpoint}':");
+            Console.WriteLine(ex);
+            return "Image generation failed.";
+        }
     }
 }
 

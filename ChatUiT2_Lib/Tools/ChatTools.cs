@@ -74,12 +74,6 @@ public class ChatTools
             """)
     );
 
-    public static List<string> ImageStyles = new List<string>
-    {
-        "natural",
-        "vivid"
-    };
-
     public static List<string> ImageSizes = new List<string>
     {
         "square",
@@ -99,15 +93,10 @@ public class ChatTools
                         "type": "string",
                         "description": "Description of image to generate. Make it as descriptive as possible."
                     },
-                    "style": {
-                    "type": "string",
-                    "enum": [ {{string.Join(", ", ChatTools.ImageStyles.Select(style => $"\"{style}\""))}} ],
-                    "description": "Style of the image. Use vivid to create more hyper-real or cinematic images. Default is {{ImageStyles[0]}}."
-                    },
                     "size": {
                     "type": "string",
                     "enum": [ {{string.Join(", ", ChatTools.ImageSizes.Select(size => $"\"{size}\""))}} ],
-                    "description": "Aspect ratio of iamge: square(1024x1024), portrait(1792x1024) or landscape(1024x1792). Default is {{ImageSizes[0]}}."
+                    "description": "Aspect ratio of image: square(1024x1024), landscape(1536x1024) or portrait(1024x1536). Default is {{ImageSizes[0]}}."
                     }
                 },
                 "required": [ "description" ]

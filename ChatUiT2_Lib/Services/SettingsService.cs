@@ -112,7 +112,7 @@ public class SettingsService : ISettingsService
         DefaultModel = Models.FirstOrDefault(m => m.DisplayName == defaultModelName) ?? Models[0];
         NamingModel = Models.FirstOrDefault(m => m.DisplayName == namingModelName) ?? Models[0];
         EmbeddingModel = Models.FirstOrDefault(m => m.DisplayName == embeddingModelName) ?? Models[0];
-        ImageModel = Models.FirstOrDefault(m => m.DisplayName == embeddingModelName) ?? Models[0];
+        ImageModel = Models.FirstOrDefault(m => m.DisplayName == imageModelName) ?? Models[0];
     }
 
     public ModelName MapModelName(string modelName)
@@ -145,8 +145,7 @@ public class SettingsService : ISettingsService
             "o4-mini-low" => ModelName.o4_mini_low,
             "o4-mini-medium" => ModelName.o4_mini_medium,
             "o4-mini-high" => ModelName.o4_mini_high,
-            "dalle2" => ModelName.dall_e_2,
-            "dalle3" => ModelName.dall_e_3,
+            "gpt-image-1.5" => ModelName.gpt_image_1_5,
             "text-3-large" => ModelName.text_3_large,
             _ => throw new Exception($"Unknown model name {modelName}")
         };

@@ -127,8 +127,7 @@ public enum ModelName
     o4_mini_medium,
     o4_mini_high,
 
-    dall_e_2,
-    dall_e_3,
+    gpt_image_1_5,
     text_3_large,
 }
 
@@ -189,9 +188,8 @@ public static class ModelServiceExtensions
             ModelName.o4_mini_medium => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium },
             ModelName.o4_mini_high => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.High },
 
-            // OpenAI DALL-E
-            ModelName.dall_e_2 => new ModelCapabilities { Vision = true, ImageGeneration = true },
-            ModelName.dall_e_3 => new ModelCapabilities { Vision = false, ImageGeneration = true },
+            // OpenAI gpt-image
+            ModelName.gpt_image_1_5 => new ModelCapabilities { Vision = false, ImageGeneration = true },
 
             // Text embeddings
             ModelName.text_3_large => new ModelCapabilities { MaxContext = 50_000, MaxTokens = 50_000, Chat = false },

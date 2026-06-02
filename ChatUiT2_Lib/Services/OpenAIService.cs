@@ -10,6 +10,7 @@ using OpenAI.Embeddings;
 using System.ClientModel;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Tiktoken.Encodings;
 
 namespace ChatUiT2.Services;
@@ -185,7 +186,19 @@ public class OpenAIService : IOpenAIService
                         }
                         await _mediator.Publish(new StreamUpdatedEvent());
 
-                        ToolChatMessage toolMessage = new(toolCall.Id, await _chatToolsService.HandleToolCall(toolCall));
+                        string toolResult = await _chatToolsService.HandleToolCall(toolCall);
+
+                        // Generated images come back as a (potentially multi-MB) base64 data
+                        // URI. Render it straight to the user instead of feeding it back to the
+                        // model, which would explode the context and can't reproduce it anyway.
+                        if (toolCall.FunctionName == "GetImageGeneration" && toolResult.StartsWith("data:image"))
+                        {
+                            responseMessage.Content += $"\n\n![Generated image]({toolResult})\n\n";
+                            await _mediator.Publish(new StreamUpdatedEvent());
+                            toolResult = "The image was generated successfully and has been shown to the user.";
+                        }
+
+                        ToolChatMessage toolMessage = new(toolCall.Id, toolResult);
 
                         messages.Add(toolMessage);
 
@@ -265,7 +278,7 @@ public class OpenAIService : IOpenAIService
         {
             var message = chat.Messages[i];
             if (message.Status == ChatMessageStatus.Error) continue;
-            int messageTokens = GetTokens(message.Content);
+            int messageTokens = GetTokens(StripInlineImages(message.Content));
 
             int fileTokens = 0;
             foreach (var file in message.Files)
@@ -326,16 +339,27 @@ public class OpenAIService : IOpenAIService
     {
         if (message.Role == Models.ChatMessageRole.User)
         {
-            return new UserChatMessage(message.Content);
+            return new UserChatMessage(StripInlineImages(message.Content));
         }
         else if (message.Role == Models.ChatMessageRole.Assistant)
         {
-            return new AssistantChatMessage(message.Content);
+            return new AssistantChatMessage(StripInlineImages(message.Content));
         }
         else
         {
             throw new Exception("Unkown message role");
         }
+    }
+
+    private static readonly Regex _inlineDataImageRegex =
+        new(@"!\[[^\]]*\]\(data:[^)]*\)", RegexOptions.Compiled);
+
+    // Generated images are stored inline in the message content as a base64 data URI
+    // so the UI can render them. They must not be sent back to the model: the payload
+    // is huge and the model can't reproduce it. Replace them with a short placeholder.
+    private static string StripInlineImages(string content)
+    {
+        return _inlineDataImageRegex.Replace(content, "[generated image]");
     }
 
     public int GetTokens(WorkItemChat chat)
