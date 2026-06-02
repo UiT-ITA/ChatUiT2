@@ -11,9 +11,8 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using ChatUiT2.Models;
 using OpenAI.Chat;
 
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats.Png;
+using SkiaSharp;
+
 
 namespace ChatUiT2.Tools;
 
@@ -282,20 +281,31 @@ public static class FileTools
 
     public static byte[] ResizeImage(byte[] imageBytes, int width, int height, bool innerDimensions = true)
     {
-        using (var image = Image.Load(imageBytes))
+        using var original = SKBitmap.Decode(imageBytes)
+        ?? throw new ArgumentException("Invalid image file.");
+
+        SKBitmap result;
+        if (innerDimensions) // ResizeMode.Crop: fill box, center-crop overflow
         {
-            var resizeOptions = new ResizeOptions
-            {
-                Size = new Size(width, height),
-                Mode = innerDimensions ? ResizeMode.Crop : ResizeMode.Max
-            };
-            image.Mutate(x => x.Resize(resizeOptions));
-            using (var outputStream = new MemoryStream())
-            {
-                image.Save(outputStream, new PngEncoder());
-                return outputStream.ToArray();
-            }
+            float scale = Math.Max((float)width / original.Width, (float)height / original.Height);
+            int sw = (int)Math.Ceiling(original.Width * scale);
+            int sh = (int)Math.Ceiling(original.Height * scale);
+            using var scaled = original.Resize(new SKImageInfo(sw, sh), SKSamplingOptions.Default);
+            result = new SKBitmap(width, height);
+            scaled.ExtractSubset(result, SKRectI.Create((sw - width) / 2, (sh - height) / 2, width, height));
         }
+        else // ResizeMode.Max: fit within box, preserve aspect, no crop
+        {
+            float scale = Math.Min((float)width / original.Width, (float)height / original.Height);
+            int tw = Math.Max(1, (int)Math.Round(original.Width * scale));
+            int th = Math.Max(1, (int)Math.Round(original.Height * scale));
+            result = original.Resize(new SKImageInfo(tw, th), SKSamplingOptions.Default);
+        }
+
+        using (result)
+        using (var image = SKImage.FromBitmap(result))
+        using (var data = image.Encode(SKEncodedImageFormat.Png, 100))
+            return data.ToArray();
     }
 
     public static string ImageToBase64(byte[] imageBytes, bool resize = true)
@@ -305,25 +315,20 @@ public static class FileTools
         {
             var (width, height) = GetImageDimensions(imageBytes);
             if (width > 1024 || height > 1024)
-            {
                 imageToEncode = ResizeImage(imageBytes, 1024, 1024, innerDimensions: false);
-            }
         }
-        using (var image = Image.Load(imageToEncode))
-        using (var outputStream = new MemoryStream())
-        {
-            image.Save(outputStream, new PngEncoder());
-            var base64 = Convert.ToBase64String(outputStream.ToArray());
-            return $"data:image/png;base64,{base64}";
-        }
+        using var bitmap = SKBitmap.Decode(imageToEncode)
+            ?? throw new ArgumentException("Invalid image file.");
+        using var image = SKImage.FromBitmap(bitmap);
+        using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+        return $"data:image/png;base64,{Convert.ToBase64String(data.ToArray())}";
     }
 
     public static (int, int) GetImageDimensions(byte[] imageBytes)
     {
-        using (var image = Image.Load(imageBytes))
-        {
-            return (image.Width, image.Height);
-        }
+        using var codec = SKCodec.Create(new MemoryStream(imageBytes))
+        ?? throw new ArgumentException("Invalid image file.");
+        return (codec.Info.Width, codec.Info.Height);
     }
 
     public static OpenAI.Chat.ChatMessage? GetOpenAIMessage(this ChatFile file, bool includeImageParts = true, bool userMessage = true)

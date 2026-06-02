@@ -1,7 +1,4 @@
-﻿@using SixLabors.ImageSharp
-@using SixLabors.ImageSharp.Formats.Png
-@using SixLabors.ImageSharp.PixelFormats
-@using SixLabors.ImageSharp.Processing
+﻿@using SkiaSharp
 
 <div class="file-container ma-1">
     @if (FileTools.IsImage(File.FileType))
@@ -143,15 +140,23 @@
                 throw new ArgumentException("Invalid image file.");
             }
 
-            using (var ms = new MemoryStream(imageBytes))
-            using (var originalImage = Image.Load<Rgba32>(ms))
+            using (var originalImage = SKBitmap.Decode(imageBytes))
             {
+                if (originalImage == null)
+                {
+                    throw new ArgumentException("Invalid image file.");
+                }
+
                 var (cropX, cropY, cropSize) = GetCropParameters(originalImage);
 
-                using (var croppedImage = originalImage.Clone(ctx => ctx.Crop(new Rectangle(cropX, cropY, cropSize, cropSize))
-                                                                        .Resize(new ResizeOptions { Size = new SixLabors.ImageSharp.Size(64, 64), Mode = SixLabors.ImageSharp.Processing.ResizeMode.Max })))
+                using (var croppedImage = new SKBitmap(cropSize, cropSize))
                 {
-                    return ConvertImageToBase64(croppedImage);
+                    originalImage.ExtractSubset(croppedImage, SKRectI.Create(cropX, cropY, cropSize, cropSize));
+
+                    using (var thumbnail = croppedImage.Resize(new SKImageInfo(64, 64), SKSamplingOptions.Default))
+                    {
+                        return ConvertImageToBase64(thumbnail);
+                    }
                 }
             }
         }
@@ -161,7 +166,7 @@
         }
     }
 
-    private static (int cropX, int cropY, int cropSize) GetCropParameters(Image<Rgba32> image)
+    private static (int cropX, int cropY, int cropSize) GetCropParameters(SKBitmap image)
     {
         int originalWidth = image.Width;
         int originalHeight = image.Height;
@@ -171,12 +176,12 @@
         return (cropX, cropY, cropSize);
     }
 
-    private static string ConvertImageToBase64(Image<Rgba32> image)
+    private static string ConvertImageToBase64(SKBitmap image)
     {
-        using (var thumbnailStream = new MemoryStream())
+        using (var skImage = SKImage.FromBitmap(image))
+        using (var data = skImage.Encode(SKEncodedImageFormat.Png, 100))
         {
-            image.Save(thumbnailStream, new PngEncoder());
-            return Convert.ToBase64String(thumbnailStream.ToArray());
+            return Convert.ToBase64String(data.ToArray());
         }
     }
 
