@@ -65,7 +65,7 @@
                 </MudMenu>
                 @* <MudTextField T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" DisableUnderLine /> *@
             </MudItem>
-            <MudTextField Class="mx-4 mb-8 pt-0 mt-0" T="string" Lines="10" TextUpdateSuppression="false" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" Underline="false" />
+            <MudTextField Class="mx-4 mb-8 pt-0 mt-0" T="string" Lines="10" @bind-Text="UserService.CurrentChat.Settings.Prompt" DebounceInterval="500" Variant="Variant.Filled" Underline="false" />
 
         </MudGrid>
         <MudDivider />
