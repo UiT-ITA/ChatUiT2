@@ -2,7 +2,7 @@
 
 @if (UserService.UseMarkdown && DisableMarkdown == false)
 {
-    <MudMarkdown Value="@processedValue" CodeBlockTheme="@CodeBlockTheme" />
+    <MudMarkdown Value="@processedValue" Styling="@_styling" />
 }
 else
 {
@@ -33,9 +33,15 @@ else
 
     private string processedValue = "";
 
+    // MudBlazor.Markdown 9.x removed the CodeBlockTheme parameter; the code-block
+    // theme is now set via Styling.CodeBlock.Theme. Reuse a single instance and
+    // mutate it so we don't churn the parameter during streaming updates.
+    private readonly MudBlazor.MudMarkdownStyling _styling = new();
+
 
     override protected void OnParametersSet()
     {
+        _styling.CodeBlock.Theme = CodeBlockTheme;
         processedValue = ProcessMarkdown(Value);
     }
 
