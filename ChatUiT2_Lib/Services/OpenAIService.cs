@@ -7,6 +7,7 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using OpenAI.Chat;
 using OpenAI.Embeddings;
+using OpenAI.Responses;
 using System.ClientModel;
 using System.Text;
 using System.Text.Json;
@@ -27,6 +28,9 @@ public class OpenAIService : IOpenAIService
     private ChatClient _client { get; set; }
     private AzureOpenAIClient _azureOpenAiClient { get; set; }
     private EmbeddingClient _embeddingClient { get; set; }
+#pragma warning disable OPENAI001
+    private OpenAIResponseClient _responseClient { get; set; }
+#pragma warning restore OPENAI001
 
     public OpenAIService(AiModel model,
                          string username,
@@ -41,6 +45,9 @@ public class OpenAIService : IOpenAIService
         _azureOpenAiClient = new AzureOpenAIClient(new Uri(model.Endpoint), new ApiKeyCredential(model.ApiKey));
         _client = _azureOpenAiClient.GetChatClient(model.DeploymentName);
         _embeddingClient = _azureOpenAiClient.GetEmbeddingClient(model.DeploymentName);
+#pragma warning disable OPENAI001
+        _responseClient = _azureOpenAiClient.GetOpenAIResponseClient(model.DeploymentName);
+#pragma warning restore OPENAI001
         _model = model;
         _username = username;
         _logger = logger;
@@ -66,6 +73,14 @@ public class OpenAIService : IOpenAIService
 
     public async Task GetStreamingResponse(WorkItemChat chat, Models.ChatMessage responseMessage, bool allowImages = true)
     {
+        // GPT-5.4/5.5 reject function tools + reasoning_effort on the Chat Completions API,
+        // so they are served through the Responses API instead.
+        if (_model.Capabilities.UseResponsesApi)
+        {
+            await GetResponsesApiStreamingResponse(chat, responseMessage, allowImages);
+            return;
+        }
+
         var options = new ChatCompletionOptions();
 
         int maxTokens = _model.MaxTokens;
@@ -235,17 +250,247 @@ public class OpenAIService : IOpenAIService
     }
 
 
+#pragma warning disable OPENAI001 // Responses API types are still flagged as evaluation-only in the SDK
+    // Responses-API equivalent of GetStreamingResponse, used for models where the Chat
+    // Completions API rejects function tools combined with reasoning_effort (GPT-5.4/5.5).
+    private async Task GetResponsesApiStreamingResponse(WorkItemChat chat, Models.ChatMessage responseMessage, bool allowImages)
+    {
+        var options = new ResponseCreationOptions
+        {
+            // Keep requests stateless: the app stores and encrypts history itself and resends
+            // the full input each turn, so there is no need for server-side response storage.
+            StoredOutputEnabled = false,
+        };
+
+        if (_model.Capabilities.ReasoningEffortLevel is not null)
+        {
+            options.ReasoningOptions = new ResponseReasoningOptions
+            {
+                // Map the Chat-Completions effort value (incl. "none") onto the Responses enum.
+                ReasoningEffortLevel = new ResponseReasoningEffortLevel(_model.Capabilities.ReasoningEffortLevel.Value.ToString())
+            };
+        }
+
+        foreach (var tool in _model.RequiredTools)
+        {
+            options.Tools.Add(ToResponseTool(tool.Tool));
+        }
+        foreach (var tool in _model.OptionalTools)
+        {
+            if (tool.Selected)
+            {
+                options.Tools.Add(ToResponseTool(tool.Tool));
+            }
+        }
+
+        int maxTokens = _model.MaxTokens;
+        int availableTokens = _model.MaxContext - maxTokens;
+        List<ResponseItem> inputItems = GetResponseInputItems(chat, availableTokens, allowImages);
+
+        int inputTokens = GetTokens(chat);
+
+        await CompleteResponseStreamingAsync(inputItems, options, responseMessage);
+
+        int outputTokens = GetTokens(responseMessage.Content);
+
+        _logger.LogInformation("Type: {LogType}, User: {User}, Model: {Model} Input: {Input}, Output: {Output}",
+                               "ChatRequest",
+                               _username,
+                               _model.DeploymentName,
+                               inputTokens,
+                               outputTokens);
+    }
+
+    // The tools are defined once as Chat Completions ChatTool; convert each to the Responses
+    // equivalent using the same name/description/parameters schema.
+    private static ResponseTool ToResponseTool(ChatTool tool)
+    {
+        return ResponseTool.CreateFunctionTool(
+            functionName: tool.FunctionName,
+            functionDescription: tool.FunctionDescription,
+            functionParameters: tool.FunctionParameters);
+    }
+
+    private async Task CompleteResponseStreamingAsync(List<ResponseItem> inputItems, ResponseCreationOptions options, Models.ChatMessage responseMessage)
+    {
+        try
+        {
+            var response = _responseClient.CreateResponseStreamingAsync(inputItems, options);
+
+            List<FunctionCallResponseItem> functionCalls = new();
+            bool incomplete = false;
+
+            await foreach (StreamingResponseUpdate update in response)
+            {
+                if (update is StreamingResponseOutputTextDeltaUpdate textDelta)
+                {
+                    responseMessage.Content += textDelta.Delta;
+                    await _mediator.Publish(new StreamUpdatedEvent());
+                }
+                else if (update is StreamingResponseOutputItemDoneUpdate itemDone
+                         && itemDone.Item is FunctionCallResponseItem functionCall)
+                {
+                    functionCalls.Add(functionCall);
+                }
+                else if (update is StreamingResponseIncompleteUpdate)
+                {
+                    incomplete = true;
+                }
+            }
+
+            if (functionCalls.Count > 0)
+            {
+                await _mediator.Publish(new StreamUpdatedEvent());
+
+                foreach (var functionCall in functionCalls)
+                {
+                    // In stateless mode the model's own function call must be echoed back in the
+                    // next request alongside its output, or the API rejects the output item.
+                    inputItems.Add(ResponseItem.CreateFunctionCallItem(
+                        functionCall.CallId, functionCall.FunctionName, functionCall.FunctionArguments));
+
+                    if (responseMessage.Content == "" || responseMessage.Content[^1] == '\n')
+                    {
+                        responseMessage.Content += GetToolNotice(functionCall.FunctionName, functionCall.FunctionArguments);
+                    }
+                    else
+                    {
+                        responseMessage.Content += "\n" + GetToolNotice(functionCall.FunctionName, functionCall.FunctionArguments);
+                    }
+                    await _mediator.Publish(new StreamUpdatedEvent());
+
+                    string toolResult = await _chatToolsService.HandleToolCall(functionCall.FunctionName, functionCall.FunctionArguments);
+
+                    // Generated images come back as a base64 data URI; render it to the user and
+                    // feed only a short confirmation back to the model (same as the Chat path).
+                    if (functionCall.FunctionName == "GetImageGeneration" && toolResult.StartsWith("data:image"))
+                    {
+                        responseMessage.Content += $"\n\n![Generated image]({toolResult})\n\n";
+                        await _mediator.Publish(new StreamUpdatedEvent());
+                        toolResult = "The image was generated successfully and has been shown to the user.";
+                    }
+
+                    inputItems.Add(ResponseItem.CreateFunctionCallOutputItem(functionCall.CallId, toolResult));
+                }
+
+                await CompleteResponseStreamingAsync(inputItems, options, responseMessage);
+                return;
+            }
+
+            responseMessage.Status = incomplete ? ChatMessageStatus.TokenLimit : ChatMessageStatus.Done;
+        }
+        catch (ClientResultException ex) when (ex.Message.Contains("context_length_exceeded"))
+        {
+            responseMessage.Content = "❌ **Conversation Too Long**\n\nThe conversation has become too long for the AI model to process. Please start a new conversation or remove some earlier messages to continue.";
+            responseMessage.Status = ChatMessageStatus.Error;
+            _logger?.LogWarning("Context length exceeded for user {User} with model {Model}", _username, _model.DeploymentName);
+        }
+        catch (ClientResultException ex) when (ex.Status == 400)
+        {
+            responseMessage.Content = "❌ **Request Error**\n\nThere was an issue processing your request. Please try again or start a new conversation.";
+            responseMessage.Status = ChatMessageStatus.Error;
+            _logger?.LogError(ex, "Azure OpenAI Responses request failed with status 400 for user {User}", _username);
+        }
+        catch (Exception ex)
+        {
+            responseMessage.Content = "❌ **Unexpected Error**\n\nAn unexpected error occurred. Please try again later.";
+            responseMessage.Status = ChatMessageStatus.Error;
+            _logger?.LogError(ex, "Unexpected error in CompleteResponseStreamingAsync for user {User}", _username);
+        }
+    }
+
+    // Builds the Responses-API input items, mirroring GetOpenAiMessages: system prompt first,
+    // then the most recent messages that fit the token budget, in chronological order.
+    private List<ResponseItem> GetResponseInputItems(WorkItemChat chat, int maxTokens, bool allowImages = true)
+    {
+        List<ResponseItem> items = new();
+        int availableTokens = maxTokens;
+
+        items.Add(ResponseItem.CreateSystemMessageItem(chat.Settings.Prompt));
+
+        for (int i = chat.Messages.Count - 1; i >= 0; i--)
+        {
+            var message = chat.Messages[i];
+            if (message.Status == ChatMessageStatus.Error) continue;
+
+            int messageTokens = GetTokens(StripInlineImages(message.Content));
+            int fileTokens = 0;
+            foreach (var file in message.Files)
+            {
+                fileTokens += GetTokens(file);
+            }
+
+            if (messageTokens + fileTokens > availableTokens)
+            {
+                break;
+            }
+
+            if (message.Content == string.Empty && (!allowImages || message.Files.Count == 0))
+            {
+                continue;
+            }
+
+            ResponseItem item;
+            if (message.Role == Models.ChatMessageRole.User)
+            {
+                if (message.Files.Count > 0)
+                {
+                    var parts = new List<ResponseContentPart>
+                    {
+                        ResponseContentPart.CreateInputTextPart(
+                            string.IsNullOrEmpty(message.Content) ? "Here is a list of files:\n" : StripInlineImages(message.Content))
+                    };
+                    foreach (var file in message.Files)
+                    {
+                        parts.Add(ResponseContentPart.CreateInputTextPart("File: " + file.FileName + "\n"));
+                        foreach (var part in file.Parts)
+                        {
+                            if (part is TextFilePart textPart)
+                            {
+                                parts.Add(ResponseContentPart.CreateInputTextPart(textPart.Data));
+                            }
+                            else if (part is ImageFilePart imagePart && allowImages)
+                            {
+                                parts.Add(ResponseContentPart.CreateInputImagePart(new BinaryData(imagePart.Data), "image/png"));
+                            }
+                        }
+                    }
+                    item = ResponseItem.CreateUserMessageItem(parts);
+                }
+                else
+                {
+                    item = ResponseItem.CreateUserMessageItem(StripInlineImages(message.Content));
+                }
+            }
+            else
+            {
+                item = ResponseItem.CreateAssistantMessageItem(StripInlineImages(message.Content));
+            }
+
+            items.Insert(1, item);
+            availableTokens -= messageTokens;
+        }
+
+        return items;
+    }
+#pragma warning restore OPENAI001
+
+
 
     private string GetToolNotice(ChatToolCall toolCall)
+    {
+        return GetToolNotice(toolCall.FunctionName, toolCall.FunctionArguments);
+    }
+
+    private string GetToolNotice(string functionName, BinaryData functionArguments)
     {
         // Return string in the form "> 👀**functionName(argumentName1 = argument1, argumentname2 = argument2)**\n"
 
         StringBuilder notice = new();
         notice.Append("> 🔎**");
-        notice.Append(toolCall.FunctionName);
+        notice.Append(functionName);
         notice.Append("**(");
-        //notice.Append(System.Text.Encoding.UTF8.GetString(toolCall.FunctionArguments.ToArray()));
-        var arguments = JsonSerializer.Deserialize<Dictionary<string, object>>(toolCall.FunctionArguments.ToString());
+        var arguments = JsonSerializer.Deserialize<Dictionary<string, object>>(functionArguments.ToString());
         if (arguments != null)
         {
             bool isFirst = true;

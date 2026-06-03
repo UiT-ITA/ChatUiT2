@@ -9,5 +9,6 @@ public interface IChatToolsService
     Task<string> GetPersonalhandbok(string query);
     Task<string> GetWebpage(string url);
     Task<string> GetWikipedia(string topic);
-    Task<string> HandleToolCall(ChatToolCall toolCall);    
+    Task<string> HandleToolCall(ChatToolCall toolCall);
+    Task<string> HandleToolCall(string functionName, BinaryData functionArguments);
 }

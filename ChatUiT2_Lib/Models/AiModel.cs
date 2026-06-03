@@ -78,6 +78,11 @@ public class  ModelCapabilities
     public bool Reasoning = false;
     public bool FunctionCalling = false;
 
+    // GPT-5.4/5.5 reject function tools + reasoning_effort on the Chat Completions API
+    // (HTTP 400: "use /v1/responses instead"). Models with this flag are routed through the
+    // Responses API in OpenAIService so they can use tools and reasoning together.
+    public bool UseResponsesApi = false;
+
 #pragma warning disable OPENAI001
     public ChatReasoningEffortLevel? ReasoningEffortLevel = null;
 #pragma warning restore OPENAI001
@@ -110,6 +115,10 @@ public enum ModelName
     gpt_5_chat,
     gpt_5_mini,
     gpt_5_nano,
+
+    gpt_54_none,
+    gpt_54_medium,
+    gpt_55_medium,
 
     o1,
     o1_mini,
@@ -170,6 +179,16 @@ public static class ModelServiceExtensions
             ModelName.gpt_5_chat => new ModelCapabilities { MaxContext = 400_000, MaxTokens = 16_384, Chat = true, Vision = true, Reasoning = true },
             ModelName.gpt_5_mini => new ModelCapabilities { MaxContext = 400_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true },
             ModelName.gpt_5_nano => new ModelCapabilities { MaxContext = 400_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true },
+
+            // GPT-5.4 / GPT-5.5 models (per Azure OpenAI docs, 2026-04-24):
+            // total context 1,050,000 (input 922,000 / output 128,000). MaxContext is the
+            // total window; OpenAIService derives the input budget as MaxContext - MaxTokens.
+            // reasoning_effort for 5.4/5.5 supports none/low/medium/high/xhigh ("minimal" is
+            // not available on 5.1+). "none" has no predefined SDK value, so it is built from
+            // the public string constructor. These models do NOT accept temperature.
+            ModelName.gpt_54_none => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = false, ReasoningEffortLevel = new ChatReasoningEffortLevel("none"), UseResponsesApi = true },
+            ModelName.gpt_54_medium => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
+            ModelName.gpt_55_medium => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
 
             // o1 models
             ModelName.o1 => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.High },

@@ -63,8 +63,8 @@
             <MudHidden Breakpoint="Breakpoint.SmAndDown">
                 <MudTooltip Text="Selct maximum width of the chat" Color="Color.Primary" Arrow="true" Placement="Placement.Bottom">
                     <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Dense Class="appbar-hidden-item">
-                        <ActivatorContent>
-                            <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" Color="Color.Tertiary" />
+                        <ActivatorContent Context="menu">
+                            <MudIconButton Icon="@Icons.Material.Filled.WidthNormal" Color="Color.Tertiary" OnClick="@(() => menu.ToggleAsync())" />
                         </ActivatorContent>
                         <ChildContent>
                             <MudMenuItem OnClick="@(() => SetChatWidth(ChatWidth.Small))">
@@ -132,8 +132,8 @@
             @* User menu *@
             <MudTooltip Text="Menu" Color="Color.Primary" Arrow="true" Placement="Placement.Bottom">
                 <MudMenu AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight" Class="pr-2 appbar-hidden-item">
-                    <ActivatorContent>
-                        <MudButton Color="Color.Tertiary" Variant="Variant.Text" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                    <ActivatorContent Context="menu">
+                        <MudButton Color="Color.Tertiary" Variant="Variant.Text" OnClick="@(() => menu.ToggleAsync())" Style="width: 48px; height: 48px; min-width: 48px; min-height: 48px; padding: 0; display: flex; align-items: center; justify-content: center;">
                             <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Large"/>
                         </MudButton>
                     </ActivatorContent>

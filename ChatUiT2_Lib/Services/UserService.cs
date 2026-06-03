@@ -155,6 +155,9 @@ public class UserService : IUserService
         var newChat = new WorkItemChat();
         newChat.Persistant = User.Preferences.SaveHistory;
         newChat.Settings.Copy(User.Preferences.DefaultChatSettings);
+        // The model is always the system default from config (DefaultModel), never a saved
+        // user preference. ChatSettings.Copy deliberately leaves Model untouched.
+        newChat.Settings.Model = _settingsService.DefaultModel.DisplayName;
 
         SetWorkItem(newChat);
     }

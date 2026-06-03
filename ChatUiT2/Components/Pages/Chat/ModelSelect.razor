@@ -1,7 +1,7 @@
 ﻿
 <MudMenu AnchorOrigin="AnchorOrigin" TransformOrigin="TransformOrigin" Dense >
-    <ActivatorContent>
-        <MudButton Class="@Class" Style="height:48px;">
+    <ActivatorContent Context="menu">
+        <MudButton Class="@Class" Style="height:48px;" OnClick="@(() => menu.ToggleAsync())">
             <MudText Typo="Typo.h4" Color="Color">@(UserService.CurrentChat.Settings.Model)</MudText>
             <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Color="Color"/>
         </MudButton>

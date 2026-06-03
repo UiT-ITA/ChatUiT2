@@ -197,13 +197,20 @@ public class ChatToolsService : IChatToolsService
     }
 
 
-    public async Task<string> HandleToolCall(ChatToolCall toolCall)
+    // Chat Completions entry point. The Responses API path calls the (name, arguments)
+    // overload below directly, since its function calls are FunctionCallResponseItem, not ChatToolCall.
+    public Task<string> HandleToolCall(ChatToolCall toolCall)
+    {
+        return HandleToolCall(toolCall.FunctionName, toolCall.FunctionArguments);
+    }
+
+    public async Task<string> HandleToolCall(string functionName, BinaryData functionArguments)
     {
         try
         {
-            using JsonDocument argumentsDocument = JsonDocument.Parse(toolCall.FunctionArguments);
-            _logger.LogInformation($"Handling tool call for function: {toolCall.FunctionName}");
-            switch (toolCall.FunctionName)
+            using JsonDocument argumentsDocument = JsonDocument.Parse(functionArguments);
+            _logger.LogInformation($"Handling tool call for function: {functionName}");
+            switch (functionName)
             {
                 case "getTopdesk":
                     if (!argumentsDocument.RootElement.TryGetProperty("query", out JsonElement locationElement))
@@ -246,7 +253,7 @@ public class ChatToolsService : IChatToolsService
                         return await GetWebpage(urlElement.GetString()!);
                     }
                 case "GetImageGeneration":
-                    _logger.LogInformation($"Handling tool call for function: {toolCall.FunctionName}");
+                    _logger.LogInformation($"Handling tool call for function: {functionName}");
                     if (!argumentsDocument.RootElement.TryGetProperty("description", out JsonElement descriptionElement))
                     {
                         return "This tool needs a valid image description";
@@ -274,7 +281,7 @@ public class ChatToolsService : IChatToolsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Tool call failed for function {FunctionName}", toolCall.FunctionName);
+            _logger.LogError(ex, "Tool call failed for function {FunctionName}", functionName);
             return "Sorry, I don't know how to handle this tool.";
         }
     }

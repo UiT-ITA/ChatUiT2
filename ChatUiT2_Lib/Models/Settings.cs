@@ -19,7 +19,7 @@ public class Preferences
 
 public class ChatSettings
 {
-    public string Model { get; set; } = "GPT-4o";
+    public string Model { get; set; } = "GPT-5-Mini";
     public float Temperature { get; set; } = 0.2f;
     public string Prompt { get; set; } = "You are a helpful ai assistant, respond using markdown.";
     public int MaxTokens { get; set; } = 16_384;
@@ -27,7 +27,9 @@ public class ChatSettings
 
     public void Copy(ChatSettings settings)
     {
-        Model = settings.Model;
+        // Model is intentionally NOT copied: the model is not a saved user preference.
+        // A new chat always gets the system default model (see UserService.NewChat),
+        // so it must not be carried through DefaultChatSettings.
         Temperature = settings.Temperature;
         Prompt = settings.Prompt;
         MaxTokens = settings.MaxTokens;

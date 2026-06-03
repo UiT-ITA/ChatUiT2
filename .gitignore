@@ -363,3 +363,9 @@ MigrationBackup/
 FodyWeavers.xsd
 /MaintenanceFunctions/local.settings.json
 /mongodb-backups
+
+# MongoDB backups created by scripts/ (may contain user data)
+backups/
+
+# Local connection-string override for scripts/ (e.g. production)
+scripts/.env

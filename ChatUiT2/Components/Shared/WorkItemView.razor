@@ -15,8 +15,8 @@
             @if (IsSelected())
             {
                 <MudMenu Dense Size="Size.Small" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
-                    <ActivatorContent>
-                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto; height: 24px; width: 24px;" />
+                    <ActivatorContent Context="menu">
+                        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto; height: 24px; width: 24px;" OnClick="@(() => menu.ToggleAsync())" />
 
                     </ActivatorContent>
 
