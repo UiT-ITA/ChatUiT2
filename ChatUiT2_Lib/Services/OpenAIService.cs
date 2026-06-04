@@ -3,7 +3,7 @@ using ChatUiT2.Interfaces;
 using ChatUiT2.Models;
 using ChatUiT2.Models.Mediatr;
 using ChatUiT2.Tools;
-using MediatR;
+using ChatUiT2.Messaging;
 using Microsoft.Extensions.Logging;
 using OpenAI.Chat;
 using OpenAI.Embeddings;
@@ -18,7 +18,7 @@ namespace ChatUiT2.Services;
 
 public class OpenAIService : IOpenAIService
 {
-    private readonly IMediator _mediator;
+    private readonly IPublisher _mediator;
     private readonly IChatToolsService _chatToolsService;
 
     private AiModel _model { get; set; }
@@ -35,7 +35,7 @@ public class OpenAIService : IOpenAIService
     public OpenAIService(AiModel model,
                          string username,
                          ILogger logger,
-                         IMediator mediator,
+                         IPublisher mediator,
                          IChatToolsService chatToolsService)
     {
         if (model.DeploymentType != DeploymentType.AzureOpenAI)

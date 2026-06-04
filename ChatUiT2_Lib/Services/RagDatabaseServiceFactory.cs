@@ -1,7 +1,6 @@
 ﻿
 using ChatUiT2.Interfaces;
 using ChatUiT2.Services;
-using MediatR;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;

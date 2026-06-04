@@ -16,7 +16,6 @@ using System.Net;
 using System.Collections.ObjectModel;
 using Microsoft.Extensions.AI;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
-using MediatR;
 using ChatUiT2.Models.Mediatr;
 using ChatUiT2_Lib.Tools;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow.Schemas;

@@ -2,7 +2,7 @@
 using ChatUiT2.Models;
 using ChatUiT2.Models.Mediatr;
 using ChatUiT2.Tools;
-using MediatR;
+using ChatUiT2.Messaging;
 using Microsoft.Azure.Cosmos.Serialization.HybridRow;
 using Microsoft.Extensions.Logging;
 using OpenAI;
@@ -17,7 +17,7 @@ namespace ChatUiT2.Services;
 public class ChatService : IChatService
 {
     private readonly IUsernameService _usernameService;
-    private readonly IMediator _mediator;
+    private readonly IPublisher _mediator;
     private readonly IChatToolsService _chatToolsService;
 
     private ISettingsService _settingsService { get; set; }
@@ -26,7 +26,7 @@ public class ChatService : IChatService
     public ChatService(ISettingsService settingsService,
                        ILogger<ChatService> logger,
                        IUsernameService usernameService,
-                       IMediator mediator,
+                       IPublisher mediator,
                        IChatToolsService chatToolsService)
     {
         _settingsService = settingsService;

@@ -1,6 +1,8 @@
 using ChatUiT2.Components;
 using ChatUiT2.Services;
 using ChatUiT2.Interfaces;
+using ChatUiT2.Messaging;
+using ChatUiT2.Models.Mediatr;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.Identity.Web;
 using MudBlazor;
@@ -87,8 +89,12 @@ builder.Services.AddScoped<IRagGeneratorService, RagGeneratorService>();
 //builder.Services.AddScoped<IOpenAIService, OpenAIService>();
 builder.Services.AddTransient<IDateTimeProvider, DateTimeProvider>();
 
-// Mediatr for communication between services on for instance updateStream
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(ChatService).Assembly));
+// In-process publish/subscribe for communication between services (e.g. updateStream).
+// Replaces MediatR (notifications were the only feature used); scoped so handlers
+// resolve from the request/circuit scope, which breaks the UserService <-> ChatService cycle.
+builder.Services.AddScoped<IPublisher, Publisher>();
+builder.Services.AddScoped<INotificationHandler<UpdateWorkItemEvent>, UpdateWorkItemEventHandler>();
+builder.Services.AddScoped<INotificationHandler<StreamUpdatedEvent>, StreamUpdatedEventHandler>();
 
 // Transient services
 

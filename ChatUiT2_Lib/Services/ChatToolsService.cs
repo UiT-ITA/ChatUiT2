@@ -9,7 +9,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Text;
 using Tiktoken.Encodings;
-using MediatR;
+using ChatUiT2.Messaging;
 using ChatUiT2.Models.Mediatr;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -27,14 +27,14 @@ namespace ChatUiT2.Services;
 
 public class ChatToolsService : IChatToolsService
 {
-    private readonly IMediator _mediator;
+    private readonly IPublisher _mediator;
     private readonly IRagSearchService _ragSearchService;
     private readonly ISettingsService _settingsService;
     private readonly ILogger<ChatToolsService> _logger;
     private readonly IRagDatabaseService _ragDatabaseService;
     private readonly GenerateImage _generateImage;
 
-    public ChatToolsService(IMediator mediator,
+    public ChatToolsService(IPublisher mediator,
                             IRagSearchService ragSearchService,
                             ISettingsService settingsService,
                             ILogger<ChatToolsService> logger,

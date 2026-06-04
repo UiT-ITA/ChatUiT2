@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 using System.Text;
 using OpenAI.Chat;
-using MediatR;
+using ChatUiT2.Messaging;
 using ChatUiT2.Models.RagProject;
 using ChatUiT2.Services;
 using ChatUiT2.Models;
@@ -19,14 +19,14 @@ public class ChatController : ControllerBase
     private readonly IRagSearchService _ragSearchService;
     private readonly IRagDatabaseService _ragDatabaseService;
     private readonly ISettingsService _settingsService;
-    private readonly IMediator _mediator;
+    private readonly IPublisher _mediator;
     private readonly ILogger<ChatController> _logger;
 
     public ChatController(IChatToolsService chatToolsService, 
                          IRagSearchService ragSearchService,
                          IRagDatabaseService ragDatabaseService,
                          ISettingsService settingsService,
-                         IMediator mediator,
+                         IPublisher mediator,
                          ILogger<ChatController> logger)
     {
         _chatToolsService = chatToolsService;
