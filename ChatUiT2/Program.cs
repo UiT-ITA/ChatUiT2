@@ -13,6 +13,8 @@ using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Azure.Cosmos;
 using ChatUiT2.Middleware;
 
+// Ubrukelig kommentar
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
