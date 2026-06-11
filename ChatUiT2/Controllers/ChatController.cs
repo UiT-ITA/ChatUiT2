@@ -100,9 +100,14 @@ public class ChatController : ControllerBase
 
             var options = new ChatCompletionOptions()
             {
-                MaxOutputTokenCount = defaultModel.MaxTokens,
-                Temperature = 0.5f
+                MaxOutputTokenCount = defaultModel.MaxTokens
             };
+
+            // Reasoning models (e.g. gpt-5-mini) only support the default temperature
+            if (!defaultModel.Capabilities.Reasoning)
+            {
+                options.Temperature = 0.5f;
+            }
 
             var openAIService = new OpenAIService(defaultModel, "System", _logger, _mediator, _chatToolsService);
 
