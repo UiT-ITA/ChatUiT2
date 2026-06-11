@@ -9,6 +9,7 @@ public interface ISettingsService
     AiModel NamingModel { get; set; }
     AiModel EmbeddingModel { get; set; }
     AiModel ImageModel { get; set; }
+    AiModel ApiModel { get; set; }
 
     AiModel GetModel(string name);
     List<AiModel> GetModels(IUserService user);

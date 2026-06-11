@@ -86,7 +86,7 @@ public class AzureChatController : ControllerBase
         var embedding = await embeddingService.GetEmbedding(lastUserMessage.Content);
         var ragSearchResults = await _ragSearchService.DoGenericRagSearch(ragProject, embedding, 3, 0.6d);
 
-        var defaultModel = _settingsService.DefaultModel;
+        var defaultModel = _settingsService.ApiModel;
         var messages = new List<OpenAI.Chat.ChatMessage>();
 
         // Convert all request messages to OpenAI format

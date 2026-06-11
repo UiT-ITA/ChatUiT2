@@ -17,6 +17,7 @@ public class SettingsService : ISettingsService
     public AiModel NamingModel { get; set; } = null!;
     public AiModel EmbeddingModel { get; set; } = null!;
     public AiModel ImageModel { get; set; } = null!;
+    public AiModel ApiModel { get; set; } = null!;
 
     private readonly IConfiguration _configuration;
 
@@ -108,11 +109,13 @@ public class SettingsService : ISettingsService
         string? namingModelName = _configuration["NamingModel"];
         string? embeddingModelName = _configuration["EmbeddingModel"];
         string? imageModelName = _configuration["ImageModel"];
+        string? apiModelName = _configuration["ApiModel"];
 
         DefaultModel = Models.FirstOrDefault(m => m.DisplayName == defaultModelName) ?? Models[0];
         NamingModel = Models.FirstOrDefault(m => m.DisplayName == namingModelName) ?? Models[0];
         EmbeddingModel = Models.FirstOrDefault(m => m.DisplayName == embeddingModelName) ?? Models[0];
         ImageModel = Models.FirstOrDefault(m => m.DisplayName == imageModelName) ?? Models[0];
+        ApiModel = Models.FirstOrDefault(m => m.DisplayName == apiModelName) ?? DefaultModel;
     }
 
     public ModelName MapModelName(string modelName)
