@@ -98,14 +98,13 @@ public class ChatController : ControllerBase
             
             messages.Add(new UserChatMessage($"My question is {userMessage.Content}"));
 
-            var options = new ChatCompletionOptions()
-            {
-                MaxOutputTokenCount = defaultModel.MaxTokens
-            };
+            var options = new ChatCompletionOptions();
 
-            // Reasoning models (e.g. gpt-5-mini) only support the default temperature
+            // Reasoning models (e.g. gpt-5-mini) only support the default temperature, and
+            // reject the legacy max_tokens parameter the SDK sends for MaxOutputTokenCount
             if (!defaultModel.Capabilities.Reasoning)
             {
+                options.MaxOutputTokenCount = defaultModel.MaxTokens;
                 options.Temperature = 0.5f;
             }
 

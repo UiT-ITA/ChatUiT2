@@ -121,14 +121,13 @@ public class AzureChatController : ControllerBase
             messages.Add(new SystemChatMessage(ragContext));
         }
 
-        var options = new ChatCompletionOptions()
-        {
-            MaxOutputTokenCount = maxTokens ?? defaultModel.MaxTokens
-        };
+        var options = new ChatCompletionOptions();
 
-        // Reasoning models (e.g. gpt-5-mini) only support the default temperature
+        // Reasoning models (e.g. gpt-5-mini) only support the default temperature, and
+        // reject the legacy max_tokens parameter the SDK sends for MaxOutputTokenCount
         if (!defaultModel.Capabilities.Reasoning)
         {
+            options.MaxOutputTokenCount = maxTokens ?? defaultModel.MaxTokens;
             options.Temperature = 0.5f;
         }
 
