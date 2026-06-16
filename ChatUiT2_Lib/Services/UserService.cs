@@ -286,6 +286,20 @@ public class UserService : IUserService
 
     public async Task DeleteWorkItem(IWorkItem workItem)
     {
+        // Attempt the database delete BEFORE mutating local UI state, so that if the
+        // delete fails the sidebar still reflects what's actually in the database.
+        if (workItem.Persistant)
+        {
+            try
+            {
+                await _databaseService.DeleteWorkItem(User, workItem);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete work item {WorkItemId} for user {Username}", workItem.Id, User.Username);
+                throw;
+            }
+        }
 
         if (CurrentWorkItem == workItem)
         {
@@ -297,18 +311,20 @@ public class UserService : IUserService
             User.Chats.Remove((WorkItemChat)workItem);
         }
 
-        if (!workItem.Persistant)
-        {
-            return;
-        }
-
-        await _databaseService.DeleteWorkItem(User, workItem);
         _updateService.Update(UpdateType.Global);
     }
 
     public async Task DeleteUser()
     {
-        await _databaseService.DeleteUser(User.Username);
+        try
+        {
+            await _databaseService.DeleteUser(User.Username);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete all data for user {Username}", User.Username);
+            throw;
+        }
         User = new User();
         await LoadUser();
         _updateService.Update(UpdateType.All);

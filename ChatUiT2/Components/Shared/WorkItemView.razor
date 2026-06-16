@@ -41,7 +41,7 @@
                                 }
                             </MudStack>
                         </MudMenuItem>    
-                        <MudMenuItem Style="height:28px" OnClick="@(() => UserService.DeleteWorkItem(workItem))">
+                        <MudMenuItem Style="height:28px" OnClick="DeleteWorkItem">
                             <MudStack Row>
                                 <MudIcon Icon="@Icons.Material.Filled.Delete" Size="Size.Small"/>
                                 <MudText Typo="Typo.body2">Delete</MudText>
@@ -84,6 +84,7 @@
     [Inject] private IUserService UserService { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     private string newName { get; set; } = string.Empty;
 
@@ -112,6 +113,18 @@
     private void SelectWorkItem()
     {
         UserService.SetWorkItem(workItem);
+    }
+
+    private async Task DeleteWorkItem()
+    {
+        try
+        {
+            await UserService.DeleteWorkItem(workItem);
+        }
+        catch (Exception)
+        {
+            Snackbar.Add("Kunne ikke slette samtalen. Prøv igjen senere.", Severity.Error);
+        }
     }
 
 

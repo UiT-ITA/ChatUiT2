@@ -2,6 +2,7 @@
 using ChatUiT2.Models;
 using ChatUiT2.Tools;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
@@ -17,6 +18,7 @@ public class DatabaseService : IDatabaseService
     private readonly IKeyVaultService _keyVaultService;
     private readonly IEncryptionService _encryptionService;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILogger<DatabaseService> _logger;
     //private IStorageService _storageService;
 
     // Collections
@@ -28,14 +30,16 @@ public class DatabaseService : IDatabaseService
     // Settings
     private readonly bool _useEncryption;
 
-    public DatabaseService(IConfiguration configuration, 
-                           IEncryptionService encryptionService, 
+    public DatabaseService(IConfiguration configuration,
+                           IEncryptionService encryptionService,
                            IKeyVaultService keyVaultService,
-                           IDateTimeProvider dateTimeProvider)
+                           IDateTimeProvider dateTimeProvider,
+                           ILogger<DatabaseService> logger)
     {
         _keyVaultService = keyVaultService;
         _encryptionService = encryptionService;
         this._dateTimeProvider = dateTimeProvider;
+        _logger = logger;
         //_storageService = storageService;
 
         var connectionString = configuration.GetConnectionString("MongoDb");
@@ -118,9 +122,36 @@ public class DatabaseService : IDatabaseService
     public async Task DeleteUser(string username)
     {
         var filter = Builders<BsonDocument>.Filter.Eq("Username", username);
-        await _userCollection.DeleteManyAsync(filter);
-        await _chatCollection.DeleteManyAsync(filter);
-        await _chatMessageCollection.DeleteManyAsync(filter);
+        // Delete documents one-by-one rather than with DeleteMany: a multi-document
+        // delete (limit:0) is incompatible with Cosmos DB's "Retryable Writes" feature
+        // and fails with error 72. Single-document deletes keyed by the shard key
+        // (Username) are limit:1 and work regardless of that account setting.
+        await DeleteByFilterOneByOne(_userCollection, filter, username);
+        await DeleteByFilterOneByOne(_chatCollection, filter, username);
+        await DeleteByFilterOneByOne(_chatMessageCollection, filter, username);
+    }
+
+    /// <summary>
+    /// Delete every document matching <paramref name="filter"/> with individual
+    /// single-document deletes (each scoped by _id + Username shard key). Used instead
+    /// of DeleteMany so deletes work on Cosmos accounts that have Retryable Writes
+    /// enabled, where multi-document writes (limit:0) are rejected with error 72.
+    /// </summary>
+    private async Task DeleteByFilterOneByOne(IMongoCollection<BsonDocument> collection,
+                                              FilterDefinition<BsonDocument> filter,
+                                              string username)
+    {
+        var projection = Builders<BsonDocument>.Projection.Include("_id");
+        var documents = await collection.Find(filter).Project(projection).ToListAsync();
+
+        foreach (var document in documents)
+        {
+            var deleteFilter = Builders<BsonDocument>.Filter.And(
+                Builders<BsonDocument>.Filter.Eq("_id", document["_id"]),
+                Builders<BsonDocument>.Filter.Eq("Username", username) // shard key
+            );
+            await collection.DeleteOneAsync(deleteFilter);
+        }
     }
 
     /// <summary>
@@ -345,7 +376,8 @@ public class DatabaseService : IDatabaseService
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Error deleting work item: " + ex.Message);
+            _logger.LogError(ex, "Error deleting work item {WorkItemId} for user {Username}", workItem.Id, user.Username);
+            throw;
         }
     }
 
@@ -656,9 +688,10 @@ public class DatabaseService : IDatabaseService
             Builders<BsonDocument>.Filter.Eq("Username", user.Username) // partition key
         );
 
-        var results = await _chatMessageCollection.DeleteManyAsync(msgFilter);
-        results = await _fileCollection.DeleteManyAsync(fileFilter);
-
+        // Delete one-by-one rather than with DeleteMany: multi-document deletes (limit:0)
+        // are rejected (error 72) on Cosmos accounts with Retryable Writes enabled.
+        await DeleteByFilterOneByOne(_chatMessageCollection, msgFilter, user.Username);
+        await DeleteByFilterOneByOne(_fileCollection, fileFilter, user.Username);
     }
 
 

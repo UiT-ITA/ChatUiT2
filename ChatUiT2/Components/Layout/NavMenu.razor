@@ -149,6 +149,7 @@
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private IUpdateService UpdateService { get; set; } = null!;
     [Inject] private LocalStorageService LocalStorageService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
 
     [Parameter] public EventCallback OnClose { get; set; }
 
@@ -217,7 +218,14 @@
         var result = await DialogService.ShowMessageBoxAsync("Delete all userdata? This is not reversable!", "Are you sure?", yesText: "Yes", noText: "No");
         if (result != null && result == true)
         {
-            await UserService.DeleteUser();
+            try
+            {
+                await UserService.DeleteUser();
+            }
+            catch (Exception)
+            {
+                Snackbar.Add("Kunne ikke slette brukerdata. Prøv igjen senere.", Severity.Error);
+            }
         }
     }
 }
