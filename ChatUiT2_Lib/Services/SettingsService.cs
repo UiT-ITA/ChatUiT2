@@ -79,6 +79,7 @@ public class SettingsService : ISettingsService
 
             AiModel aiModel = new AiModel
             {
+                Id = string.IsNullOrEmpty(model.Id) ? model.DisplayName : model.Id,
                 DisplayName = model.DisplayName,
                 Description = model.Description,
                 Icon = string.IsNullOrEmpty(model.Icon) ? Icons.Material.Filled.Build : MapIconName(model.Icon),
@@ -111,11 +112,11 @@ public class SettingsService : ISettingsService
         string? imageModelName = _configuration["ImageModel"];
         string? apiModelName = _configuration["ApiModel"];
 
-        DefaultModel = Models.FirstOrDefault(m => m.DisplayName == defaultModelName) ?? Models[0];
-        NamingModel = Models.FirstOrDefault(m => m.DisplayName == namingModelName) ?? Models[0];
-        EmbeddingModel = Models.FirstOrDefault(m => m.DisplayName == embeddingModelName) ?? Models[0];
-        ImageModel = Models.FirstOrDefault(m => m.DisplayName == imageModelName) ?? Models[0];
-        ApiModel = Models.FirstOrDefault(m => m.DisplayName == apiModelName) ?? DefaultModel;
+        DefaultModel = Models.FirstOrDefault(m => m.Id == defaultModelName) ?? Models[0];
+        NamingModel = Models.FirstOrDefault(m => m.Id == namingModelName) ?? Models[0];
+        EmbeddingModel = Models.FirstOrDefault(m => m.Id == embeddingModelName) ?? Models[0];
+        ImageModel = Models.FirstOrDefault(m => m.Id == imageModelName) ?? Models[0];
+        ApiModel = Models.FirstOrDefault(m => m.Id == apiModelName) ?? DefaultModel;
     }
 
     public ModelName MapModelName(string modelName)
@@ -139,6 +140,9 @@ public class SettingsService : ISettingsService
             "gpt-5.4-none" => ModelName.gpt_54_none,
             "gpt-5.4-medium" => ModelName.gpt_54_medium,
             "gpt-5.5-medium" => ModelName.gpt_55_medium,
+            "gpt-5.6-sol" => ModelName.gpt_56_sol,
+            "gpt-5.6-terra" => ModelName.gpt_56_terra,
+            "gpt-5.6-luna" => ModelName.gpt_56_luna,
             "o1" => ModelName.o1,
             "o1-mini" => ModelName.o1_mini,
             "o3" => ModelName.o3,
@@ -206,7 +210,7 @@ public class SettingsService : ISettingsService
 
     public AiModel GetModel(string name)
     {
-        return Models.FirstOrDefault(m => m.DisplayName == name) ?? DefaultModel;
+        return Models.FirstOrDefault(m => m.Id == name) ?? DefaultModel;
     }
 
     public List<AiModel> GetModels(IUserService user)

@@ -3,7 +3,7 @@ AnchorOrigin="Origin.TopLeft" TransformOrigin="Origin.BottomLeft">
 
     <ActivatorContent Context="menu">
         <MudStack Row Spacing="0" AlignItems="AlignItems.Center" Style="cursor: pointer;" @onclick="@(() => menu.ToggleAsync())">
-            <MudText Typo="Typo.body1" Class="px-0" Color="Color.Default">@UserService.CurrentChat.Settings.Model</MudText>
+            <MudText Typo="Typo.body1" Class="px-0" Color="Color.Default">@SettingsService.GetModel(UserService.CurrentChat.Settings.Model).DisplayName</MudText>
             <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Size="Size.Small" Color="Color.Default" />
         </MudStack>
     </ActivatorContent>
@@ -82,7 +82,7 @@ AnchorOrigin="Origin.TopLeft" TransformOrigin="Origin.BottomLeft">
 
     public void SelectAssistant(AiModel assistant)
     {
-        UserService.CurrentChat.Settings.Model = assistant.DisplayName;
+        UserService.CurrentChat.Settings.Model = assistant.Id;
 
         if (UserService.CurrentChat.Settings.MaxTokens > assistant.Capabilities.MaxTokens)
         {

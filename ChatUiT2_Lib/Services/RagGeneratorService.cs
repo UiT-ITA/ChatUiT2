@@ -89,7 +89,7 @@ public class RagGeneratorService : IRagGeneratorService
         chat.Settings = new ChatSettings()
         {
             MaxTokens = gpt4MiniModel.MaxTokens,
-            Model = gpt4MiniModel.DeploymentName,
+            Model = gpt4MiniModel.Id,
             Temperature = 0.5f
         };
         chat.Type = WorkItemType.Chat;

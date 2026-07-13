@@ -157,7 +157,7 @@ public class UserService : IUserService
         newChat.Settings.Copy(User.Preferences.DefaultChatSettings);
         // The model is always the system default from config (DefaultModel), never a saved
         // user preference. ChatSettings.Copy deliberately leaves Model untouched.
-        newChat.Settings.Model = _settingsService.DefaultModel.DisplayName;
+        newChat.Settings.Model = _settingsService.DefaultModel.Id;
 
         SetWorkItem(newChat);
     }

@@ -57,7 +57,35 @@ public class OpenAIService : IOpenAIService
 
     public async Task<string> GetResponse(WorkItemChat chat, bool allowFiles = false)
     {
-        var messages = GetOpenAiMessages(chat, _model.MaxContext - chat.Settings.MaxTokens, allowFiles);
+        int availableTokens = _model.MaxContext - chat.Settings.MaxTokens;
+
+        // GPT-5.4/5.5/5.6 reject the Chat Completions API for reasoning and must use the
+        // Responses API (same routing as GetStreamingResponse). This non-streaming path is
+        // used for short utility completions (e.g. chat naming, RAG helpers); no tools are
+        // added and no stream events are published, so it is safe when the mediator is null.
+        if (_model.Capabilities.UseResponsesApi)
+        {
+#pragma warning disable OPENAI001
+            var responseOptions = new ResponseCreationOptions
+            {
+                StoredOutputEnabled = false,
+            };
+
+            if (_model.Capabilities.ReasoningEffortLevel is not null)
+            {
+                responseOptions.ReasoningOptions = new ResponseReasoningOptions
+                {
+                    ReasoningEffortLevel = new ResponseReasoningEffortLevel(_model.Capabilities.ReasoningEffortLevel.Value.ToString())
+                };
+            }
+
+            List<ResponseItem> inputItems = GetResponseInputItems(chat, availableTokens, allowFiles);
+            ClientResult<OpenAIResponse> responseResult = await _responseClient.CreateResponseAsync(inputItems, responseOptions);
+#pragma warning restore OPENAI001
+            return responseResult.Value.GetOutputText() ?? string.Empty;
+        }
+
+        var messages = GetOpenAiMessages(chat, availableTokens, allowFiles);
 
         var options = new ChatCompletionOptions()
         {

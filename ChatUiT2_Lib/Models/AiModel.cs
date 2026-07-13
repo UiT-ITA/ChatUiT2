@@ -34,6 +34,10 @@ public class AzureOpenaiEndpoint : ModelEndpoint
 }
     public class AiModel
 {
+    // Unique, stable identifier used to select and persist the model.
+    // Independent of DisplayName (display-only) and ModelName (capability key).
+    public string Id { get; set; } = null!;
+
     // Displayed to user
     public string DisplayName { get; set; } = null!;
     public string Description { get; set; } = null!;
@@ -120,6 +124,10 @@ public enum ModelName
     gpt_54_medium,
     gpt_55_medium,
 
+    gpt_56_sol,
+    gpt_56_terra,
+    gpt_56_luna,
+
     o1,
     o1_mini,
 
@@ -190,6 +198,11 @@ public static class ModelServiceExtensions
             ModelName.gpt_54_medium => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
             ModelName.gpt_55_medium => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
 
+            ModelName.gpt_56_sol => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
+            ModelName.gpt_56_terra => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
+            ModelName.gpt_56_luna => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
+
+
             // o1 models
             ModelName.o1 => new ModelCapabilities { MaxContext = 200_000, MaxTokens = 100_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.High },
             ModelName.o1_mini => new ModelCapabilities { MaxContext = 128_000, MaxTokens = 65_536, Chat = true },
@@ -221,6 +234,8 @@ public static class ModelServiceExtensions
 
 public class ModelConfig
 {
+    // Unique selector key. If omitted, DisplayName is used as the Id.
+    public string? Id { get; set; }
     public string DisplayName { get; set; } = null!;
     public string Description { get; set; } = null!;
     public string? Icon { get; set; }

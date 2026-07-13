@@ -2,7 +2,7 @@
 <MudMenu AnchorOrigin="AnchorOrigin" TransformOrigin="TransformOrigin" Dense >
     <ActivatorContent Context="menu">
         <MudButton Class="@Class" Style="height:48px;" OnClick="@(() => menu.ToggleAsync())">
-            <MudText Typo="Typo.h4" Color="Color">@(UserService.CurrentChat.Settings.Model)</MudText>
+            <MudText Typo="Typo.h4" Color="Color">@(SettingsService.GetModel(UserService.CurrentChat.Settings.Model).DisplayName)</MudText>
             <MudIcon Icon="@Icons.Material.Filled.KeyboardArrowDown" Color="Color"/>
         </MudButton>
     </ActivatorContent>
@@ -16,7 +16,7 @@
                         <MudText Typo="Typo.h4" Class="m-0">@model.DisplayName</MudText>
                         <MudText Typo="Typo.body2" Class="m-0">@model.Description</MudText>
                     </div>
-                    @if (UserService.CurrentChat.Settings.Model == model.DisplayName)
+                    @if (UserService.CurrentChat.Settings.Model == model.Id)
                     {
                         <MudIcon Icon="@Icons.Material.Filled.Check" Class="ms-auto" Style="margin-top: auto; margin-bottom: auto;" />
                     }
@@ -82,7 +82,7 @@
 
     private void SelectModel(AiModel model)
     {
-        UserService.CurrentChat.Settings.Model = model.DisplayName;
+        UserService.CurrentChat.Settings.Model = model.Id;
 
         if (UserService.CurrentChat.Settings.MaxTokens > model.MaxTokens)
         {

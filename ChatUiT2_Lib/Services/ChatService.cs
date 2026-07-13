@@ -166,7 +166,7 @@ public class ChatService : IChatService
         {
             Settings = new ChatSettings
             {
-                Model = model.DisplayName,
+                Model = model.Id,
                 Prompt = namingPrompt,
                 MaxTokens = 20,
                 Temperature = 0.7f
