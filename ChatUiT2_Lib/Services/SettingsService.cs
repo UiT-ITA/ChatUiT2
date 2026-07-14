@@ -176,6 +176,9 @@ public class SettingsService : ISettingsService
             "HourglassBottom" => Icons.Material.Filled.HourglassBottom,
             "HourglassFull" => Icons.Material.Filled.HourglassFull,
             "Image" => Icons.Material.Filled.Image,
+            "History" => Icons.Material.Filled.History,
+            "MenuBook" => Icons.Material.Filled.MenuBook,
+            "Numbers" => Icons.Material.Filled.Numbers,
             _ => Icons.Material.Filled.QuestionMark
         };
     }
