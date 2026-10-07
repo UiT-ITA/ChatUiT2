@@ -72,23 +72,23 @@ public class LocalStorageService
 
 public class Conversation
 {
-    public string id { get; set; } // Matches "id"
-    public string name { get; set; } // Matches "name"
-    public List<Message> messages { get; set; } // Matches "messages"
-    public OldModel model { get; set; } // Matches "model"
-    public string prompt { get; set; } // Matches "prompt"
+    public string id { get; set; } = ""; // Matches "id"
+    public string name { get; set; } = ""; // Matches "name"
+    public List<Message> messages { get; set; } = new(); // Matches "messages"
+    public OldModel model { get; set; } = new(); // Matches "model"
+    public string prompt { get; set; } = ""; // Matches "prompt"
     public double temperature { get; set; } // Matches "temperature"
-    public string folderId { get; set; } // Matches "folderId"
+    public string folderId { get; set; } = ""; // Matches "folderId"
 }
 public class Message
 {
-    public string role { get; set; } // Matches "role"
-    public string content { get; set; } // Matches "content"
+    public string role { get; set; } = ""; // Matches "role"
+    public string content { get; set; } = ""; // Matches "content"
 }
 public class OldModel
 {
-    public string id { get; set; } // Matches "id"
-    public string name { get; set; } // Matches "name"
+    public string id { get; set; } = ""; // Matches "id"
+    public string name { get; set; } = ""; // Matches "name"
     public int maxLength { get; set; } // Matches "maxLength"
     public int tokenLimit { get; set; } // Matches "tokenLimit"
 }

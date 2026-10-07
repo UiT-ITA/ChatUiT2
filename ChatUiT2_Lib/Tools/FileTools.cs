@@ -205,11 +205,10 @@ public static class FileTools
         using (MemoryStream memoryStream = new MemoryStream(data))
         using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(memoryStream, false))
         {
-            if (wordDoc.MainDocumentPart == null || wordDoc.MainDocumentPart.Document.Body == null)
+            if (wordDoc.MainDocumentPart?.Document?.Body is not Body body)
             {
                 return content;
             }
-            Body body = wordDoc.MainDocumentPart.Document.Body;
             foreach (var element in body.Elements())
             {
                 if (element is Paragraph paragraph)

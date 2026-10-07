@@ -461,7 +461,7 @@ public class UserService : IUserService
         {
             await _jsRuntime.InvokeVoidAsync("forceScroll", "chatContainer");
         }
-        catch (Exception ex)
+        catch (Exception)
         {
         }
     }
