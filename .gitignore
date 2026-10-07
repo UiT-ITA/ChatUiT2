@@ -369,3 +369,5 @@ backups/
 
 # Local connection-string override for scripts/ (e.g. production)
 scripts/.env
+
+.DS_Store

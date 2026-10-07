@@ -143,6 +143,8 @@ public class SettingsService : ISettingsService
             "gpt-5.6-sol" => ModelName.gpt_56_sol,
             "gpt-5.6-terra" => ModelName.gpt_56_terra,
             "gpt-5.6-luna" => ModelName.gpt_56_luna,
+            "deepseek-v4-flash" => ModelName.deepseek_v4_flash,
+            "mistral-large-3" => ModelName.mistral_large_3,
             "o1" => ModelName.o1,
             "o1-mini" => ModelName.o1_mini,
             "o3" => ModelName.o3,

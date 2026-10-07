@@ -128,6 +128,10 @@ public enum ModelName
     gpt_56_terra,
     gpt_56_luna,
 
+    deepseek_v4_flash,
+
+    mistral_large_3,
+
     o1,
     o1_mini,
 
@@ -201,6 +205,12 @@ public static class ModelServiceExtensions
             ModelName.gpt_56_sol => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
             ModelName.gpt_56_terra => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
             ModelName.gpt_56_luna => new ModelCapabilities { MaxContext = 1_050_000, MaxTokens = 128_000, Chat = true, Vision = true, Reasoning = true, ReasoningEffortLevel = ChatReasoningEffortLevel.Medium, UseResponsesApi = true },
+
+            // DeepSeek models (Azure AI Foundry, Chat Completions API)
+            ModelName.deepseek_v4_flash => new ModelCapabilities { MaxContext = 1_000_000, MaxTokens = 384_000, Chat = true, Vision = false },
+
+            // Mistral models (Azure AI Foundry, Chat Completions API)
+            ModelName.mistral_large_3 => new ModelCapabilities { MaxContext = 128_000, MaxTokens = 4_096, Chat = true, Vision = true },
 
 
             // o1 models
